@@ -1,0 +1,72 @@
+
+TEST: decode a BER-TLV encoded string
+encoded input:  6238820278218410a0000000871002ffffffff8907090000a509800171830400018d088a01058c0100c60f90017083010183018183010a83010b
+decoded without description:
+    BTLV    DEBUG unknown IE(tag=0x62(0x02), cls=1, constr=true, len=56): 820278218410a0000000871002ffffffff8907090000a509800171830400018d088a01058c0100c60f90017083010183018183010a83010b
+    BTLV    DEBUG   unknown IE(tag=0x82(0x02), cls=2, constr=false, len=2): 7821
+    BTLV    DEBUG   unknown IE(tag=0x84(0x04), cls=2, constr=false, len=16): a0000000871002ffffffff8907090000
+    BTLV    DEBUG   unknown IE(tag=0xa5(0x05), cls=2, constr=true, len=9): 800171830400018d08
+    BTLV    DEBUG     unknown IE(tag=0x80(0x00), cls=2, constr=false, len=1): 71
+    BTLV    DEBUG     unknown IE(tag=0x83(0x03), cls=2, constr=false, len=4): 00018d08
+    BTLV    DEBUG   unknown IE(tag=0x8a(0x0a), cls=2, constr=false, len=1): 05
+    BTLV    DEBUG   unknown IE(tag=0x8c(0x0c), cls=2, constr=false, len=1): 00
+    BTLV    DEBUG   unknown IE(tag=0xc6(0x06), cls=3, constr=false, len=15): 90017083010183018183010a83010b
+decoded with complete description:
+    BTLV    DEBUG envelope(tag=0x62(0x02), cls=1, constr=true, len=56): 820278218410a0000000871002ffffffff8907090000a509800171830400018d088a01058c0100c60f90017083010183018183010a83010b
+    BTLV    DEBUG   one(tag=0x82(0x02), cls=2, constr=false, len=2): 7821
+    BTLV    DEBUG   two(tag=0x84(0x04), cls=2, constr=false, len=16): a0000000871002ffffffff8907090000
+    BTLV    DEBUG   nested-envelope(tag=0xa5(0x05), cls=2, constr=true, len=9): 800171830400018d08
+    BTLV    DEBUG     three(tag=0x80(0x00), cls=2, constr=false, len=1): 71
+    BTLV    DEBUG     four(tag=0x83(0x03), cls=2, constr=false, len=4): 00018d08
+    BTLV    DEBUG   five(tag=0x8a(0x0a), cls=2, constr=false, len=1): 05
+    BTLV    DEBUG   six(tag=0x8c(0x0c), cls=2, constr=false, len=1): 00
+    BTLV    DEBUG   eight(tag=0xc6(0x06), cls=3, constr=false, len=15): 90017083010183018183010a83010b
+decoded with non fitting description:
+    BTLV    DEBUG envelope(tag=0x62(0x02), cls=1, constr=true, len=56): 820278218410a0000000871002ffffffff8907090000a509800171830400018d088a01058c0100c60f90017083010183018183010a83010b
+    BTLV    DEBUG   one(tag=0x82(0x02), cls=2, constr=false, len=2): 7821
+    BTLV    DEBUG   two(tag=0x84(0x04), cls=2, constr=false, len=16): a0000000871002ffffffff8907090000
+    BTLV    DEBUG   nested-envelope(tag=0xa5(0x05), cls=2, constr=true, len=9): 800171830400018d08
+    BTLV    DEBUG     three(tag=0x80(0x00), cls=2, constr=false, len=1): 71
+    BTLV    DEBUG     unknown IE(tag=0x83(0x03), cls=2, constr=false, len=4): 00018d08
+    BTLV    DEBUG   five(tag=0x8a(0x0a), cls=2, constr=false, len=1): 05
+    BTLV    DEBUG   six(tag=0x8c(0x0c), cls=2, constr=false, len=1): 00
+    BTLV    DEBUG   unknown IE(tag=0xc6(0x06), cls=3, constr=false, len=15): 90017083010183018183010a83010b
+
+TEST: encode a binary BER-TLV encoded string from decoded list
+BER-TLV data to be encoded:
+    BTLV    DEBUG   envelope(tag=0x62(0x02), cls=1, constr=true, len=0)  
+    BTLV    DEBUG     one(tag=0x82(0x02), cls=2, constr=false, len=2): 7821
+    BTLV    DEBUG     two(tag=0x84(0x04), cls=2, constr=false, len=16): a0000000871002ffffffff8907090000
+    BTLV    DEBUG     nested-envelope(tag=0xa5(0x05), cls=2, constr=true, len=0)  
+    BTLV    DEBUG       three(tag=0x80(0x00), cls=2, constr=false, len=1): 71
+    BTLV    DEBUG       four(tag=0x83(0x03), cls=2, constr=false, len=4): 00018d08
+    BTLV    DEBUG     five(tag=0x8a(0x0a), cls=2, constr=false, len=1): 05
+    BTLV    DEBUG     six(tag=0x8c(0x0c), cls=2, constr=false, len=1): 00
+    BTLV    DEBUG     eight(tag=0xc6(0x06), cls=3, constr=false, len=15): 90017083010183018183010a83010b
+expected result: 6238820278218410a0000000871002ffffffff8907090000a509800171830400018d088a01058c0100c60f90017083010183018183010a83010b
+encoded result:  6238820278218410a0000000871002ffffffff8907090000a509800171830400018d088a01058c0100c60f90017083010183018183010a83010b
+
+TEST: encode a binary BER-TLV encoded string with multi byte header fields
+BER-TLV data to be encoded: (encoder test)
+    BTLV    DEBUG   single-byte-tag(tag=0x0a(0x0a), cls=0, constr=false, len=1): ff
+    BTLV    DEBUG   two-byte-tag(tag=0xdf55(0x55), cls=3, constr=false, len=1): ff
+    BTLV    DEBUG   three-byte-tag(tag=0xdfaaaa(0x2aaa), cls=3, constr=false, len=1): ff
+    BTLV    DEBUG   one-byte-len(tag=0x01(0x01), cls=0, constr=false, len=126): aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    BTLV    DEBUG   two-byte-len(tag=0x02(0x02), cls=0, constr=false, len=255): bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    BTLV    DEBUG   three-byte-len(tag=0x03(0x03), cls=0, constr=false, len=65535): cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc...
+bytes encoded: 65937
+encoded result:  0a01ffdf5501ffdfaaaa01ff017eaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0281ffbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb0382ffffcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc...
+decoded encoded result: (decoder test)
+    BTLV    DEBUG   single-byte-tag(tag=0x0a(0x0a), cls=0, constr=false, len=1): ff
+    BTLV    DEBUG   two-byte-tag(tag=0xdf55(0x55), cls=3, constr=false, len=1): ff
+    BTLV    DEBUG   three-byte-tag(tag=0xdfaaaa(0x2aaa), cls=3, constr=false, len=1): ff
+    BTLV    DEBUG   one-byte-len(tag=0x01(0x01), cls=0, constr=false, len=126): aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    BTLV    DEBUG   two-byte-len(tag=0x02(0x02), cls=0, constr=false, len=255): bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    BTLV    DEBUG   three-byte-len(tag=0x03(0x03), cls=0, constr=false, len=65535): cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc...
+
+TEST: decode a BER-TLV encoded string
+encoded input:  6306203a7c12c5b96b7ea696614fe0a612fa37039726c60dd09feda610002e004cd4db07215eb138a1db630c3cf822f520984358590bc751ea0170b116ef831cb857dc9bf1496e97
+    BTLV    DEBUG exceeding buffer bounds: len=6, inc=1, bytes_ahead=58, cannot decode IE
+    BTLV    ERROR Error decoding BTLV (203a7c12c5b9).
+    BTLV    DEBUG exceeding buffer bounds: len=64, inc=1, bytes_ahead=126, cannot decode IE
+    BTLV    ERROR Error decoding BTLV (6b7ea696614fe0a612fa37039726c60dd09feda610002e004cd4db07215eb138a1db630c3cf822f520984358590bc751ea0170b116ef831cb857dc9bf1496e97).

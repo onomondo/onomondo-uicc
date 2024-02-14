@@ -1,0 +1,13 @@
+TEST: Initialize a list, add some elements, iterate the list
+ user_data=3
+ user_data=2
+ user_data=1
+ user_data=11
+ user_data=22
+ user_data=33
+ user_data=3
+ user_data=2
+ user_data=1
+ user_data=11
+ user_data=22
+ user_data=33

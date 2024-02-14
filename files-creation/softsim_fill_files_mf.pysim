@@ -1,0 +1,67 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+#########################
+# MF and files under MF #
+#########################
+
+#ETSI TS 102 221, section 13.1
+echo "populate 2f00, EF.DIR"
+select MF
+select EF.DIR
+update_record 1 61194F10A0000000871002FFFFFFFF890709000050055553696D31FFFFFFFFFFFFFFFFFFFFFF
+
+#ETSI TS 102 221, section 13.2
+echo "populate 2fe2, EF.ICCID"
+select MF
+select EF.ICCID
+update_binary 00112233445566778899
+
+#ETSI TS 102 221, section 13.6
+echo "populate 2f08, EF.UMPC"
+select MF
+select EF.UMPC
+update_binary 3C05020000
+
+#SOFTSIM PROPRITARY
+echo "populete a001, EF.AUTHKEYS (propritary)"
+# 16 byte K|16 byte OP/OPc|1 byte flag|
+# flag: 0x01 = OP/OPc is OP, 0x00 = OP/OPc is OPc
+select MF
+select A001
+update_binary 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00
+
+#SOFTSIM PROPRITARY
+echo "populete a002, EF.AUTHSEQ (propritary)"
+# File format:
+# |256 byte SEQ|8 byte delta|
+select MF
+select A002
+update_binary 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000
+
+#SOFTSIM PROPRITARY
+echo "populete a003, EF.PIN (propritary)"
+# File format: see struct pin_context in uicc_pin.c
+select MF
+select A003
+update_record 1 0003000a000131323334ffffffff3132333435363738
+update_record 2 0003000a008131323334ffffffff3132333435363738
+update_record 3 01030000000a31323334ffffffffffffffffffffffff
+
+#SOFTSIM PROPRITARY
+echo "populate a004, TARs (propritary)"
+# File format: see struct tar_record in uicc_remote_command.c
+select MF
+select A004
+# 3 byte TAR|1 byte MSL|1 byte KIC|1 byte KID|16 byte Kc|16 byte Kd|
+# In this example: TAR=b00011, MSL=06, KIC=03, KID=03, Kc=00112233445566778899aabbccddeeff, Kd=0123456789abcdef0123456701234567
+update_record 1 b0001106030300112233445566778899aabbccddeeff0123456789abcdef0123456701234567
+
+#SOFTSIM PROPRITARY
+echo "populate a005, TAR/CNTR (propritary)"
+# File format: see struct cntr_record in uicc_remote_command.c
+select MF
+select A005
+# 3 byte TAR|3 byte TAR mask|5 byte CNTR|
+# In this example: TAR=b00011, TAR mask=ffffff, CNTR=0000000000
+update_record 1 b00011ffffff0000000000

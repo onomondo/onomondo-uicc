@@ -1,0 +1,6 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+reset
+
+80 10 00 00 1e ff ff ff ff 7f 9d 00 df ff 00 00 1f e2 00 00 00 c3 6b 00 07 00 00 40 00 50 00 00 00 00 08

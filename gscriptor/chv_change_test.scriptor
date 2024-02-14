@@ -1,0 +1,13 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+reset
+
+# authenticate first
+00 20 00 00 08 01 02 03 04 00 00 00 00
+
+# change CHV
+00 24 00 00 10 01 02 03 04 00 00 00 00 AA BB CC DD 00 00 00 00
+
+# authenticate with new CHV
+00 20 00 00 08 AA BB CC DD 00 00 00 00

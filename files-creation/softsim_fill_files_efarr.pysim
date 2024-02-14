@@ -1,0 +1,40 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+##########################
+# EF.ARR -- default ACLs #
+##########################
+
+# All rules have ACTIVATE/DEACTIVATE:ADM
+
+### Records for EFs
+
+# 1: Access conditions: READ:ALW, UPDATE:PIN
+update_record_decoded 1 '[[{"access_mode": ["read_search_compare"]}, {"always": null}], [{"access_mode": ["update_erase"]}, {"control_reference_template": "PIN1"}], [{"access_mode": ["activate_file", "deactivate_file"]}, {"control_reference_template": "ADM1"}]]'
+
+# 2: Access conditions: READ:ALW, UPDATE:ADM
+update_record_decoded 2 '[[{"access_mode": ["read_search_compare"]}, {"always": null}], [{"access_mode": ["update_erase"]}, {"control_reference_template": "ADM1"}], [{"access_mode": ["activate_file", "deactivate_file"]}, {"control_reference_template": "ADM1"}]]'
+
+# 3: Access conditions: READ:ALW, UPDATE:NEV
+update_record_decoded 3 '[[{"access_mode": ["read_search_compare"]}, {"always": null}], [{"access_mode": ["activate_file", "deactivate_file"]}, {"control_reference_template": "ADM1"}]]'
+
+# 4: Access conditions: READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+update_record_decoded 4 '[[{"access_mode": ["read_search_compare"]}, {"control_reference_template": "PIN1"}], [{"access_mode": ["update_erase"]}, {"control_reference_template": "PIN1"}], [{"access_mode": ["activate_file", "deactivate_file"]}, {"control_reference_template": "ADM1"}]]'
+
+# 5: Access conditions: READ:PIN, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+update_record_decoded 5 '[[{"access_mode": ["read_search_compare"]}, {"control_reference_template": "PIN1"}], [{"access_mode": ["update_erase"]}, {"control_reference_template": "ADM1"}], [{"access_mode": ["activate_file", "deactivate_file"]}, {"control_reference_template": "ADM1"}]]'
+
+# 6: Access conditions: READ:ADM, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+update_record_decoded 6 '[[{"access_mode": ["read_search_compare"]}, {"control_reference_template": "ADM1"}], [{"access_mode": ["update_erase"]}, {"control_reference_template": "ADM1"}], [{"access_mode": ["activate_file", "deactivate_file"]}, {"control_reference_template": "ADM1"}]]'
+
+### Records for DFs
+
+# Note that any access modes given here would be named after the bits'
+# semantics when applied to an EF, but are meant as their equivalent rules for
+# DFs (see <https://osmocom.org/issues/5550>)
+
+# 15: No access checked access at all. (Ie. no creating child files or DFs, no
+# activating or deactivating the DF; deleting files can still be allowed as TS
+# 102 222 cards only check for the rules on self for file deletion, not on the
+# parent)
+update_record_decoded 15 '[]'

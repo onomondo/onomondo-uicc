@@ -1,0 +1,24 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+reset
+
+# block PIN by entering the wrong code 3 times
+00 20 00 00 08 11 11 11 11 00 00 00 00
+00 20 00 00 08 11 11 11 11 00 00 00 00
+00 20 00 00 08 11 11 11 11 00 00 00 00
+
+# unblock PIN
+00 2c 00 00 10 01 02 03 04 05 06 07 08 aa bb cc dd 00 00 00 00
+
+# authenticate with new PIN
+00 20 00 00 08 aa bb cc dd 00 00 00 00
+
+# block PUK by trying to unblock with invalid code
+00 2c 00 00 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 2c 00 00 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 2c 00 00 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 2c 00 00 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+# ask how many tries are left
+00 2c 00 00 00

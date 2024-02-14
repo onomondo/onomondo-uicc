@@ -1,0 +1,17 @@
+
+TEST: decode a TLV8 encoded string
+encoded input:  8103012100820281028d0c0448454c4c4f2c574f524c44c80401020304
+decoded output:
+    TLV8    DEBUG (tag=0x81, len=3): 012100
+    TLV8    DEBUG (tag=0x82, len=2): 8102
+    TLV8    DEBUG (tag=0x8d, len=12): 0448454c4c4f2c574f524c44
+    TLV8    DEBUG (tag=0xc8, len=4): 01020304
+
+TEST: encode a binary TLV8 encoded string from decoded list
+TLV8 data to be encoded:
+    TLV8    DEBUG   (tag=0x81, len=3): 012100
+    TLV8    DEBUG   (tag=0x82, len=2): 8102
+    TLV8    DEBUG   (tag=0x8d, len=12): 0448454c4c4f2c574f524c44
+    TLV8    DEBUG   (tag=0xc8, len=4): 01020304
+expected result: 8103012100820281028d0c0448454c4c4f2c574f524c44c80401020304
+encoded result:  8103012100820281028d0c0448454c4c4f2c574f524c44c80401020304

@@ -1,0 +1,32 @@
+algorithm=DES_CBC2 data_len=0, pcnt=0, pcnt_expected=0
+algorithm=DES_CBC2 data_len=8, pcnt=0, pcnt_expected=0
+algorithm=DES_CBC2 data_len=16, pcnt=0, pcnt_expected=0
+algorithm=DES_CBC2 data_len=24, pcnt=0, pcnt_expected=0
+algorithm=DES_CBC2 data_len=1, pcnt=7, pcnt_expected=7
+algorithm=DES_CBC2 data_len=9, pcnt=7, pcnt_expected=7
+algorithm=DES_CBC2 data_len=17, pcnt=7, pcnt_expected=7
+algorithm=DES_CBC2 data_len=25, pcnt=7, pcnt_expected=7
+algorithm=DES_CBC2 data_len=7, pcnt=1, pcnt_expected=1
+algorithm=DES_CBC2 data_len=15, pcnt=1, pcnt_expected=1
+algorithm=DES_CBC2 data_len=23, pcnt=1, pcnt_expected=1
+algorithm=AES data_len=0, pcnt=0, pcnt_expected=0
+algorithm=AES data_len=16, pcnt=0, pcnt_expected=0
+algorithm=AES data_len=32, pcnt=0, pcnt_expected=0
+algorithm=AES data_len=48, pcnt=0, pcnt_expected=0
+algorithm=AES data_len=1, pcnt=15, pcnt_expected=15
+algorithm=AES data_len=17, pcnt=15, pcnt_expected=15
+algorithm=AES data_len=33, pcnt=15, pcnt_expected=15
+algorithm=AES data_len=49, pcnt=15, pcnt_expected=15
+algorithm=AES data_len=15, pcnt=1, pcnt_expected=1
+algorithm=AES data_len=31, pcnt=1, pcnt_expected=1
+algorithm=AES data_len=47, pcnt=1, pcnt_expected=1
+algorithm=NONE data_len=0, pcnt=0, pcnt_expected=0
+algorithm=NONE data_len=1, pcnt=0, pcnt_expected=0
+algorithm=NONE data_len=123, pcnt=0, pcnt_expected=0
+algorithm=NONE data_len=456, pcnt=0, pcnt_expected=0
+3DES-CMAC data1=0028151e193232b00011000000000106, data2=0123456789abcdef0123456701234567, rc=0, checksum=c0995c616fa90e18
+3DES-CMAC data1=0028151e193232b00011000000000106, data2=0123456789abcdef0123456701234567aa, rc=0, checksum=1b3a9c868f1283d3
+3DES-CMAC data1=0028151e193232b00011000000000106, data2=0123456789abcdef01234567012345, rc=0, checksum=d6bfd6ec7ef02a0e
+AES-CMAC data1=0028151e193232b00011000000000106, data2=0123456789abcdef0123456701234567, rc=0, checksum=baddda0ee401d63d
+AES-CMAC data1=0028151e193232b00011000000000106, data2=0123456789abcdef0123456701234567aa, rc=0, checksum=f090fe9b251d5520
+AES-CMAC data1=0028151e193232b00011000000000106, data2=0123456789abcdef01234567012345, rc=0, checksum=de89e247cdaf128a

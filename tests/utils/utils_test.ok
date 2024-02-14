@@ -1,0 +1,5 @@
+input: aabbccddeeff00112233445566778899, output: aabbccddeeff00112233445566778899
+input: aabbccddeeff00112233445566778899, output (short): aabbccddeeff00112233
+input: aabbccddeeff001122334455667788991, output: aabbccddeeff00112233445566778899
+input: aabbccddeeff001122334455667788991, output (short): aabbccddeeff00112233
+input: aabbccddeeff001HELLO34455667788991, output: aabbccddeeff00ffffff34455667788991

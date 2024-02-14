@@ -1,0 +1,32 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+set debug true
+
+@@ softsim_create_files_minimal.pysim
+
+# When starting from an empty card, pysim does not recognize any structure;
+# after creating the essential files in 01_create_files_minimal.pysim, it
+# should reconsider.
+equip
+
+@@ softsim_create_files.pysim
+
+select MF
+select EF.ARR # 2f06
+@@ softsim_fill_files_efarr.pysim
+
+@@ softsim_fill_files_mf.pysim
+@@ softsim_fill_files_usim.pysim
+
+select MF
+select ADF.USIM
+select EF.ARR # 6f06
+@@ softsim_fill_files_efarr.pysim
+
+# All files are created now; activating to switch access controls live
+
+activate_file MF
+# The recommended way is to reset here -- but pySim doesn't do that, and
+# selecting MF works just as well to rescan the access control information
+select MF

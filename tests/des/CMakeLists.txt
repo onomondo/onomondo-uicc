@@ -1,0 +1,17 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+add_executable(des_test des_test.c)
+
+include_directories(${PROJECT_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR}/include)
+
+target_link_libraries(des_test uicc crypto)
+
+add_test(NAME des_test COMMAND sh -c "$<TARGET_FILE:des_test> > des_test.out")
+
+add_test(NAME des_test_compare
+		 COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
+				 ${PROJECT_SOURCE_DIR}/build/tests/des/des_test.out
+				 ${CMAKE_CURRENT_SOURCE_DIR}/des_test.ok
+)

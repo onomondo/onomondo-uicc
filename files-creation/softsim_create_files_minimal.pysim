@@ -1,0 +1,26 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+#########################
+# MF and files under MF #
+#########################
+
+# This script creates a minimal set of files so that pySim-shell is able to
+# recognize the card as an UICC card.
+#
+# The card is created in "Initialization" mode, with permission checking
+# disabled.
+
+echo "create 3f00, MF"
+#Access conditions: 15 -- nothing allowed
+apdu 00E000001D621B8202782183023f00A5098001F18701008801008a01038b032f060f --expect-sw 9000
+
+#ETSI TS 102 221, section 13.1
+#Access conditions: 02 -- READ:ALW, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create 2f00, EF.DIR"
+apdu 00E000001b621982044221002683022F008A01058B032F06028002004C8801F0 --expect-sw 9000
+
+#ETSI TS 102 221, section 13.2
+#Access conditions: 03 -- READ:ALW, UPDATE:NEV, DEACTIVATE/ACTIVATE:ADM
+echo "create 2fe2, EF.ICCID"
+apdu 00E000001962178202412183022FE28A01058B032F06038002000A880110 --expect-sw 9000

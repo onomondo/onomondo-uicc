@@ -1,0 +1,109 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+#########################
+# ADF.USIM              #
+#########################
+
+#3GPP TS 31.102, section 4.2.2
+echo "populate 6f07, EF.IMSI"
+select MF
+select ADF.USIM
+select EF.IMSI
+update_binary 080910100000000010
+
+#3GPP TS 31.102, section 4.2.3
+echo "populate 6f08, EF.Keys"
+select MF
+select ADF.USIM
+select EF.Keys
+update_binary 07ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+
+#3GPP TS 31.102, section 4.2.4
+echo "populate 6f09, EF.KeysPS"
+select MF
+select ADF.USIM
+select EF.KeysPS
+update_binary 07ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+
+#3GPP TS 31.102, section 4.2.6
+echo "populate 6f31, EF.HPPLMN"
+select MF
+select ADF.USIM
+select EF.HPPLMN
+update_binary 05
+
+#3GPP TS 31.102, section 4.2.8
+echo "populate 6f38, EF.UST"
+select MF
+select ADF.USIM
+select EF.UST
+update_binary 0008000c2100000000001000000000
+
+#3GPP TS 31.102, section 4.2.15
+echo "populate 6f78, EF.ACC"
+select MF
+select ADF.USIM
+select EF.ACC
+update_binary 03ff
+
+#3GPP TS 31.102, section 4.2.17
+echo "populate 6f7e, EF.LOCI"
+select MF
+select ADF.USIM
+select EF.LOCI
+update_binary ffffffffffffff0000ff01
+
+#3GPP TS 31.102, section 4.2.18
+echo "populate 6fad, EF.AD"
+select MF
+select ADF.USIM
+select EF.AD
+update_binary 01000803
+
+
+#3GPP TS 31.102, section 4.2.21
+echo "populate 6f73, EF.ECC"
+select MF
+select ADF.USIM
+select EF.ECC
+update_record 1 ffffffffffffffffffffffffffffff00
+update_record 2 ffffffffffffffffffffffffffffff00
+update_record 3 ffffffffffffffffffffffffffffff00
+update_record 4 ffffffffffffffffffffffffffffff00
+update_record 5 ffffffffffffffffffffffffffffff00
+
+#3GPP TS 31.102, section 4.2.23
+echo "populate 6f07, EF.PSLOCI"
+select MF
+select ADF.USIM
+select EF.PSLOCI
+update_binary ffffffffffffffffff000000ff01
+
+#3GPP TS 31.102, section 4.2.27
+echo "populate 6f42, EF.SMSP"
+select MF
+select ADF.USIM
+select EF.SMSP
+update_record 1 ffffffffffffffffffffffffffffffffffffffffffffffffe5ffffffffffffffffffffffff0791447779078484ffffffffff00a8
+
+#3GPP TS 31.102, section 4.2.51
+echo "populate 6f5b, EF.START-HFN"
+select MF
+select ADF.USIM
+select EF.START-HFN
+update_binary f00000f00000
+
+#3GPP TS 31.102, section 4.2.91
+echo "populate 6fe3, EF.EPSLOCI"
+select MF
+select ADF.USIM
+select EF.EPSLOCI
+update_binary ffffffffffffffffffffffffffffff000001
+
+#3GPP TS 31.102, section 4.2.92
+echo "populate 6fe4, EF.EPSNSC"
+select MF
+select ADF.USIM
+select EF.EPSNSC
+update_record 1 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff

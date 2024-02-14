@@ -1,0 +1,105 @@
+/*
+ * Copyright (c) 2024 Onomondo ApS. All rights reserved.
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * Author: Philipp Maier
+ */
+
+#include <stdio.h>
+#include <stdbool.h>
+#include <onomondo/softsim/utils.h>
+#include "src/softsim/uicc/utils_3des.h"
+
+void des_cmac_test_one_block(void)
+{
+	struct utils_3des_cc_ctx cc_3des;
+
+	uint8_t block[] = {
+		0x00, 0x28, 0x15, 0x1e, 0x19, 0x32, 0x32, 0xb0,
+		0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x01, 0x06,
+		0x00, 0xa4, 0x00, 0x04, 0x02, 0x3f, 0x00, 0x00,
+		0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00
+	};
+
+	uint8_t key[] = {
+		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+		0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67,
+	};
+
+	ss_utils_3des_cc_setup(&cc_3des, key);
+	printf("3DES-CMACCMAC feed block: %s\n", ss_hexdump(block, sizeof(block)));
+	ss_utils_3des_cc_feed(&cc_3des, block, sizeof(block));
+	ss_utils_3des_cc_cleanup(&cc_3des);
+	printf("3DES-CMACCMAC checksum: %s\n",
+	       ss_hexdump(cc_3des.cbc, sizeof(cc_3des.cbc)));
+}
+
+void des_cmac_test_one_block_padded(void)
+{
+	struct utils_3des_cc_ctx cc_3des;
+
+	/* This is the same data as in des_cmac_test_one_block(), but it is
+	 * already padded with zeros already before it is fed into the checksum
+	 * algorithm */
+	uint8_t block[] = {
+		0x00, 0x28, 0x15, 0x1e, 0x19, 0x32, 0x32, 0xb0,
+		0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x01, 0x06,
+		0x00, 0xa4, 0x00, 0x04, 0x02, 0x3f, 0x00, 0x00,
+		0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	};
+
+	uint8_t key[] = {
+		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+		0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67,
+	};
+
+	ss_utils_3des_cc_setup(&cc_3des, key);
+	printf("3DES-CMACCMAC feed block: %s\n", ss_hexdump(block, sizeof(block)));
+	ss_utils_3des_cc_feed(&cc_3des, block, sizeof(block));
+	ss_utils_3des_cc_cleanup(&cc_3des);
+	printf("3DES-CMACCMAC checksum: %s\n",
+	       ss_hexdump(cc_3des.cbc, sizeof(cc_3des.cbc)));
+}
+
+void des_cmac_test_two_blocks(void)
+{
+	struct utils_3des_cc_ctx cc_3des;
+
+	uint8_t block_1[] = {
+		0x00, 0x28, 0x15, 0x1e, 0x19, 0x32, 0x32, 0xb0,
+		0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x01, 0x06,
+	};
+
+	uint8_t block_2[] = {
+		0x00, 0xa4, 0x00, 0x04, 0x02, 0x3f, 0x00, 0x00,
+		0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00
+	};
+
+	uint8_t key[] = {
+		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+		0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67,
+	};
+
+	ss_utils_3des_cc_setup(&cc_3des, key);
+	printf("3DES-CMAC feed block 1: %s\n",
+	       ss_hexdump(block_1, sizeof(block_1)));
+	ss_utils_3des_cc_feed(&cc_3des, block_1, sizeof(block_1));
+	printf("3DES-CMAC feed block 2: %s\n",
+	       ss_hexdump(block_2, sizeof(block_2)));
+	ss_utils_3des_cc_feed(&cc_3des, block_2, sizeof(block_2));
+	ss_utils_3des_cc_cleanup(&cc_3des);
+	printf("3DES-CMAC checksum: %s\n",
+	       ss_hexdump(cc_3des.cbc, sizeof(cc_3des.cbc)));
+}
+
+int main(int argc, char **argv)
+{
+	des_cmac_test_one_block();
+	des_cmac_test_one_block_padded();
+	des_cmac_test_two_blocks();
+	return 0;
+}

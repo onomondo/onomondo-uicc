@@ -1,0 +1,26 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+reset
+
+#select MF without requesting FCP
+00 a4 00 00 02 3f 00
+
+#select MF with requesting FCP
+00 a4 00 04 02 3f 00
+
+#get response (FCP)
+00 c0 00 00 20
+
+#select two EF
+00 a4 00 00 02 2f 00
+00 a4 00 00 02 2f e2
+
+#select by DF NAME
+00 a4 00 00 02 3f 00
+00 a4 04 04 10 a0 00 00 00 87 10 02 ff ff ff ff 89 07 09 00 00
+
+#pick up the response, try with a wrong length first to see if the
+#second try works properly.
+00 c0 00 00 32
+00 c0 00 00 32

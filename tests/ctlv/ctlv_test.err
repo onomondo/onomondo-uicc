@@ -1,0 +1,17 @@
+
+TEST: decode a COMPREHENSION-TLV encoded string
+encoded input:  8103012100820281028d0c0448454c4c4f2c574f524c44c80401020304
+decoded output:
+    CTLV    DEBUG (tag=0x81(0x01), cr=true, len=3): 012100
+    CTLV    DEBUG (tag=0x82(0x02), cr=true, len=2): 8102
+    CTLV    DEBUG (tag=0x8d(0x0d), cr=true, len=12): 0448454c4c4f2c574f524c44
+    CTLV    DEBUG (tag=0xc8(0x48), cr=true, len=4): 01020304
+
+TEST: encode a binary COMPREHENSION-TLV encoded string from decoded list
+COMPREHENSION-TLV data to be encoded:
+    CTLV    DEBUG   (tag=0x81(0x01), cr=true, len=3): 012100
+    CTLV    DEBUG   (tag=0x82(0x02), cr=true, len=2): 8102
+    CTLV    DEBUG   (tag=0x8d(0x0d), cr=true, len=12): 0448454c4c4f2c574f524c44
+    CTLV    DEBUG   (tag=0xc8(0x48), cr=true, len=4): 01020304
+expected result: 8103012100820281028d0c0448454c4c4f2c574f524c44c80401020304
+encoded result:  8103012100820281028d0c0448454c4c4f2c574f524c44c80401020304

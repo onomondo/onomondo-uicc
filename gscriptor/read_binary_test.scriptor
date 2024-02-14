@@ -1,0 +1,9 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+reset
+
+# select and read ICCID
+00 a4 00 00 02 3f 00
+00 a4 00 00 02 2f e2
+00 b0 00 00 0a

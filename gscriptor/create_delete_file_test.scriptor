@@ -1,0 +1,31 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+reset
+
+#verify ADM PIN
+#00 20 00 0A 08 31 32 33 34 30 30 30 30
+
+#create  2f05 (EF)
+00 E0 00 00 21 62 1F 82 02 41 21 83 02 2F 05 8A 01 05 8B 03 2F 06 05 80 02 00 0A 88 01 28 A5 06 D0 01 30 D2 01 0F
+
+#delete 2f05 (EF)
+00 E4 00 00 02 2F 05
+
+#create 7f20 (DF.GSM)
+00 E0 00 00 17 62 15 82 02 78 21 83 02 7F 20 8A 01 05 8B 03 2F 06 01 A5 03 D2 01 07
+
+#create an ADF inside DF.GSM (not a real scenario, but practical for this test)
+00 E0 00 00 3B 62 39 82 02 78 21 83 02 7F FF 84 10 A0 00 00 00 87 10 02 FF FF FF FF 89 07 09 00 00 8A 01 05 AB 15 80 01 40 97 00 80 01 01 A4 06 83 01 0A 95 01 08 80 01 06 90 00 A5 03 D2 01 07
+
+#select MF and then DF.GSM and then the ADF we just created
+00 A4 00 00 02 3F 00
+00 A4 00 00 02 7f 20
+00 A4 04 00 07 a0 00 00 00 87 10 02 
+
+#create some other file (with short file descriptor)
+00 E0 00 00 21 62 20 82 04 42 21 00 6E 83 02 6F 06 8A 01 05 8B 03 6F 06 06 80 02 06 E0 88 00 A5 06 D0 01 20 D2 01 03
+
+#delete 7f20 (DF.GSM) and everything that is in it.
+00 A4 00 00 02 3F 00
+00 E4 00 00 02 7F 20

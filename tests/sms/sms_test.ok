@@ -1,0 +1,55 @@
+receive SMS-DELIVER tpu
+ rc=17
+ tp_mti=00
+ tp_mms=0
+ tp_rp=0
+ tp_udhi=1
+ tp_sri=0
+ tp_oa.extension=1
+ tp_oa.type_of_number=0
+ tp_oa.numbering_plan=1
+ tp_oa.digits=55667788
+ tp_pid=7f
+ tp_dcs=f6
+ tp_scts=00112912000004
+ tp_udl=61
+ user data: 02700000381506012525b0001080766f57f0f89bbdbc09af97b8b7ef7edc6c8bd2a35a571470374975003bfd77ac39531cc482714e7547a3f85cc5dc10
+
+receive SMS-STATUS-REPORT tpu
+ rc=23
+ tp_mti=02
+ tp_mr=23
+ tp_mms=0
+ tp_ra.extension=1
+ tp_ra.type_of_number=0
+ tp_ra.numbering_plan=1
+ tp_ra.digits=55667788
+ tp_scts=00112912000004
+ tp_dt=00112912000004
+ tp_st=42
+
+receive SMS-DELIVER tpu
+ rc=2
+ tp_mti=01
+ tp_fcs=42
+
+send SMS-DELIVER-REPORT tpu
+ rc=6
+ result=404207232425
+
+send SMS-COMMAND tpu
+ rc=12
+ result=62234203110781214365f799
+
+send SMS-SUBMIT tpu
+ rc=18
+ result=fd230781214365f72324aaaaaaaaaaaaaa99
+
+test ss_uicc_sms_tx (message that fits in a single SM)
+ resulting ss_uicc_sms_tx_state:
+  pending SMS as command:  d01f8103011300820281838b14010005813200f100000bc82293f9645d9f522611
+test ss_uicc_sms_tx (message that needs to be splitted over multiple SM)
+ resulting ss_uicc_sms_tx_state:
+  pending SMS as command:  d081a28103011300820281838b8196410005813200f100f68c0f0003010301f1f1f1f1f1f1f1f1f1f100112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabb
+  SM:410005813200f100f68c050003010302ccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff0011, last_msg=false
+  SM:410005813200f100f6300500030103032233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa41, last_msg=true

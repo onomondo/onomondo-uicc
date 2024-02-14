@@ -1,0 +1,22 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+reset
+
+# two tries with wrong pin
+00 20 00 00 08 11 11 11 11 00 00 00 00
+00 20 00 00 08 11 11 11 11 00 00 00 00
+
+# ask how many tries are left
+00 20 00 00 00
+
+# correct pin, reset counter
+00 20 00 00 08 01 02 03 04 00 00 00 00
+
+# three tries with wrong pin, will block CHV
+00 20 00 00 08 11 11 11 11 00 00 00 00
+00 20 00 00 08 11 11 11 11 00 00 00 00
+00 20 00 00 08 11 11 11 11 00 00 00 00
+
+# correct pin, should not work as CHV is blocked
+00 20 00 00 08 01 02 03 04 00 00 00 00

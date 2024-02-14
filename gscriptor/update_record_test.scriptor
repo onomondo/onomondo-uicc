@@ -1,0 +1,15 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+reset
+
+# select and read EF.DIR
+00 a4 00 00 02 3f 00
+00 a4 00 00 02 2f 00
+00 b2 01 04 2b
+
+# update record
+00 dc 00 02 2b 61 29 4F 10 A0 00 00 00 87 10 02 AA BB CC DD 89 07 09 00 00 50 05 55 53 69 6D 31 73 0E A0 0C 80 01 17 81 02 5F 60 82 03 45 41 50
+
+# re-read record
+00 b2 01 04 2b

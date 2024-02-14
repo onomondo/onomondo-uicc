@@ -1,0 +1,76 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+# The following expects a file with the following records (longer records may be used)
+# 1: 800101a40683010a950108800106900080016097008401d4a40683010a950108ffffffffffffffffffffff
+#2: 80011aa40683010a9501088001019000ffffffffffffffffffffffffffffffffffffffffffffffffffffff
+#3: 800101a40683010195010880011aa40683010a9501088401d4a40683010a950108ffffffffffffffffffff
+#4: 800101900080011aa40683010a9501088401d4a40683010a950108ffffffffffffffffffffffffffffffff
+#5: 800107a40683010a950108ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+
+reset
+
+A0 A4 00 00 02 3F 00
+A0 A4 00 00 02 2F 06
+
+# simple forward search
+# expect matches at: 01 03
+A0 A2 01 04 05 80 01 01 a4 06
+00 c0 00 00 02
+
+# simple forward search, begin at record 3
+# expect matches at: 03
+A0 A2 02 04 05 80 01 01 a4 06
+00 c0 00 00 01
+
+# simple backward search, begin at record 2
+# expect matches at: 01
+A0 A2 02 05 05 80 01 01 a4 06
+00 c0 00 00 01
+
+# simple backward search, begin at record 5
+# expect matches at: 03 01
+A0 A2 05 05 05 80 01 01 a4 06
+00 c0 00 00 02
+
+# enhanced search: simple forward search, begin at record 1
+# expect matches at: 03 01
+A0 A2 01 06 07 04 00 80 01 01 a4 06
+00 c0 00 00 02
+
+# enhanced search: simple forward search, begin at record 3
+# expect matches at: 03
+A0 A2 03 06 07 04 00 80 01 01 a4 06
+00 c0 00 00 01
+
+# enhanced search: simple backward search, begin at record 2
+# expect matches at: 01
+A0 A2 02 06 07 05 00 80 01 01 a4 06
+00 c0 00 00 01
+
+# enhanced search: simple backward search, begin at record 5
+# expect matches at: 03 01
+A0 A2 05 06 07 05 00 80 01 01 a4 06
+00 c0 00 00 02
+
+# enhanced search: simple forward search, begin at record 1
+# expect matches at: 03 01
+A0 A2 01 06 07 04 00 80 01 01 a4 06
+00 c0 00 00 02
+
+# enhanced search: simple forward search, begin at record 1, offset 3
+# expect matches at: 01 02 03 05
+A0 A2 01 06 06 04 03 a4 06 83 01
+00 c0 00 00 04
+
+# enhanced search: simple forward search, begin at record 1, offset 3
+# expect matches at: 05
+A0 A2 01 06 06 0c 07 a4 06 83 01
+00 c0 00 00 01
+
+
+
+
+
+
+

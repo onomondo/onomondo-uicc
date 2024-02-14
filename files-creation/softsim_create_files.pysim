@@ -1,0 +1,155 @@
+# Copyright (c) 2024 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+#########################
+# MF and files under MF #
+#########################
+
+#ETSI TS 102 221, section 13.3
+#Access conditions: 01 -- READ:ALW, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+echo "create 2f05, EF.PL"
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 1 --structure transparent --file-size 10 --short-file-id 5 2f05
+
+#ETSI TS 102 221, section 13.4
+#Access conditions: 02 -- READ:ALW, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create 2f06, EF.ARR"
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 2 --structure linear_fixed --file-size 640 --record-length 40 --short-file-id 6 2f06
+
+#ETSI TS 102 221, section 13.6
+#Access conditions: 02 -- READ:ALW, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create 2f08, EF.UMPC"
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 2 --structure transparent --file-size 5 --short-file-id 8 2f08
+
+#SOFTSIM PROPRITARY
+#Access conditions: 06 -- READ:ADM, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create a001, EF.AUTHKEYS (propritary)"
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 33 a001
+
+#SOFTSIM PROPRITARY
+#Access conditions: 06 -- READ:ADM, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create a002, EF.AUTHSEQ (propritary)"
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 264 a002
+
+#SOFTSIM PROPRITARY
+#Access conditions: 06 -- READ:ADM, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create a003, EF.PIN (propritary)"
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure linear_fixed --file-size 66 --record-length 22 a003
+
+#SOFTSIM PROPRITARY
+#Access conditions: 06 -- READ:ADM, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create a004, EF containing TAR keys (propritary)"
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure linear_fixed --file-size 114 --record-length 38 a004
+
+#SOFTSIM PROPRITARY
+#Access conditions: 06 -- READ:ADM, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create a005, EF containing CNTR states (propritary)"
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure linear_fixed --file-size 33 --record-length 11 a005
+
+#########################
+# ADF.USIM              #
+#########################
+
+echo "create 7ff0 ADF.USIM"
+#Access conditions: 15 -- Nothing is allowed
+create_df --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 15 --aid a0000000871002ffffffff8907090000 7ff0
+
+# Make ADF.USIM selectable and visible in pySim-shell
+equip
+
+select ADF.USIM
+
+#3GPP TS 31.102, section 4.2.1
+#Access conditions: 01 -- READ:ALW, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f05, EF.LI"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 1 --structure transparent --file-size 10 --short-file-id 2 6f05
+
+#3GPP TS 31.102, section 4.2.2
+#Access conditions: 05 -- READ:PIN, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f07, EF.IMSI"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 5 --structure transparent --file-size 9 --short-file-id 7 6f07
+
+#3GPP TS 31.102, section 4.2.3
+#Access conditions: 04 -- READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f08, EF.Keys"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure transparent --file-size 33 --short-file-id 8 6f08
+
+#3GPP TS 31.102, section 4.2.4
+#Access conditions: 04 -- READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f09, EF.KeysPS"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure transparent --file-size 33 --short-file-id 9 6f09
+
+#3GPP TS 31.102, section 4.2.6
+#Access conditions: 05 -- READ:PIN, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f31, EF.HPPLMN"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 5 --structure transparent --file-size 1 --short-file-id 18 6f31
+
+#3GPP TS 31.102, section 4.2.8
+#Access conditions: 05 -- READ:PIN, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f38, EF.UST"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 5 --structure transparent --file-size 15 6f38
+
+#3GPP TS 31.102, section 4.2.15
+#Access conditions: 05 -- READ:PIN, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f78, EF.ACC"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 5 --structure transparent --file-size 2 --short-file-id 6 6f78
+
+#3GPP TS 31.102, section 4.2.16
+#Access conditions: 04 -- READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f7b, EF.FPLMN"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure transparent --file-size 12 --short-file-id 13 6f7b
+
+#3GPP TS 31.102, section 4.2.17
+#Access conditions: 04 -- READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f7e, EF.LOCI"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure transparent --file-size 11 --short-file-id 11 6f7e
+
+#3GPP TS 31.102, section 4.2.18
+#Access conditions: 02 -- READ:ALW, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create 6fad, EF.AD"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 2 --structure transparent --file-size 4 6fad
+
+#3GPP TS 31.102, section 4.2.21
+#Access conditions: 02 -- READ:ALW, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create 6fb7, EF.ECC"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 2 --structure linear_fixed --file-size 80 --record-length 16 --short-file-id 1 6fb7
+
+#3GPP TS 31.102, section 4.2.23
+#Access conditions: 04 -- READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f73, EF.PSLOCI"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure transparent --file-size 14 --short-file-id 12 6f73
+
+#3GPP TS 31.102, section 4.2.27
+#Access conditions: 04 -- READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f42, EF.SMSP"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 2 --structure linear_fixed --file-size 104 --record-length 52 6f42
+
+#3GPP TS 31.102, section 4.2.51
+#Access conditions: 04 -- READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f5b, EF.START-HFN"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure transparent --file-size 6 --short-file-id 15 6f5b
+
+#3GPP TS 31.102, section 4.2.52
+#Access conditions: 05 -- READ:PIN, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+echo "create 6f5c, EF.THRESHOLD"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 5 --structure transparent --file-size 3 --short-file-id 16 6f5c
+
+#3GPP TS 31.102, section 4.2.55
+#Access conditions: 02 -- READ:ALW, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
+#(Note that this is synchronized with MF/2f06 for consistency of ef-arr-record-nr values)
+echo "create 6f06, EF.ARR"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 2 --structure linear_fixed --file-size 640 --record-length 40 --short-file-id 23 6f06
+
+#3GPP TS 31.102, section 4.2.57
+#Access conditions: 04 -- READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+echo "create 6fc4, EF.NETPAR"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure transparent --file-size 64 6fc4
+
+#3GPP TS 31.102, section 4.2.91
+#Access conditions: 04 -- READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+echo "create 6fe3, EF.EPSLOCI"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure transparent --file-size 18 --short-file-id 3 6fe3
+
+#3GPP TS 31.102, section 4.2.92
+#Access conditions: 04 -- READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
+echo "create 6fe4, EF.EPSNSC"
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure linear_fixed --file-size 54 --record-length 54 --short-file-id 24 6fe4
