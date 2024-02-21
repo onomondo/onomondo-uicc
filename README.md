@@ -63,6 +63,8 @@ For files licensed under BSD license, refer to BSD-3-Clause file in the root dir
 GIT Repository
 --------------
 
+The canonical https access of the repository is https://github.com/onomondo/onomondo-uicc
+
 The canonical git+ssh access of the repository is `git@github.com:onomondo/onomondo-uicc.git`
 
 
