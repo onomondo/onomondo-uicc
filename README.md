@@ -1,7 +1,7 @@
 Onomondo software SIM/USIM implementation
 =========================================
 
-This repository contains the [current state of work towards] a pure software
+This repository contains a pure software
 implementation/emulation of the most relevant SIM/UICC/USIM functionalities.
 
 You can run the code contained in this repository to implement the functionality
