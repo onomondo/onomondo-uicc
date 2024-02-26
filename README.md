@@ -1,9 +1,47 @@
 Onomondo software SIM/USIM implementation
 =========================================
 
-This repository contains the [current state of work towards] a pure software
+This repository contains a pure software
 implementation/emulation of the most relevant SIM/UICC/USIM functionalities.
 
+You can run the code contained in this repository to implement the functionality
+normally done in a phsical SIM/USIM, covering:
+
+* ETSI UICC (Universal Integrated Chip Card) multi-application card as described in ETSI TS 102 221
+* 3GPP USIM (UMTS Subscriber Identity Module) as described in 3GPP TS 31.102
+
+
+Supported Features
+------------------
+
+* APDU command parser / encoder
+* BER-TLV encoder/decoder (ETSI TS 101 220 Section 7)
+* Smart Card File System with support for
+  * MF, DF, EF (linear fixed, transparent)
+  * ADF for applications like USIM
+  * access rules (Access Rule Referencing)
+* File system commands (CREATE FILE, SELECT FILE, STATUS, READ BINARY, UPDATE BINARY, READ RECORD, UPDATE RECORD, SEARCH RECORD)
+* PIN management commands (VERIFY PIN, CHANGE PIN, ENABLE PIN, DISABLE PIN, UNBLOCK PIN)
+* USIM Authentication + Key Agreement using MILENAGE
+* CAT / Proactive SIM (TERMINAL PROFILE / ENVELOPE / FETCH (REFRESH)) as far as required for OTA
+* OTA (Over The Air) acccess
+  * Secured Packet Structure as per ETSI TS 102 225
+  * Compact Remote APDU Format as per ETSI TS 102 226
+  * Shared FS RFM (Remote File Management)
+  * ADF.USIM RFM (Remote File Management)
+
+Unsupported Features
+--------------------
+
+* CAT / STK / PROACTIVE support beyond what's required for OTA RFM + REFRESH
+* Any kind of applets, whether native or Java applets
+* Global Platform and/or SCP (Secure Channel Protocols)
+* Cyclic Files
+* BER-TLV Files
+* ACTIVATION/DEACTIVATION of files
+* logical channels (beyond native/default channel and OTA)
+* Secure Messaging (ISO 7816-7)
+* ISIM application
 
 License
 -------
@@ -24,6 +62,8 @@ For files licensed under BSD license, refer to BSD-3-Clause file in the root dir
 
 GIT Repository
 --------------
+
+The canonical https access of the repository is https://github.com/onomondo/onomondo-uicc
 
 The canonical git+ssh access of the repository is `git@github.com:onomondo/onomondo-uicc.git`
 
