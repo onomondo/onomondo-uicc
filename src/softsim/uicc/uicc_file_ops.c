@@ -42,7 +42,7 @@ static void record_file_change(struct ss_apdu *apdu)
 	if (apdu->ctx->fs_chg_record)
 		rc = ss_fs_chg_add(apdu->ctx->fs_chg_filelist, &apdu->lchan->fs_path);
 	if (rc < 0)
-		SS_LOGP(SFILE, LERROR,"file change not recorded!\n");
+		SS_LOGP(SFILE, LERROR, "file change not recorded!\n");
 }
 
 /* Generate the FCP string as it is returned by the card to the outside world.
@@ -54,21 +54,15 @@ static int fcp_reencode_full(struct ss_file *selected_file, char *command_name)
 	struct ss_buf *pin_stat_templ;
 	int rc;
 
-	pin_stat_templ_ie =
-	    ss_btlv_get_ie(selected_file->fcp_decoded,
-			   TS_102_221_IEI_FCP_PIN_STAT_TMPL);
+	pin_stat_templ_ie = ss_btlv_get_ie(selected_file->fcp_decoded, TS_102_221_IEI_FCP_PIN_STAT_TMPL);
 	if (!pin_stat_templ_ie) {
 		pin_stat_templ = ss_uicc_pin_gen_pst_do();
 		if (!pin_stat_templ) {
-			SS_LOGP(SFILE, LDEBUG,
-				"%s failed, could not generate PIN status template.\n",
-				command_name);
+			SS_LOGP(SFILE, LDEBUG, "%s failed, could not generate PIN status template.\n", command_name);
 			return -EINVAL;
 		}
-		pin_stat_templ_ie = ss_btlv_new_ie(selected_file->fcp_decoded,
-						   "pin_status_template_do",
-						   TS_102_221_IEI_FCP_PIN_STAT_TMPL,
-						   pin_stat_templ->len,
+		pin_stat_templ_ie = ss_btlv_new_ie(selected_file->fcp_decoded, "pin_status_template_do",
+						   TS_102_221_IEI_FCP_PIN_STAT_TMPL, pin_stat_templ->len,
 						   pin_stat_templ->data);
 		ss_buf_free(pin_stat_templ);
 
@@ -80,24 +74,18 @@ static int fcp_reencode_full(struct ss_file *selected_file, char *command_name)
 
 		rc = ss_fcp_reencode(selected_file);
 		if (rc < 0) {
-			SS_LOGP(SFILE, LDEBUG,
-				"%s failed, unable to re-encode FCP data.\n",
-				command_name);
+			SS_LOGP(SFILE, LDEBUG, "%s failed, unable to re-encode FCP data.\n", command_name);
 			return -EINVAL;
 		}
 	} else {
 		rc = ss_uicc_pin_update_pst_do(pin_stat_templ_ie->value);
 		if (rc < 0) {
-			SS_LOGP(SFILE, LDEBUG,
-				"%s failed, could not update PIN status template.\n",
-				command_name);
+			SS_LOGP(SFILE, LDEBUG, "%s failed, could not update PIN status template.\n", command_name);
 			return -EINVAL;
 		}
 		rc = ss_fcp_reencode(selected_file);
 		if (rc < 0) {
-			SS_LOGP(SFILE, LDEBUG,
-				"%s failed, unable to re-encode FCP data.\n",
-				command_name);
+			SS_LOGP(SFILE, LDEBUG, "%s failed, unable to re-encode FCP data.\n", command_name);
 			return -EINVAL;
 		}
 	}
@@ -114,9 +102,9 @@ int ss_uicc_file_ops_cmd_status(struct ss_apdu *apdu)
 	int rc;
 
 	switch (apdu->hdr.p1) {
-	case 0x00:	/* no indication */
-	case 0x01:	/* Current application is initialized in the terminal */
-	case 0x02:	/* The terminal will initiate the termination of the current application */
+	case 0x00: /* no indication */
+	case 0x01: /* Current application is initialized in the terminal */
+	case 0x02: /* The terminal will initiate the termination of the current application */
 		break;
 	default:
 		return SS_SW_ERR_CHECKING_WRONG_P1_P2;
@@ -130,22 +118,19 @@ int ss_uicc_file_ops_cmd_status(struct ss_apdu *apdu)
 
 		rc = fcp_reencode_full(current_df, "status");
 		if (rc < 0) {
-			SS_LOGP(SFILE, LDEBUG,
-				"status failed, unable to re-encode FCP data.\n");
+			SS_LOGP(SFILE, LDEBUG, "status failed, unable to re-encode FCP data.\n");
 			return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
 		}
 
 		if (apdu->le != current_df->fci->len) {
 			apdu->le = 0;
-			SS_LOGP(SFILE, LDEBUG, "Terminal requested status expecting length %u, returning actual FCI length %u\n",
-				apdu->le,
-				(unsigned)current_df->fci->len
-				);
+			SS_LOGP(SFILE, LDEBUG,
+				"Terminal requested status expecting length %u, returning actual FCI length %u\n",
+				apdu->le, (unsigned)current_df->fci->len);
 			return 0x6c00 | (current_df->fci->len);
 		}
 
-		memcpy(apdu->rsp, current_df->fci->data,
-			current_df->fci->len);
+		memcpy(apdu->rsp, current_df->fci->data, current_df->fci->len);
 		apdu->rsp_len = current_df->fci->len;
 		break;
 	case 0x01:
@@ -187,8 +172,7 @@ static size_t calc_read_write_offset(struct ss_apdu *apdu)
 
 /* Make sure that it is valid to operate with READ BINARY and UPDATE BINARY on
  * the specified file. */
-static int verify_file_struct(struct ss_apdu *apdu, struct ss_file *file,
-			      bool record_oriented)
+static int verify_file_struct(struct ss_apdu *apdu, struct ss_file *file, bool record_oriented)
 {
 	if (!file) {
 		apdu->le = 0;
@@ -201,8 +185,8 @@ static int verify_file_struct(struct ss_apdu *apdu, struct ss_file *file,
 	}
 
 	if (record_oriented) {
-		if (file->fcp_file_descr->structure != SS_FCP_LINEAR_FIXED
-		    && file->fcp_file_descr->structure != SS_FCP_CYCLIC) {
+		if (file->fcp_file_descr->structure != SS_FCP_LINEAR_FIXED &&
+		    file->fcp_file_descr->structure != SS_FCP_CYCLIC) {
 			apdu->le = 0;
 			return SS_SW_ERR_CMD_NOT_ALLOWED_INCOMP_FILE_STRUCT;
 		}
@@ -317,8 +301,7 @@ int ss_uicc_file_ops_cmd_read_binary(struct ss_apdu *apdu)
 		read_len = file_len - offset;
 	}
 
-	buf = ss_storage_read_file(&apdu->lchan->fs_path, offset,
-				   read_len);
+	buf = ss_storage_read_file(&apdu->lchan->fs_path, offset, read_len);
 	if (!buf)
 		return SS_SW_ERR_WRONG_PARAM_ENOMEM;
 
@@ -364,8 +347,7 @@ int ss_uicc_file_ops_cmd_update_binary(struct ss_apdu *apdu)
 	if (offset + apdu->lc > file_len)
 		return SS_SW_ERR_CHECKING_WRONG_LENGTH;
 
-	rc = ss_storage_write_file(&apdu->lchan->fs_path, apdu->cmd,
-				   offset, apdu->lc);
+	rc = ss_storage_write_file(&apdu->lchan->fs_path, apdu->cmd, offset, apdu->lc);
 	if (rc < 0)
 		return SS_SW_ERR_WRONG_PARAM_ENOMEM;
 
@@ -376,8 +358,7 @@ int ss_uicc_file_ops_cmd_update_binary(struct ss_apdu *apdu)
 
 /* Calculate the record number depending on the parameters P1, P2 and the
  * current record pointer. */
-static int calc_record_number(uint8_t *record_number_new,
-			      uint8_t *record_number, struct ss_apdu *apdu,
+static int calc_record_number(uint8_t *record_number_new, uint8_t *record_number, struct ss_apdu *apdu,
 			      struct ss_file *selected_file)
 {
 	uint8_t n_records = selected_file->fcp_file_descr->number_of_records;
@@ -393,11 +374,11 @@ static int calc_record_number(uint8_t *record_number_new,
 			/* See also ETSI TS 102 221, section 11.1.6.1, parapgraph "PREVIOUS" */
 			*record_number = 1;
 		} else if (*record_number == n_records) {
-			if (selected_file->fcp_file_descr->structure ==
-			    SS_FCP_CYCLIC)
+			if (selected_file->fcp_file_descr->structure == SS_FCP_CYCLIC)
 				*record_number = 1;
 			else {
-				SS_LOGP(SFILE, LERROR,"last record (%u) of %u records, but not a cyclic file (%04x), cannot wrap around\n",
+				SS_LOGP(SFILE, LERROR,
+					"last record (%u) of %u records, but not a cyclic file (%04x), cannot wrap around\n",
 					*record_number, n_records, selected_file->fid);
 				return SS_SW_ERR_WRONG_PARAM_RECORD_NOT_FOUND;
 			}
@@ -414,11 +395,11 @@ static int calc_record_number(uint8_t *record_number_new,
 			/* See also ETSI TS 102 221, section 11.1.6.1, parapgraph "PREVIOUS" */
 			*record_number = n_records;
 		} else if (*record_number == 1) {
-			if (selected_file->fcp_file_descr->structure ==
-			    SS_FCP_CYCLIC)
+			if (selected_file->fcp_file_descr->structure == SS_FCP_CYCLIC)
 				*record_number = n_records;
 			else {
-				SS_LOGP(SFILE, LERROR,"first record (%u) of %u records, but not a cyclic file (%04x), cannot wrap around\n",
+				SS_LOGP(SFILE, LERROR,
+					"first record (%u) of %u records, but not a cyclic file (%04x), cannot wrap around\n",
 					*record_number, n_records, selected_file->fid);
 				return SS_SW_ERR_WRONG_PARAM_RECORD_NOT_FOUND;
 			}
@@ -470,8 +451,7 @@ int ss_uicc_file_ops_cmd_read_record(struct ss_apdu *apdu)
 	/* FIXME #60: check invalidated / terminated */
 
 	/* Determine record number */
-	rc = calc_record_number(&record_number_new, &record_number, apdu,
-				selected_file);
+	rc = calc_record_number(&record_number_new, &record_number, apdu, selected_file);
 	if (rc != 0)
 		return rc;
 
@@ -521,8 +501,7 @@ int ss_uicc_file_ops_cmd_update_record(struct ss_apdu *apdu)
 	/* FIXME #60: check invalidated / terminated */
 
 	/* Determine record number */
-	rc = calc_record_number(&record_number_new, &record_number, apdu,
-				selected_file);
+	rc = calc_record_number(&record_number_new, &record_number, apdu, selected_file);
 	if (rc != 0)
 		return rc;
 
@@ -530,9 +509,8 @@ int ss_uicc_file_ops_cmd_update_record(struct ss_apdu *apdu)
 		return SS_SW_ERR_CMD_NOT_ALLOWED_INCOMP_FILE_STRUCT;
 	}
 
-	rc = ss_fs_write_file_record(&apdu->lchan->fs_path, record_number,
-				   apdu->cmd,
-				   selected_file->fcp_file_descr->record_len);
+	rc = ss_fs_write_file_record(&apdu->lchan->fs_path, record_number, apdu->cmd,
+				     selected_file->fcp_file_descr->record_len);
 	if (rc != 0)
 		return SS_SW_ERR_WRONG_PARAM_ENOMEM;
 
@@ -633,21 +611,17 @@ int ss_uicc_file_ops_cmd_search_record(struct ss_apdu *apdu)
 
 		/* This search mode does not support using the current record */
 		if (apdu->hdr.p1 == 0x00) {
-			SS_LOGP(SFILE, LERROR,
-				"record pointer not usable in enhanced search mode!\n");
+			SS_LOGP(SFILE, LERROR, "record pointer not usable in enhanced search mode!\n");
 			return SS_SW_ERR_CHECKING_WRONG_P1_P2;
 		}
 
 		if (enchanced_search_mode >> 2 & 1) {
 			if (apdu->hdr.p1 == 0x00)
-				search_record_number =
-				    apdu->lchan->current_record;
+				search_record_number = apdu->lchan->current_record;
 			else
 				search_record_number = apdu->hdr.p1;
 		} else {
-			SS_LOGP(SFILE, LERROR,
-				"invalid enhanced search mode (%02x)!\n",
-				enchanced_search_mode);
+			SS_LOGP(SFILE, LERROR, "invalid enhanced search mode (%02x)!\n", enchanced_search_mode);
 			return SS_SW_ERR_WRONG_PARAM_FUNCTION_NOT_SUPPORTED;
 		}
 
@@ -664,8 +638,7 @@ int ss_uicc_file_ops_cmd_search_record(struct ss_apdu *apdu)
 			 * nothing left to search. The command will execute successful though, but
 			 * there will be no search results. */
 			if (search_record_number == n_records) {
-				SS_LOGP(SFILE, LERROR,
-					"no next record, skipping search...\n");
+				SS_LOGP(SFILE, LERROR, "no next record, skipping search...\n");
 				return 0;
 			}
 			search_record_number++;
@@ -674,8 +647,7 @@ int ss_uicc_file_ops_cmd_search_record(struct ss_apdu *apdu)
 		case 3:
 			/* See comment above */
 			if (search_record_number == 1) {
-				SS_LOGP(SFILE, LERROR,
-					"no previous record, skipping search...\n");
+				SS_LOGP(SFILE, LERROR, "no previous record, skipping search...\n");
 				return 0;
 			}
 			search_record_number--;
@@ -710,29 +682,21 @@ int ss_uicc_file_ops_cmd_search_record(struct ss_apdu *apdu)
 			search_dir_forward = false;
 		break;
 	default:
-		SS_LOGP(SFILE, LERROR, "invalid search mode (%02x)!\n",
-			search_mode);
+		SS_LOGP(SFILE, LERROR, "invalid search mode (%02x)!\n", search_mode);
 		return SS_SW_ERR_WRONG_PARAM_FUNCTION_NOT_SUPPORTED;
 	}
 
 	SS_LOGP(SFILE, LDEBUG, "search parameter:\n");
-	SS_LOGP(SFILE, LDEBUG, " search string: %s\n",
-		ss_hexdump(search_string, search_string_len));
+	SS_LOGP(SFILE, LDEBUG, " search string: %s\n", ss_hexdump(search_string, search_string_len));
 	if (search_offset_dyn)
-		SS_LOGP(SFILE, LDEBUG,
-			" search offset: first occurrence of %02x in record\n",
-			search_byte);
+		SS_LOGP(SFILE, LDEBUG, " search offset: first occurrence of %02x in record\n", search_byte);
 	else
 		SS_LOGP(SFILE, LDEBUG, " search offset: %u\n", search_offset);
-	SS_LOGP(SFILE, LDEBUG, " search begins at record: %u\n",
-		search_record_number);
-	SS_LOGP(SFILE, LDEBUG, " search direction: %s\n",
-		search_dir_forward ? "forward" : "backward");
+	SS_LOGP(SFILE, LDEBUG, " search begins at record: %u\n", search_record_number);
+	SS_LOGP(SFILE, LDEBUG, " search direction: %s\n", search_dir_forward ? "forward" : "backward");
 
 	while (1) {
-		buf =
-		    ss_fs_read_file_record(&apdu->lchan->fs_path,
-					   search_record_number);
+		buf = ss_fs_read_file_record(&apdu->lchan->fs_path, search_record_number);
 		if (!buf)
 			return SS_SW_ERR_WRONG_PARAM_ENOMEM;
 
@@ -745,7 +709,7 @@ int ss_uicc_file_ops_cmd_search_record(struct ss_apdu *apdu)
 					search_record_number, search_byte);
 				goto skip;
 			} else
-				search_offset = (uint8_t) rc;
+				search_offset = (uint8_t)rc;
 		}
 
 		/* Ensure meaningful length parameters */
@@ -754,17 +718,13 @@ int ss_uicc_file_ops_cmd_search_record(struct ss_apdu *apdu)
 		if (search_string_len > buf->len - search_offset)
 			goto skip;
 
-		if (memcmp
-		    (search_string, buf->data + search_offset,
-		     search_string_len) == 0) {
-			SS_LOGP(SFILE, LDEBUG,
-				"comparing record %u to search string at offset %u <== MATCH\n",
+		if (memcmp(search_string, buf->data + search_offset, search_string_len) == 0) {
+			SS_LOGP(SFILE, LDEBUG, "comparing record %u to search string at offset %u <== MATCH\n",
 				search_record_number, search_offset);
 			apdu->rsp[n_results] = search_record_number;
 			n_results++;
 		} else {
-			SS_LOGP(SFILE, LDEBUG,
-				"comparing record %u to search string at offset %u\n",
+			SS_LOGP(SFILE, LDEBUG, "comparing record %u to search string at offset %u\n",
 				search_record_number, search_offset);
 		}
 
@@ -821,8 +781,7 @@ static int select_by_fid(struct ss_apdu *apdu)
 	/* Try to find a DF or EF in the current directory */
 	rc = ss_fs_select(&apdu->lchan->fs_path, fid);
 	if (rc == 0) {
-		SS_LOGP(SFILE, LDEBUG, "success: file (%04x) found in the current DF.\n",
-			fid);
+		SS_LOGP(SFILE, LDEBUG, "success: file (%04x) found in the current DF.\n", fid);
 		goto leave;
 	}
 
@@ -834,8 +793,7 @@ static int select_by_fid(struct ss_apdu *apdu)
 	if (!selected_file)
 		return SS_SW_ERR_WRONG_PARAM_FILE_NOT_FOUND;
 	if (selected_file->fid == fid) {
-		SS_LOGP(SFILE, LDEBUG, "success: file (%04x) matches the current DF.\n",
-			fid);
+		SS_LOGP(SFILE, LDEBUG, "success: file (%04x) matches the current DF.\n", fid);
 		goto leave;
 	}
 
@@ -850,8 +808,7 @@ static int select_by_fid(struct ss_apdu *apdu)
 	if (!selected_file)
 		return SS_SW_ERR_WRONG_PARAM_FILE_NOT_FOUND;
 	if (selected_file->fid == fid) {
-		SS_LOGP(SFILE, LDEBUG, "success: file (%04x) matches the parent of the current DF.\n",
-			fid);
+		SS_LOGP(SFILE, LDEBUG, "success: file (%04x) matches the parent of the current DF.\n", fid);
 		goto leave;
 	}
 
@@ -865,8 +822,7 @@ static int select_by_fid(struct ss_apdu *apdu)
 		if (!selected_file)
 			return SS_SW_ERR_WRONG_PARAM_FILE_NOT_FOUND;
 		if (selected_file->fcp_file_descr->type == SS_FCP_DF_OR_ADF) {
-			SS_LOGP(SFILE, LDEBUG, "success: file (%04x) found in the parent of the current DF.\n",
-				fid);
+			SS_LOGP(SFILE, LDEBUG, "success: file (%04x) found in the parent of the current DF.\n", fid);
 			goto leave;
 		}
 		ss_fs_select_parent(&apdu->lchan->fs_path);
@@ -888,8 +844,8 @@ static int select_by_fid(struct ss_apdu *apdu)
 		 * that file matches the FID we intended to select. */
 		if (ss_fcp_get_df_name(selected_file->fcp_decoded)) {
 			if (selected_file->fid == fid) {
-				SS_LOGP(SFILE, LDEBUG, "success: file (%04x) is an ADF and was found in the current path.\n",
-					fid);
+				SS_LOGP(SFILE, LDEBUG,
+					"success: file (%04x) is an ADF and was found in the current path.\n", fid);
 				goto leave;
 			}
 		}
@@ -909,8 +865,7 @@ static int select_by_df_name(struct ss_apdu *apdu)
 	struct ss_buf *df_name;
 	struct ss_file *selected_file;
 
-	SS_LOGP(SFILE, LDEBUG, "selecting DF by name: %s\n",
-		ss_hexdump(apdu->cmd, apdu->lc));
+	SS_LOGP(SFILE, LDEBUG, "selecting DF by name: %s\n", ss_hexdump(apdu->cmd, apdu->lc));
 
 	rc = ss_df_name_resolve(&apdu->lchan->fs_path, apdu->cmd, apdu->lc);
 	if (rc < 0) {
@@ -921,23 +876,17 @@ static int select_by_df_name(struct ss_apdu *apdu)
 			rc = ss_fs_select_parent(&apdu->lchan->fs_path);
 			if (rc < 0)
 				break;
-			selected_file =
-			    ss_get_file_from_path(&apdu->lchan->fs_path);
+			selected_file = ss_get_file_from_path(&apdu->lchan->fs_path);
 			if (!selected_file)
 				break;
 
 			/* NOTE: we are not taking ownership of the returned df_name. */
-			df_name =
-			    ss_fcp_get_df_name(selected_file->fcp_decoded);
+			df_name = ss_fcp_get_df_name(selected_file->fcp_decoded);
 			if (df_name) {
-				SS_LOGP(SFILE, LDEBUG,
-					"trying parent file: %s, DF_name: %s\n",
-					ss_fs_utils_dump_path(&apdu->lchan->
-							      fs_path),
-					ss_hexdump(df_name->data,
-						   df_name->len));
-				if (memcmp(df_name->data, apdu->cmd, apdu->lc)
-				    == 0)
+				SS_LOGP(SFILE, LDEBUG, "trying parent file: %s, DF_name: %s\n",
+					ss_fs_utils_dump_path(&apdu->lchan->fs_path),
+					ss_hexdump(df_name->data, df_name->len));
+				if (memcmp(df_name->data, apdu->cmd, apdu->lc) == 0)
 					goto leave;
 			}
 		}
@@ -947,14 +896,13 @@ static int select_by_df_name(struct ss_apdu *apdu)
 		rc = ss_fs_select(&apdu->lchan->fs_path, 0x3f00);
 		if (rc < 0)
 			return SS_SW_ERR_WRONG_PARAM_FILE_NOT_FOUND;
-		rc = ss_df_name_resolve(&apdu->lchan->fs_path, apdu->cmd,
-					apdu->lc);
+		rc = ss_df_name_resolve(&apdu->lchan->fs_path, apdu->cmd, apdu->lc);
 		if (rc < 0)
 			return SS_SW_ERR_WRONG_PARAM_REFERENCED_DATA_NOT_FOUND;
 	}
 
 	/* Select ADF by the resolved FID */
-	fid = (uint32_t) (rc & 0xffff);
+	fid = (uint32_t)(rc & 0xffff);
 	rc = ss_fs_select(&apdu->lchan->fs_path, fid);
 	if (rc < 0)
 		return SS_SW_ERR_WRONG_PARAM_FILE_NOT_FOUND;
@@ -1056,14 +1004,12 @@ static int update_active_adf(struct ss_lchan *lchan)
 	assert(selected_file);
 
 	/* Update active ADF (we recognize ADFs by the assigned DF Name) */
-	if (ss_fcp_get_df_name(selected_file->fcp_decoded)
-	    && ss_fs_utils_path_equals(&lchan->fs_path,
-				       &lchan->adf_path) == false) {
+	if (ss_fcp_get_df_name(selected_file->fcp_decoded) &&
+	    ss_fs_utils_path_equals(&lchan->fs_path, &lchan->adf_path) == false) {
 		ss_path_reset(&lchan->adf_path);
 		rc = ss_fs_utils_path_select(&lchan->adf_path, &lchan->fs_path);
 		if (rc < 0) {
-			SS_LOGP(SFILE, LERROR,
-				"cannot update path to active ADF!\n");
+			SS_LOGP(SFILE, LERROR, "cannot update path to active ADF!\n");
 			return -EINVAL;
 		}
 	}
@@ -1130,8 +1076,7 @@ int ss_uicc_file_ops_cmd_select(struct ss_apdu *apdu)
 
 	/* Return FCP template if requested */
 	if ((apdu->hdr.p2 & 0x0c) == 0x04) {
-		memcpy(apdu->rsp, selected_file->fci->data,
-			selected_file->fci->len);
+		memcpy(apdu->rsp, selected_file->fci->data, selected_file->fci->len);
 		apdu->rsp_len = selected_file->fci->len;
 	}
 

@@ -36,9 +36,7 @@ char *ss_fs_utils_dump_path(const struct ss_list *path)
 	result_ptr = result;
 
 	SS_LIST_FOR_EACH(path, path_cursor, struct ss_file, list) {
-		rc = snprintf(result_ptr,
-			      sizeof(result) - (result_ptr - result), "/%04x",
-			      path_cursor->fid);
+		rc = snprintf(result_ptr, sizeof(result) - (result_ptr - result), "/%04x", path_cursor->fid);
 		result_ptr += rc;
 	}
 
@@ -63,14 +61,12 @@ size_t ss_fs_utils_find_free_record(const struct ss_list *path)
 	for (i = 0; i < file->fcp_file_descr->number_of_records; i++) {
 		record = ss_fs_read_file_record(path, i + 1);
 		if (!record) {
-			SS_LOGP(SFS, LERROR,
-				"cannot read record %lu in internal file: %s\n",
-				i + 1, ss_fs_utils_dump_path(path));
+			SS_LOGP(SFS, LERROR, "cannot read record %lu in internal file: %s\n", i + 1,
+				ss_fs_utils_dump_path(path));
 			return 0;
 		}
 		if (record->len == 0) {
-			SS_LOGP(SFS, LERROR,
-				"file (%s) seems to contain zero length record (bad file descriptor?)\n",
+			SS_LOGP(SFS, LERROR, "file (%s) seems to contain zero length record (bad file descriptor?)\n",
 				ss_fs_utils_dump_path(path));
 			return 0;
 		}
@@ -97,9 +93,7 @@ size_t ss_fs_utils_find_free_record(const struct ss_list *path)
  *  \param[in] mask a mask to tell which bits in the template matter.
  *  \param[in] len length of template and mask (both must be equal in length).
  *  \returns 0 on failure, record number on success. */
-size_t ss_fs_utils_find_record(const struct ss_list *path,
-			       const uint8_t *template,
-			       const uint8_t *mask, size_t len)
+size_t ss_fs_utils_find_record(const struct ss_list *path, const uint8_t *template, const uint8_t *mask, size_t len)
 {
 	struct ss_file *file;
 	size_t i;
@@ -117,9 +111,8 @@ size_t ss_fs_utils_find_record(const struct ss_list *path,
 	for (i = 0; i < file->fcp_file_descr->number_of_records; i++) {
 		record = ss_fs_read_file_record(path, i + 1);
 		if (!record) {
-			SS_LOGP(SFS, LERROR,
-				"cannot read record %lu in internal file: %s\n",
-				i + 1, ss_fs_utils_dump_path(path));
+			SS_LOGP(SFS, LERROR, "cannot read record %lu in internal file: %s\n", i + 1,
+				ss_fs_utils_dump_path(path));
 			return 0;
 		}
 
@@ -144,8 +137,7 @@ size_t ss_fs_utils_find_record(const struct ss_list *path,
  *  \param[in] record_len length of the records in the file.
  *  \param[in] number_of_records number of records in the file.
  *  \returns 0 success, -EINVAL on failure */
-int ss_fs_utils_create_record_file(const struct ss_list *path, uint32_t fid,
-				   uint16_t record_len,
+int ss_fs_utils_create_record_file(const struct ss_list *path, uint32_t fid, uint16_t record_len,
 				   uint8_t number_of_records)
 {
 	struct ss_buf *fcp;
@@ -178,16 +170,14 @@ int ss_fs_utils_create_record_file(const struct ss_list *path, uint32_t fid,
 	}
 	rc = ss_fs_create(&path_copy, fcp->data, fcp->len);
 	if (rc < 0) {
-		SS_LOGP(SFS, LERROR,
-			"cannot create internal file %08x in directory: %s\n",
-			fid, ss_fs_utils_dump_path(path));
+		SS_LOGP(SFS, LERROR, "cannot create internal file %08x in directory: %s\n", fid,
+			ss_fs_utils_dump_path(path));
 		rc = -EINVAL;
 		goto leave;
 	}
 
-	SS_LOGP(SFS, LDEBUG,
-		"created new internal record oriented file %08x in directory: %s\n",
-		fid, ss_fs_utils_dump_path(path));
+	SS_LOGP(SFS, LDEBUG, "created new internal record oriented file %08x in directory: %s\n", fid,
+		ss_fs_utils_dump_path(path));
 	rc = 0;
 leave:
 	ss_buf_free(fcp);
@@ -222,7 +212,8 @@ int ss_fs_utils_path_clone(struct ss_list *path_copy, const struct ss_list *path
 			goto err;
 		}
 		memcpy(latest, path_cursor, sizeof(*path_cursor));
-		latest->fcp_file_descr = memcpy(cloned_details, latest->fcp_file_descr, sizeof(struct ss_fcp_file_descr));
+		latest->fcp_file_descr =
+			memcpy(cloned_details, latest->fcp_file_descr, sizeof(struct ss_fcp_file_descr));
 		latest->fci = NULL;
 		latest->fcp_decoded = NULL;
 		latest->aid = NULL;
@@ -271,8 +262,7 @@ int ss_fs_utils_path_select(struct ss_list *path_out, const struct ss_list *path
  *  \param[in] path_a first path to compare.
  *  \param[in] path_b second path to compare.
  *  \returns true when both path are equal, false otherwise. */
-bool ss_fs_utils_path_equals(const struct ss_list *path_a,
-			     const struct ss_list *path_b)
+bool ss_fs_utils_path_equals(const struct ss_list *path_a, const struct ss_list *path_b)
 {
 	struct ss_file *path_cursor_a;
 	struct ss_file *path_cursor_b;
@@ -283,9 +273,7 @@ bool ss_fs_utils_path_equals(const struct ss_list *path_a,
 			return false;
 		if (path_cursor_a->fid != path_cursor_b->fid)
 			return false;
-		path_cursor_b =
-		    SS_LIST_GET_NEXT(&path_cursor_b->list, struct ss_file,
-				     list);
+		path_cursor_b = SS_LIST_GET_NEXT(&path_cursor_b->list, struct ss_file, list);
 	}
 
 	/* Check that there are no remaining items in path_b, this is the case

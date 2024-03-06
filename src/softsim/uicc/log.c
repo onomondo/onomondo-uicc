@@ -10,7 +10,7 @@
 #include <onomondo/softsim/utils.h>
 
 uint32_t ss_log_mask = 0xffffffff;
-
+// clang-format off
 /* TODO #64: add a mechanism to modify the log levels at runtime via getopt */
 static uint32_t subsys_lvl[_NUM_LOG_SUBSYS] = {
 	[SBTLV] = LDEBUG,
@@ -59,11 +59,11 @@ static const char *subsys_str[_NUM_LOG_SUBSYS] = {
 	[SSMS]		= "SMS",
 	[SREFRESH]	= "REFRESH",
 };
-
+// clang-format on
 static const char *level_str[_NUM_LOG_LEVEL] = {
-	[LERROR]	= "ERROR",
-	[LINFO]		= "INFO",
-	[LDEBUG]	= "DEBUG",
+	[LERROR] = "ERROR",
+	[LINFO] = "INFO",
+	[LDEBUG] = "DEBUG",
 };
 
 /*! print a log line (called by IPA_LOGP, do not call directly).

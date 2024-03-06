@@ -37,11 +37,9 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 
 	if (ss_list_empty(path)) {
 		if (def)
-			SS_LOGP(SSTORAGE, LERROR,
-				"%s: unable to generate path to load file definition\n", division);
+			SS_LOGP(SSTORAGE, LERROR, "%s: unable to generate path to load file definition\n", division);
 		else
-			SS_LOGP(SSTORAGE, LERROR,
-				"%s: unable to generate path to load file content\n", division);
+			SS_LOGP(SSTORAGE, LERROR, "%s: unable to generate path to load file content\n", division);
 		return -EINVAL;
 	}
 
@@ -49,26 +47,20 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 	host_fs_path_ptr = host_fs_path;
 
 	SS_LIST_FOR_EACH(path, path_cursor, struct ss_file, list) {
-		rc = snprintf(host_fs_path_ptr,
-			      sizeof(host_fs_path) - (host_fs_path_ptr -
-						      host_fs_path), path_cursor->fid > 0xffff ? "/%08x" : "/%04x",
-			      path_cursor->fid);
+		rc = snprintf(host_fs_path_ptr, sizeof(host_fs_path) - (host_fs_path_ptr - host_fs_path),
+			      path_cursor->fid > 0xffff ? "/%08x" : "/%04x", path_cursor->fid);
 		host_fs_path_ptr += rc;
 		path_last = path_cursor;
 	}
 
 	if (def) {
-		snprintf(abs_host_fs_path, sizeof(abs_host_fs_path), "%s%s.def",
-			 storage_path, host_fs_path);
-		SS_LOGP(SSTORAGE, LINFO,
-			"%s: requested file definition for %04x on host file system : %s\n",
-			division, path_last->fid, abs_host_fs_path);
+		snprintf(abs_host_fs_path, sizeof(abs_host_fs_path), "%s%s.def", storage_path, host_fs_path);
+		SS_LOGP(SSTORAGE, LINFO, "%s: requested file definition for %04x on host file system : %s\n", division,
+			path_last->fid, abs_host_fs_path);
 	} else {
-		snprintf(abs_host_fs_path, sizeof(abs_host_fs_path), "%s%s",
-			 storage_path, host_fs_path);
-		SS_LOGP(SSTORAGE, LINFO,
-			"%s: requested file content for %04x on host file system: %s\n",
-			division, path_last->fid, abs_host_fs_path);
+		snprintf(abs_host_fs_path, sizeof(abs_host_fs_path), "%s%s", storage_path, host_fs_path);
+		SS_LOGP(SSTORAGE, LINFO, "%s: requested file content for %04x on host file system: %s\n", division,
+			path_last->fid, abs_host_fs_path);
 	}
 
 	strncpy(def_path, abs_host_fs_path, PATH_MAX);
@@ -84,16 +76,14 @@ static int read_file_def(char *host_path, struct ss_file *file)
 
 	fd = fopen(host_path, "r");
 	if (!fd) {
-		SS_LOGP(SSTORAGE, LERROR,
-			"unable to open definition file: %s\n", host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to open definition file: %s\n", host_path);
 		return -EINVAL;
 	}
 
 	rc = fgets(line_buf, sizeof(line_buf), fd);
 	fclose(fd);
 	if (!rc) {
-		SS_LOGP(SSTORAGE, LERROR,
-			"unable to read definition file: %s\n", host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to read definition file: %s\n", host_path);
 		return -EINVAL;
 	}
 
@@ -131,8 +121,7 @@ int ss_storage_get_file_def(struct ss_list *path)
  *  \param[in] read_offset offset to start reading the file at.
  *  \param[in] read_len length of data to read.
  *  \returns buffer with content data on success, NULL on failure. */
-struct ss_buf *ss_storage_read_file(const struct ss_list *path,
-				    size_t read_offset, size_t read_len)
+struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offset, size_t read_len)
 {
 	/*! Note: This function will allocate memory in fileto store the file
 	 *  contents. The caller must take care of freeing. */
@@ -158,16 +147,14 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path,
 
 	fd = fopen(host_path, "r");
 	if (!fd) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to open content file: %s\n",
-			host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to open content file: %s\n", host_path);
 		SS_FREE(line_buf);
 		return NULL;
 	}
 
 	rc = fseek(fd, read_offset * 2, SEEK_SET);
 	if (rc != 0) {
-		SS_LOGP(SSTORAGE, LERROR,
-			"unable to seek (read_offset=%lu) requested data in content file: %s\n",
+		SS_LOGP(SSTORAGE, LERROR, "unable to seek (read_offset=%lu) requested data in content file: %s\n",
 			read_offset, host_path);
 		SS_FREE(line_buf);
 		fclose(fd);
@@ -176,8 +163,7 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path,
 
 	fgets_rc = fread(line_buf, 2, read_len, fd);
 	if (fgets_rc != read_len) {
-		SS_LOGP(SSTORAGE, LERROR,
-			"unable to load content (read_offset=%lu, read_len=%lu) from file: %s\n",
+		SS_LOGP(SSTORAGE, LERROR, "unable to load content (read_offset=%lu, read_len=%lu) from file: %s\n",
 			read_offset, read_len, host_path);
 		SS_FREE(line_buf);
 		fclose(fd);
@@ -197,8 +183,7 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path,
  *  \param[in] write_offset offset to start writing the file at.
  *  \param[in] write_len length of data to be written.
  *  \returns 0 on success, -EINVAL on failure. */
-int ss_storage_write_file(const struct ss_list *path, const uint8_t *data,
-			  size_t write_offset, size_t write_len)
+int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_t write_offset, size_t write_len)
 {
 	char host_path[PATH_MAX + 1];
 	int rc;
@@ -213,16 +198,14 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data,
 
 	fd = fopen(host_path, "r+");
 	if (!fd) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to open content file: %s\n",
-			host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to open content file: %s\n", host_path);
 		return -EINVAL;
 	}
 
 	rc = fseek(fd, write_offset * 2, SEEK_SET);
 	if (rc != 0) {
-		SS_LOGP(SSTORAGE, LERROR,
-			"unable to seek (write_offset=%lu) data to content file: %s\n",
-			write_offset, host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to seek (write_offset=%lu) data to content file: %s\n", write_offset,
+			host_path);
 		fclose(fd);
 		return -EINVAL;
 	}
@@ -231,8 +214,7 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data,
 		snprintf(hex, sizeof(hex), "%02x", data[i]);
 		fwrite_rc = fwrite(hex, sizeof(hex) - 1, 1, fd);
 		if (fwrite_rc != 1) {
-			SS_LOGP(SSTORAGE, LERROR,
-				"unable to write (write_offset=%lu+%lu) data to content file: %s\n",
+			SS_LOGP(SSTORAGE, LERROR, "unable to write (write_offset=%lu+%lu) data to content file: %s\n",
 				write_offset, i, host_path);
 			fclose(fd);
 			return -EINVAL;
@@ -264,24 +246,20 @@ size_t ss_storage_get_file_len(const struct ss_list *path)
 
 	fd = fopen(host_path, "r");
 	if (!fd) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to open content file: %s\n",
-			host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to open content file: %s\n", host_path);
 		return 0;
 	}
 
 	rc = fseek(fd, 0, SEEK_END);
 	if (rc != 0) {
-		SS_LOGP(SSTORAGE, LERROR,
-			"unable to seek requested data in content file: %s\n",
-			host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to seek requested data in content file: %s\n", host_path);
 		fclose(fd);
 		return 0;
 	}
 
 	file_size = ftell(fd);
 	if (file_size < 0) {
-		SS_LOGP(SSTORAGE, LERROR,
-			"unable to tell the size of the file: %s\n", host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to tell the size of the file: %s\n", host_path);
 		fclose(fd);
 		return 0;
 	}
@@ -318,19 +296,14 @@ int ss_storage_delete(const struct ss_list *path)
 
 	rc = remove(host_path_def);
 	if (rc < 0) {
-		SS_LOGP(SSTORAGE, LERROR,
-			"unable to remove definition file: %s\n",
-			host_path_def);
+		SS_LOGP(SSTORAGE, LERROR, "unable to remove definition file: %s\n", host_path_def);
 		return -EINVAL;
 	}
 
-	snprintf(rm_command, sizeof(rm_command), "rm -rf %s",
-		 host_path_content);
+	snprintf(rm_command, sizeof(rm_command), "rm -rf %s", host_path_content);
 	rc = system(rm_command);
 	if (rc < 0) {
-		SS_LOGP(SSTORAGE, LERROR,
-			"unable to remove content file: %s\n",
-			host_path_content);
+		SS_LOGP(SSTORAGE, LERROR, "unable to remove content file: %s\n", host_path_content);
 		return -EINVAL;
 	}
 	return 0;
@@ -354,9 +327,7 @@ int ss_storage_update_def(const struct ss_list *path)
 		return -EINVAL;
 
 	if (!file->fci) {
-		SS_LOGP(SSTORAGE, LERROR,
-			"file (%04x) has no definition (FCP) set -- abort\n",
-			file->fid);
+		SS_LOGP(SSTORAGE, LERROR, "file (%04x) has no definition (FCP) set -- abort\n", file->fid);
 		return -EINVAL;
 	}
 
@@ -367,17 +338,14 @@ int ss_storage_update_def(const struct ss_list *path)
 
 	fd = fopen(host_path, "w");
 	if (!fd) {
-		SS_LOGP(SSTORAGE, LERROR,
-			"unable to create definition file: %s\n", host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to create definition file: %s\n", host_path);
 		return -EINVAL;
 	}
 	for (i = 0; i < file->fci->len; i++) {
 		snprintf(hex, sizeof(hex), "%02x", file->fci->data[i]);
 		fwrite_rc = fwrite(hex, sizeof(hex) - 1, 1, fd);
 		if (fwrite_rc != 1) {
-			SS_LOGP(SSTORAGE, LERROR,
-				"unable to write file definition: %s\n",
-				host_path);
+			SS_LOGP(SSTORAGE, LERROR, "unable to write file definition: %s\n", host_path);
 			ss_storage_delete(path);
 			fclose(fd);
 			return -EINVAL;
@@ -414,16 +382,13 @@ int ss_storage_create_file(const struct ss_list *path, size_t file_len)
 	}
 	fd = fopen(host_path, "w");
 	if (!fd) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to create content file: %s\n",
-			host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to create content file: %s\n", host_path);
 		ss_storage_delete(path);
 		return -EINVAL;
 	}
 	for (i = 0; i < file_len * 2; i++) {
 		if (fputc('f', fd) != 'f') {
-			SS_LOGP(SSTORAGE, LERROR,
-				"unable to prefill content file: %s\n",
-				host_path);
+			SS_LOGP(SSTORAGE, LERROR, "unable to prefill content file: %s\n", host_path);
 			ss_storage_delete(path);
 			fclose(fd);
 			return -EINVAL;
@@ -461,8 +426,7 @@ int ss_storage_create_dir(const struct ss_list *path)
 		return 0;
 	rc = mkdir(host_path, 0700);
 	if (rc < 0) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to create directory: %s\n",
-			host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to create directory: %s\n", host_path);
 		ss_storage_delete(path);
 		return -EINVAL;
 	}

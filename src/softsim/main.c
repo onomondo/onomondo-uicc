@@ -27,10 +27,10 @@
 #define VPCD_PORT 0x8C7B
 #define VPCD_HOST "127.0.0.1"
 
-#define	VPCD_CTRL_OFF 0x00
-#define	VPCD_CTRL_ON 0x01
-#define	VPCD_CTRL_RESET 0x02
-#define	VPCD_CTRL_ATR 0x04
+#define VPCD_CTRL_OFF 0x00
+#define VPCD_CTRL_ON 0x01
+#define VPCD_CTRL_RESET 0x02
+#define VPCD_CTRL_ATR 0x04
 
 bool running = true;
 #define POLL_INTERVAL 5 /* sec */
@@ -44,15 +44,12 @@ static int vpcd_rx(int socket_fd, uint8_t *buf, size_t len)
 	/* Receive length */
 	rc = read(socket_fd, &len_rx, sizeof(len_rx));
 	if (rc != 2) {
-		SS_LOGP(SVPCD, running ? LERROR : LINFO,
-			"vpcd_rx: error reading length -- abort!\n");
+		SS_LOGP(SVPCD, running ? LERROR : LINFO, "vpcd_rx: error reading length -- abort!\n");
 		return -EINVAL;
 	}
 	len_bytes = ntohs(len_rx);
 	if (len_bytes > len) {
-		SS_LOGP(SVPCD, LERROR,
-			"vpcd_rx: buffer too small (%lu < %u) -- abort!\n", len,
-			len_bytes);
+		SS_LOGP(SVPCD, LERROR, "vpcd_rx: buffer too small (%lu < %u) -- abort!\n", len, len_bytes);
 		return -EINVAL;
 	}
 
@@ -63,8 +60,7 @@ static int vpcd_rx(int socket_fd, uint8_t *buf, size_t len)
 		return -EINVAL;
 	}
 
-	SS_LOGP(SVPCD, LDEBUG, "vpcd_rx: received %u bytes: %04x:%s\n", rc,
-		len_rx, ss_hexdump(buf, rc));
+	SS_LOGP(SVPCD, LDEBUG, "vpcd_rx: received %u bytes: %04x:%s\n", rc, len_rx, ss_hexdump(buf, rc));
 
 	return rc;
 }
@@ -76,9 +72,8 @@ static int vpcd_tx(int socket_fd, uint8_t *buf, size_t len)
 
 	assert(len <= 0xffff);
 
-	len_tx = htons((uint16_t) len);
-	SS_LOGP(SVPCD, LDEBUG, "vpcd_tx: sending %lu bytes: %04x:%s\n", len,
-		len_tx, ss_hexdump(buf, len));
+	len_tx = htons((uint16_t)len);
+	SS_LOGP(SVPCD, LDEBUG, "vpcd_tx: sending %lu bytes: %04x:%s\n", len, len_tx, ss_hexdump(buf, len));
 	rc = write(socket_fd, &len_tx, sizeof(len_tx));
 	if (rc != 2)
 		return -EINVAL;
@@ -93,7 +88,7 @@ static int handle_request(struct ss_context *ctx, int socket_fd)
 {
 	uint8_t vpcd_pdu[65536];
 	int rc;
-	uint8_t card_response[256+2];
+	uint8_t card_response[256 + 2];
 	size_t card_response_len;
 
 	rc = vpcd_rx(socket_fd, vpcd_pdu, sizeof(vpcd_pdu));
@@ -118,8 +113,7 @@ static int handle_request(struct ss_context *ctx, int socket_fd)
 			break;
 		case VPCD_CTRL_ATR:
 			SS_LOGP(SVPCD, LDEBUG, "ATR request\n");
-			card_response_len =
-				ss_atr(ctx,card_response, sizeof(card_response));
+			card_response_len = ss_atr(ctx, card_response, sizeof(card_response));
 			vpcd_tx(socket_fd, card_response, card_response_len);
 			break;
 		default:
@@ -128,9 +122,7 @@ static int handle_request(struct ss_context *ctx, int socket_fd)
 	} else {
 		size_t request_length = rc;
 		/* Card APDU */
-		card_response_len =
-			ss_transact(ctx, card_response, sizeof(card_response),
-				    vpcd_pdu, &request_length);
+		card_response_len = ss_transact(ctx, card_response, sizeof(card_response), vpcd_pdu, &request_length);
 		if (request_length >= 0 && request_length < rc)
 			SS_LOGP(SVPCD, LERROR, "APDU contained trailing bytes that were ignored.\n");
 		vpcd_tx(socket_fd, card_response, card_response_len);
@@ -140,8 +132,7 @@ static int handle_request(struct ss_context *ctx, int socket_fd)
 
 /* Subtract timeval y from x, see also:
  * https://www.gnu.org/software/libc/manual/html_node/Calculating-Elapsed-Time.html */
-int timeval_subtract(struct timeval *result, struct timeval *x,
-		     struct timeval *y)
+int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y)
 {
 	if (x->tv_usec < y->tv_usec) {
 		int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
@@ -162,9 +153,9 @@ int timeval_subtract(struct timeval *result, struct timeval *x,
 static void handle_poll(struct ss_context *ctx)
 {
 	struct timeval time;
-	static struct timeval time_prev = { };
+	static struct timeval time_prev = {};
 	struct timeval time_elapsed;
-	static struct timeval timer = { };
+	static struct timeval timer = {};
 	int rc;
 
 	gettimeofday(&time, NULL);
@@ -177,8 +168,7 @@ static void handle_poll(struct ss_context *ctx)
 	}
 
 	if (timer.tv_usec + time_elapsed.tv_usec > 999999) {
-		timer.tv_usec =
-		    (timer.tv_usec + time_elapsed.tv_usec) - 1000000;
+		timer.tv_usec = (timer.tv_usec + time_elapsed.tv_usec) - 1000000;
 		timer.tv_sec = timer.tv_sec + time_elapsed.tv_sec + 1;
 	} else {
 		timer.tv_usec = timer.tv_usec + time_elapsed.tv_usec;
@@ -227,8 +217,7 @@ int main(void)
 
 	socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (socket_fd < 0) {
-		SS_LOGP(SVPCD, LERROR,
-			"cannot create socket for VPCD server -- abort!\n");
+		SS_LOGP(SVPCD, LERROR, "cannot create socket for VPCD server -- abort!\n");
 		exit(1);
 	}
 
@@ -237,18 +226,13 @@ int main(void)
 	vpcd_server_addr.sin_port = htons(VPCD_PORT);
 
 	socket_flag = 1;
-	if (setsockopt
-	    (socket_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&socket_flag,
-	     sizeof(socket_fd))) {
+	if (setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&socket_flag, sizeof(socket_fd))) {
 		SS_LOGP(SVPCD, LERROR, "cannot set socket options -- abort!\n");
 		exit(1);
 	}
 
-	if (connect
-	    (socket_fd, (struct sockaddr *)&vpcd_server_addr,
-	     sizeof(vpcd_server_addr)) != 0) {
-		SS_LOGP(SVPCD, LERROR,
-			"cannot connect to VPCD server -- abort!\n");
+	if (connect(socket_fd, (struct sockaddr *)&vpcd_server_addr, sizeof(vpcd_server_addr)) != 0) {
+		SS_LOGP(SVPCD, LERROR, "cannot connect to VPCD server -- abort!\n");
 		exit(1);
 	}
 
@@ -258,13 +242,12 @@ int main(void)
 	FD_SET(socket_fd, &fdset);
 
 	select_timeout.tv_sec = 0;
-        select_timeout.tv_usec = 500000;
+	select_timeout.tv_usec = 500000;
 
 	while (running) {
-
 		select_timer = select_timeout;
 
-		rc = select(socket_fd+1, &fdset, NULL, NULL, &select_timer);
+		rc = select(socket_fd + 1, &fdset, NULL, NULL, &select_timer);
 		if (rc < 0)
 			SS_LOGP(SVPCD, LERROR, "error in select -- abort!\n");
 		else if (rc)

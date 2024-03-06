@@ -19,8 +19,7 @@
  *  \param[in] buffer_len length of the plaintext data to decrypt (multiple of 16).
  *  \param[in] key AES key.
  *  \param[in] key_len length of the AES key. */
-void ss_utils_aes_decrypt(uint8_t *buffer, size_t buffer_len,
-			  const uint8_t *key, size_t key_len)
+void ss_utils_aes_decrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key, size_t key_len)
 {
 	void *aes_ctx;
 	uint8_t cbc[AES_BLOCKSIZE] = { 0 }; /* IV, all zero */
@@ -50,8 +49,7 @@ void ss_utils_aes_decrypt(uint8_t *buffer, size_t buffer_len,
  *  \param[in] buffer_len length of the plaintext data to encrypt (multiple of 16).
  *  \param[in] key 16 byte AES key.
  *  \param[in] key_len length of the AES key. */
-void ss_utils_aes_encrypt(uint8_t *buffer, size_t buffer_len,
-			   const uint8_t *key, size_t key_len)
+void ss_utils_aes_encrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key, size_t key_len)
 {
 	void *aes_ctx;
 	uint8_t cbc[AES_BLOCKSIZE] = { 0 }; /* IV, all zero */
@@ -80,9 +78,9 @@ static void leftshift_onebit(uint8_t *input, uint8_t *output)
 	uint8_t carry = 0;
 
 	for (i = AES_BLOCKSIZE; i > 0; i--) {
-		output[i-1] = input[i-1] << 1;
-		output[i-1] |= carry;
-		carry = (input[i-1] & 0x80) ? 1 : 0;
+		output[i - 1] = input[i - 1] << 1;
+		output[i - 1] |= carry;
+		carry = (input[i - 1] & 0x80) ? 1 : 0;
 	}
 	return;
 }
@@ -100,8 +98,7 @@ static void xor_128(uint8_t *a, uint8_t *b, uint8_t *out)
  *  \param[in] key AES key.
  *  \param[in] key_len length of the  AES key.
  *  \param[in] inert_padding apply padding without chaning crypto process. */
-void ss_utils_aes_cc_setup(struct utils_aes_cc_ctx *cc, const uint8_t *key,
-			   size_t key_len, bool inert_padding)
+void ss_utils_aes_cc_setup(struct utils_aes_cc_ctx *cc, const uint8_t *key, size_t key_len, bool inert_padding)
 {
 	/*! Note: The AES-CMAC algorithm specifies a separate path in case the
 	 *  input data has to be padded. The option "inert_padding" will handle
@@ -113,10 +110,8 @@ void ss_utils_aes_cc_setup(struct utils_aes_cc_ctx *cc, const uint8_t *key,
 	uint8_t L[AES_BLOCKSIZE] = { 0 };
 	uint8_t tmp[AES_BLOCKSIZE];
 
-	uint8_t const_Rb[] = {
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x87
-	};
+	uint8_t const_Rb[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x87 };
 
 	memset(cc, 0, sizeof(*cc));
 	cc->aes_ctx = aes_encrypt_init(key, key_len);
@@ -143,8 +138,7 @@ void ss_utils_aes_cc_setup(struct utils_aes_cc_ctx *cc, const uint8_t *key,
  *  \param[in] data_len length of data slice (must be multiple of 16).
  *  \param[in] data user provided memory with data slice.
  *  \param[in] last set to true when feeding the last block. */
-void ss_utils_aes_cc_feed(struct utils_aes_cc_ctx *cc, const uint8_t *data,
-			  size_t data_len, bool last)
+void ss_utils_aes_cc_feed(struct utils_aes_cc_ctx *cc, const uint8_t *data, size_t data_len, bool last)
 {
 	/*! Calculation of the cryptographic checksum (CC) using AES.
 	 *  (See also see also RFC 4493, section 2.2 and utils_3des.c */

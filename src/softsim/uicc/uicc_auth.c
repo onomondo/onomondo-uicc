@@ -24,12 +24,12 @@
 
 /* 3GPP TS 31.102 Table 7.1.2-1 + Table 7.1.2-2 */
 enum usim_auth_ctx {
-	USIM_AUTH_CTX_GSM	= 0,
-	USIM_AUTH_CTX_3G	= 1,
-	USIM_AUTH_CTX_VGCS_VBS	= 2,
-	USIM_AUTH_CTX_GBA	= 4,
-	USIM_AUTH_CTX_MBMS	= 5,
-	USIM_AUTH_CTX_LOCAL_KEY	= 6,
+	USIM_AUTH_CTX_GSM = 0,
+	USIM_AUTH_CTX_3G = 1,
+	USIM_AUTH_CTX_VGCS_VBS = 2,
+	USIM_AUTH_CTX_GBA = 4,
+	USIM_AUTH_CTX_MBMS = 5,
+	USIM_AUTH_CTX_LOCAL_KEY = 6,
 };
 
 /* convenience struct for the response APDU */
@@ -45,7 +45,7 @@ struct auth_res_success_3g {
 	 * needs to be set when configuring the file system. */
 	uint8_t kc_len;
 	uint8_t kc[8];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 #define KEY_DATA_FID 0xA001
 #define SEQ_DATA_FID 0xA002
@@ -64,27 +64,21 @@ static int get_key_data(struct milenage_key_data *key_data)
 	ss_fs_init(&key_data_path);
 	rc = ss_fs_select(&key_data_path, KEY_DATA_FID);
 	if (rc < 0) {
-		SS_LOGP(SAUTH, LERROR,
-			"key data file (%04x) not found -- abort\n",
-			KEY_DATA_FID);
+		SS_LOGP(SAUTH, LERROR, "key data file (%04x) not found -- abort\n", KEY_DATA_FID);
 		ss_path_reset(&key_data_path);
 		return -EINVAL;
 	}
 
-	key_data_raw =
-	    ss_storage_read_file(&key_data_path, 0,
-				 ss_storage_get_file_len(&key_data_path));
+	key_data_raw = ss_storage_read_file(&key_data_path, 0, ss_storage_get_file_len(&key_data_path));
 	if (!key_data_raw) {
-		SS_LOGP(SAUTH, LERROR,
-			"key data file (%s) not readable -- abort\n",
+		SS_LOGP(SAUTH, LERROR, "key data file (%s) not readable -- abort\n",
 			ss_fs_utils_dump_path(&key_data_path));
 		ss_path_reset(&key_data_path);
 		return -EINVAL;
 	}
 
 	if (key_data_raw->len < sizeof(key_data->k) + sizeof(key_data->opc) + 1) {
-		SS_LOGP(SAUTH, LERROR,
-			"key data file (%s) too short -- abort\n",
+		SS_LOGP(SAUTH, LERROR, "key data file (%s) too short -- abort\n",
 			ss_fs_utils_dump_path(&key_data_path));
 		ss_path_reset(&key_data_path);
 		ss_buf_free(key_data_raw);
@@ -92,16 +86,13 @@ static int get_key_data(struct milenage_key_data *key_data)
 	}
 
 	memcpy(key_data->k, key_data_raw->data, sizeof(key_data->k));
-	memcpy(key_data->opc, key_data_raw->data + sizeof(key_data->k),
-	       sizeof(key_data->opc));
-	if (key_data_raw->data[sizeof(key_data->k) + sizeof(key_data->opc)] ==
-	    0x01)
+	memcpy(key_data->opc, key_data_raw->data + sizeof(key_data->k), sizeof(key_data->opc));
+	if (key_data_raw->data[sizeof(key_data->k) + sizeof(key_data->opc)] == 0x01)
 		key_data->opc_is_op = true;
 	else
 		key_data->opc_is_op = false;
 
-	SS_LOGP(SAUTH, LDEBUG, "key data file (%s) loaded\n",
-		ss_fs_utils_dump_path(&key_data_path));
+	SS_LOGP(SAUTH, LDEBUG, "key data file (%s) loaded\n", ss_fs_utils_dump_path(&key_data_path));
 
 	ss_path_reset(&key_data_path);
 	ss_buf_free(key_data_raw);
@@ -123,27 +114,21 @@ static int get_seq_data(struct milenage_seq_data *seq_data)
 	ss_fs_init(&seq_data_path);
 	rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID);
 	if (rc < 0) {
-		SS_LOGP(SAUTH, LERROR,
-			"seq data file (%04x) not found -- abort\n",
-			KEY_DATA_FID);
+		SS_LOGP(SAUTH, LERROR, "seq data file (%04x) not found -- abort\n", KEY_DATA_FID);
 		ss_path_reset(&seq_data_path);
 		return -EINVAL;
 	}
 
-	seq_data_raw =
-	    ss_storage_read_file(&seq_data_path, 0,
-				 ss_storage_get_file_len(&seq_data_path));
+	seq_data_raw = ss_storage_read_file(&seq_data_path, 0, ss_storage_get_file_len(&seq_data_path));
 	if (!seq_data_raw) {
-		SS_LOGP(SAUTH, LERROR,
-			"seq data file (%s) not readable -- abort\n",
+		SS_LOGP(SAUTH, LERROR, "seq data file (%s) not readable -- abort\n",
 			ss_fs_utils_dump_path(&seq_data_path));
 		ss_path_reset(&seq_data_path);
 		return -EINVAL;
 	}
 
 	if (seq_data_raw->len < sizeof(seq_data->seq) + sizeof(seq_data->delta)) {
-		SS_LOGP(SAUTH, LERROR,
-			"seq data file (%s) too short -- abort\n",
+		SS_LOGP(SAUTH, LERROR, "seq data file (%s) too short -- abort\n",
 			ss_fs_utils_dump_path(&seq_data_path));
 		ss_path_reset(&seq_data_path);
 		ss_buf_free(seq_data_raw);
@@ -154,8 +139,7 @@ static int get_seq_data(struct milenage_seq_data *seq_data)
 		seq_data->seq[i] = ss_uint64_load_from_be(&seq_data_raw->data[i * 8]);
 	seq_data->delta = ss_uint64_load_from_be(&seq_data_raw->data[SS_ARRAY_SIZE(seq_data->seq) * 8]);
 
-	SS_LOGP(SAUTH, LDEBUG, "seq data file (%s) loaded\n",
-		ss_fs_utils_dump_path(&seq_data_path));
+	SS_LOGP(SAUTH, LDEBUG, "seq data file (%s) loaded\n", ss_fs_utils_dump_path(&seq_data_path));
 	ss_path_reset(&seq_data_path);
 	ss_buf_free(seq_data_raw);
 	return 0;
@@ -171,9 +155,7 @@ static int update_seq_data(struct milenage_seq_data *seq_data)
 	ss_fs_init(&seq_data_path);
 	rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID);
 	if (rc < 0) {
-		SS_LOGP(SAUTH, LERROR,
-			"seq data file (%04x) not found -- abort\n",
-			KEY_DATA_FID);
+		SS_LOGP(SAUTH, LERROR, "seq data file (%04x) not found -- abort\n", KEY_DATA_FID);
 		ss_path_reset(&seq_data_path);
 		return -EINVAL;
 	}
@@ -182,18 +164,15 @@ static int update_seq_data(struct milenage_seq_data *seq_data)
 		ss_uint64_store_to_be(&seq_data_raw[i * 8], seq_data->seq[i]);
 	ss_uint64_store_to_be(&seq_data_raw[SS_ARRAY_SIZE(seq_data->seq) * 8], seq_data->delta);
 
-	rc = ss_storage_write_file(&seq_data_path, seq_data_raw, 0,
-				   sizeof(seq_data_raw));
+	rc = ss_storage_write_file(&seq_data_path, seq_data_raw, 0, sizeof(seq_data_raw));
 	if (rc < 0) {
-		SS_LOGP(SAUTH, LERROR,
-			"seq data file (%s) not writeable -- abort\n",
+		SS_LOGP(SAUTH, LERROR, "seq data file (%s) not writeable -- abort\n",
 			ss_fs_utils_dump_path(&seq_data_path));
 		ss_path_reset(&seq_data_path);
 		return -EINVAL;
 	}
 
-	SS_LOGP(SAUTH, LDEBUG, "seq data file (%s) updated\n",
-		ss_fs_utils_dump_path(&seq_data_path));
+	SS_LOGP(SAUTH, LDEBUG, "seq data file (%s) updated\n", ss_fs_utils_dump_path(&seq_data_path));
 	ss_path_reset(&seq_data_path);
 	return 0;
 }
@@ -209,9 +188,8 @@ static int gen_opc(uint8_t *opc, const struct milenage_key_data *akd)
 	}
 }
 
-static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_ctx,
-				 const uint8_t *rand, uint8_t rand_len,
-				 const uint8_t *autn, uint8_t autn_len)
+static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_ctx, const uint8_t *rand,
+				 uint8_t rand_len, const uint8_t *autn, uint8_t autn_len)
 {
 	struct milenage_key_data mkd_storage;
 	struct milenage_key_data *mkd = &mkd_storage;
@@ -236,27 +214,27 @@ static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_c
 
 	switch (auth_ctx) {
 	case USIM_AUTH_CTX_GSM:
-		if (rand_len != 128/8) {
+		if (rand_len != 128 / 8) {
 			SS_LOGP(SAUTH, LERROR, "unexpected RAND len -- authentication failed\n");
 			goto out_err;
 		}
 		/* actually perform authentication */
-		rc = gsm_milenage(opc, mkd->k, rand, &apdu->rsp[1], &apdu->rsp[1+4+1]);
+		rc = gsm_milenage(opc, mkd->k, rand, &apdu->rsp[1], &apdu->rsp[1 + 4 + 1]);
 		if (rc < 0) {
 			SS_LOGP(SAUTH, LERROR, "milenage computation failed -- authentication failed\n");
 			goto out_err;
 		}
 		/* put together response data */
-		apdu->rsp[0] = 4; 	/* length of SRES */
-		apdu->rsp[1+4] = 8;	/* length of Kc */
+		apdu->rsp[0] = 4;     /* length of SRES */
+		apdu->rsp[1 + 4] = 8; /* length of Kc */
 		apdu->rsp_len = 1 + 4 + 1 + 8;
 		break;
 	case USIM_AUTH_CTX_3G:
-		if (rand_len != 128/8) {
+		if (rand_len != 128 / 8) {
 			SS_LOGP(SAUTH, LERROR, "unexpected RAND len -- authentication failed\n");
 			goto out_err;
 		}
-		if (autn_len != 128/8) {
+		if (autn_len != 128 / 8) {
 			SS_LOGP(SAUTH, LERROR, "unexpected AUTN len -- authentication failed\n");
 			goto out_err;
 		}
@@ -268,7 +246,7 @@ static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_c
 			assert(mres.res_len == 8);
 			/* FIXME #59: update SEQ bucket for IND */
 			/* generate response */
-			res_3g = (struct auth_res_success_3g *) apdu->rsp;
+			res_3g = (struct auth_res_success_3g *)apdu->rsp;
 			res_3g->tag = 0xDB;
 			res_3g->res_len = mres.res_len;
 			memcpy(res_3g->res, mres.res, mres.res_len);
@@ -353,11 +331,11 @@ int ss_uicc_auth_cmd_authenticate_even_fn(struct ss_apdu *apdu)
 	if (auth_ctx == USIM_AUTH_CTX_3G) {
 		if (apdu->lc < 1 + rand_len + 1)
 			goto err_len;
-		autn_len = apdu->cmd[1+rand_len];
+		autn_len = apdu->cmd[1 + rand_len];
 
 		if (apdu->lc < 1 + rand_len + 1 + autn_len)
 			goto err_len;
-		autn = &apdu->cmd[1+rand_len+1];
+		autn = &apdu->cmd[1 + rand_len + 1];
 	} else {
 		autn_len = 0;
 		autn = NULL;

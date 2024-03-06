@@ -18,8 +18,7 @@
 #include "sms.h"
 
 /* see also: 3GPP TS 23.040, section 9.2.3.1 */
-static enum ss_sms_tp_mti decode_mti(const uint8_t *sms_tpdu,
-				     size_t sms_tpdu_len, bool ms_to_sc)
+static enum ss_sms_tp_mti decode_mti(const uint8_t *sms_tpdu, size_t sms_tpdu_len, bool ms_to_sc)
 {
 	uint8_t mti;
 
@@ -35,8 +34,7 @@ static enum ss_sms_tp_mti decode_mti(const uint8_t *sms_tpdu,
 	return mti;
 }
 
-static int decode_addr(struct ss_sms_addr *addr_dec,
-		       const uint8_t *addr, size_t addr_len)
+static int decode_addr(struct ss_sms_addr *addr_dec, const uint8_t *addr, size_t addr_len)
 {
 	uint8_t n_digits;
 	uint8_t n_bytes;
@@ -89,8 +87,7 @@ static int decode_addr(struct ss_sms_addr *addr_dec,
 	return n_bytes + 2;
 }
 
-static int encode_addr(uint8_t *addr, size_t addr_len,
-		       const struct ss_sms_addr *addr_dec)
+static int encode_addr(uint8_t *addr, size_t addr_len, const struct ss_sms_addr *addr_dec)
 {
 	uint8_t n_digits;
 	uint8_t n_bytes;
@@ -102,8 +99,7 @@ static int encode_addr(uint8_t *addr, size_t addr_len,
 		return -ENOMEM;
 
 	/* Encode number of digits */
-	n_digits =
-	    (uint8_t) ss_strnlen(addr_dec->digits, sizeof(addr_dec->digits));
+	n_digits = (uint8_t)ss_strnlen(addr_dec->digits, sizeof(addr_dec->digits));
 	addr[bytes_used] = n_digits;
 	bytes_used++;
 
@@ -126,8 +122,7 @@ static int encode_addr(uint8_t *addr, size_t addr_len,
 		addr[bytes_used + i] = addr_dec->digits[d] & 0x0F;
 		d++;
 		if (d < n_digits)
-			addr[bytes_used + i] |=
-			    ((addr_dec->digits[d] & 0x0F) << 4);
+			addr[bytes_used + i] |= ((addr_dec->digits[d] & 0x0F) << 4);
 		else
 			addr[bytes_used + i] |= 0xF0;
 		d++;
@@ -138,8 +133,7 @@ static int encode_addr(uint8_t *addr, size_t addr_len,
 }
 
 /* see also: 3GPP TS 23.040, section 9.2.2.1 */
-static int rx_sms_deliver(struct ss_sms_deliver *sm, const uint8_t *sms_tpdu,
-			  size_t sms_tpdu_len)
+static int rx_sms_deliver(struct ss_sms_deliver *sm, const uint8_t *sms_tpdu, size_t sms_tpdu_len)
 {
 	int addr_len;
 	size_t bytes_used = 0;
@@ -158,20 +152,16 @@ static int rx_sms_deliver(struct ss_sms_deliver *sm, const uint8_t *sms_tpdu,
 	bytes_used++;
 
 	/* TP-OA */
-	addr_len =
-	    decode_addr(&sm->tp_oa, sms_tpdu + bytes_used,
-			sms_tpdu_len - bytes_used);
+	addr_len = decode_addr(&sm->tp_oa, sms_tpdu + bytes_used, sms_tpdu_len - bytes_used);
 	if (addr_len < 0) {
-		SS_LOGP(SSMS, LERROR,
-			"invalid address (TP-OA) -- reception of SMS-DELIVER failed!\n");
+		SS_LOGP(SSMS, LERROR, "invalid address (TP-OA) -- reception of SMS-DELIVER failed!\n");
 		return -EINVAL;
 	}
 	bytes_used += addr_len;
 
 	/* TP-PID */
 	if (sms_tpdu_len < bytes_used + 1) {
-		SS_LOGP(SSMS, LERROR,
-			"unexpected end of message (TP-PID) -- reception of SMS-DELIVER failed!\n");
+		SS_LOGP(SSMS, LERROR, "unexpected end of message (TP-PID) -- reception of SMS-DELIVER failed!\n");
 		return -EINVAL;
 	}
 	sm->tp_pid = sms_tpdu[bytes_used];
@@ -179,8 +169,7 @@ static int rx_sms_deliver(struct ss_sms_deliver *sm, const uint8_t *sms_tpdu,
 
 	/* TP-DCS */
 	if (sms_tpdu_len < bytes_used + 1) {
-		SS_LOGP(SSMS, LERROR,
-			"unexpected end of message (TP-DCS) -- reception of SMS-DELIVER failed!\n");
+		SS_LOGP(SSMS, LERROR, "unexpected end of message (TP-DCS) -- reception of SMS-DELIVER failed!\n");
 		return -EINVAL;
 	}
 	sm->tp_dcs = sms_tpdu[bytes_used];
@@ -188,8 +177,7 @@ static int rx_sms_deliver(struct ss_sms_deliver *sm, const uint8_t *sms_tpdu,
 
 	/* TP-SCTS */
 	if (sms_tpdu_len < bytes_used + 7) {
-		SS_LOGP(SSMS, LERROR,
-			"unexpected end of message (TP-SCTS) -- reception of SMS-DELIVER failed!\n");
+		SS_LOGP(SSMS, LERROR, "unexpected end of message (TP-SCTS) -- reception of SMS-DELIVER failed!\n");
 		return -EINVAL;
 	}
 	memcpy(sm->tp_scts, sms_tpdu + bytes_used, sizeof(sm->tp_scts));
@@ -197,8 +185,7 @@ static int rx_sms_deliver(struct ss_sms_deliver *sm, const uint8_t *sms_tpdu,
 
 	/* TP-UDL */
 	if (sms_tpdu_len < bytes_used + 1) {
-		SS_LOGP(SSMS, LERROR,
-			"unexpected end of message (TP-UDL) -- reception of SMS-DELIVER failed!\n");
+		SS_LOGP(SSMS, LERROR, "unexpected end of message (TP-UDL) -- reception of SMS-DELIVER failed!\n");
 		return -EINVAL;
 	}
 	sm->tp_udl = sms_tpdu[bytes_used];
@@ -208,8 +195,7 @@ static int rx_sms_deliver(struct ss_sms_deliver *sm, const uint8_t *sms_tpdu,
 }
 
 /* see also: 3GPP TS 23.040, section 9.2.2.3 */
-static int rx_sms_status_report(struct ss_sms_status_report *sm,
-				const uint8_t *sms_tpdu, size_t sms_tpdu_len)
+static int rx_sms_status_report(struct ss_sms_status_report *sm, const uint8_t *sms_tpdu, size_t sms_tpdu_len)
 {
 	int addr_len;
 	size_t bytes_used = 0;
@@ -220,20 +206,16 @@ static int rx_sms_status_report(struct ss_sms_status_report *sm,
 
 	/* TP-MR */
 	if (sms_tpdu_len < bytes_used + 1) {
-		SS_LOGP(SSMS, LERROR,
-			"unexpected end of message (TP-MR) -- reception of SMS-STATUS-REPORT failed!\n");
+		SS_LOGP(SSMS, LERROR, "unexpected end of message (TP-MR) -- reception of SMS-STATUS-REPORT failed!\n");
 		return -EINVAL;
 	}
 	sm->tp_mr = sms_tpdu[bytes_used];
 	bytes_used++;
 
 	/* TP-RA */
-	addr_len =
-	    decode_addr(&sm->tp_ra, sms_tpdu + bytes_used,
-			sms_tpdu_len - bytes_used);
+	addr_len = decode_addr(&sm->tp_ra, sms_tpdu + bytes_used, sms_tpdu_len - bytes_used);
 	if (addr_len < 0) {
-		SS_LOGP(SSMS, LERROR,
-			"invalid address (TP-RA) -- reception of SMS-STATUS-REPORT failed!\n");
+		SS_LOGP(SSMS, LERROR, "invalid address (TP-RA) -- reception of SMS-STATUS-REPORT failed!\n");
 		return -EINVAL;
 	}
 	bytes_used += addr_len;
@@ -249,8 +231,7 @@ static int rx_sms_status_report(struct ss_sms_status_report *sm,
 
 	/* TP-DT */
 	if (sms_tpdu_len < bytes_used + 7) {
-		SS_LOGP(SSMS, LERROR,
-			"unexpected end of message (TP-DT) -- reception of SMS-STATUS-REPORT failed!\n");
+		SS_LOGP(SSMS, LERROR, "unexpected end of message (TP-DT) -- reception of SMS-STATUS-REPORT failed!\n");
 		return -EINVAL;
 	}
 	memcpy(sm->tp_dt, sms_tpdu + bytes_used, sizeof(sm->tp_scts));
@@ -258,8 +239,7 @@ static int rx_sms_status_report(struct ss_sms_status_report *sm,
 
 	/* TP-ST */
 	if (sms_tpdu_len < bytes_used + 1) {
-		SS_LOGP(SSMS, LERROR,
-			"unexpected end of message (TP-ST) -- reception of SMS-STATUS-REPORT failed!\n");
+		SS_LOGP(SSMS, LERROR, "unexpected end of message (TP-ST) -- reception of SMS-STATUS-REPORT failed!\n");
 		return -EINVAL;
 	}
 	sm->tp_st = sms_tpdu[bytes_used];
@@ -269,8 +249,7 @@ static int rx_sms_status_report(struct ss_sms_status_report *sm,
 }
 
 /* see also: 3GPP TS 23.040, section 9.2.2.2 */
-static int rx_sms_submit_report(struct ss_sms_submit_report *sm,
-				const uint8_t *sms_tpdu, size_t sms_tpdu_len)
+static int rx_sms_submit_report(struct ss_sms_submit_report *sm, const uint8_t *sms_tpdu, size_t sms_tpdu_len)
 {
 	size_t bytes_used = 0;
 
@@ -279,8 +258,7 @@ static int rx_sms_submit_report(struct ss_sms_submit_report *sm,
 
 	/* TP-ST */
 	if (sms_tpdu_len < bytes_used + 1) {
-		SS_LOGP(SSMS, LERROR,
-			"unexpected end of message (TP-ST) -- reception of SMS-SUBMIT-REPORT failed!\n");
+		SS_LOGP(SSMS, LERROR, "unexpected end of message (TP-ST) -- reception of SMS-SUBMIT-REPORT failed!\n");
 		return -EINVAL;
 	}
 	sm->tp_fcs = sms_tpdu[bytes_used];
@@ -294,8 +272,7 @@ static int rx_sms_submit_report(struct ss_sms_submit_report *sm,
  *  \param[in] sms_tpdu buffer with binary SMS message header to decode.
  *  \param[in] sms_tpdu_len maximum length of sms_tpdu buffer.
  *  \returns 0 on success, -EINVAL on error. */
-int ss_sms_hdr_decode(struct ss_sm_hdr *sm_hdr, const uint8_t *sms_tpdu,
-		      size_t sms_tpdu_len)
+int ss_sms_hdr_decode(struct ss_sm_hdr *sm_hdr, const uint8_t *sms_tpdu, size_t sms_tpdu_len)
 {
 	memset(sm_hdr, 0, sizeof(*sm_hdr));
 
@@ -303,18 +280,13 @@ int ss_sms_hdr_decode(struct ss_sm_hdr *sm_hdr, const uint8_t *sms_tpdu,
 
 	switch (sm_hdr->tp_mti) {
 	case SMS_MTI_DELIVER:
-		return rx_sms_deliver(&sm_hdr->u.sms_deliver, sms_tpdu,
-				      sms_tpdu_len);
+		return rx_sms_deliver(&sm_hdr->u.sms_deliver, sms_tpdu, sms_tpdu_len);
 	case SMS_MTI_STATUS_REPORT:
-		return rx_sms_status_report(&sm_hdr->u.sms_status_report,
-					    sms_tpdu, sms_tpdu_len);
+		return rx_sms_status_report(&sm_hdr->u.sms_status_report, sms_tpdu, sms_tpdu_len);
 	case SMS_MTI_SUBMIT_REPORT:
-		return rx_sms_submit_report(&sm_hdr->u.sms_submit_report,
-					    sms_tpdu, sms_tpdu_len);
+		return rx_sms_submit_report(&sm_hdr->u.sms_submit_report, sms_tpdu, sms_tpdu_len);
 	default:
-		SS_LOGP(SSMS, LERROR,
-			"unexpected or invalid message type (mti=%u) received\n",
-			sm_hdr->tp_mti & 0x03);
+		SS_LOGP(SSMS, LERROR, "unexpected or invalid message type (mti=%u) received\n", sm_hdr->tp_mti & 0x03);
 		return -EINVAL;
 	}
 
@@ -322,8 +294,7 @@ int ss_sms_hdr_decode(struct ss_sm_hdr *sm_hdr, const uint8_t *sms_tpdu,
 }
 
 /* see also: 3GPP TS 23.040, section 9.2.2.1a */
-static int tx_sms_deliver_report(uint8_t *sms_tpdu, size_t sms_tpdu_len,
-				 const struct ss_sms_deliver_report *sm)
+static int tx_sms_deliver_report(uint8_t *sms_tpdu, size_t sms_tpdu_len, const struct ss_sms_deliver_report *sm)
 {
 	size_t bytes_used = 0;
 
@@ -377,8 +348,7 @@ static int tx_sms_deliver_report(uint8_t *sms_tpdu, size_t sms_tpdu_len,
 }
 
 /* see also: 3GPP TS 23.040, section 9.2.2.1a */
-static int tx_sms_command(uint8_t *sms_tpdu, size_t sms_tpdu_len,
-			  const struct ss_sms_command *sm)
+static int tx_sms_command(uint8_t *sms_tpdu, size_t sms_tpdu_len, const struct ss_sms_command *sm)
 {
 	size_t bytes_used = 0;
 	int rc;
@@ -415,8 +385,7 @@ static int tx_sms_command(uint8_t *sms_tpdu, size_t sms_tpdu_len,
 	bytes_used++;
 
 	/* TP-DA */
-	rc = encode_addr(&sms_tpdu[bytes_used], sms_tpdu_len - bytes_used,
-			 &sm->tp_da);
+	rc = encode_addr(&sms_tpdu[bytes_used], sms_tpdu_len - bytes_used, &sm->tp_da);
 	if (rc < 0)
 		return -EINVAL;
 	bytes_used += rc;
@@ -431,8 +400,7 @@ static int tx_sms_command(uint8_t *sms_tpdu, size_t sms_tpdu_len,
 }
 
 /* see also: 3GPP TS 23.040, section 9.2.2.2 */
-static int tx_sms_submit(uint8_t *sms_tpdu, size_t sms_tpdu_len,
-			 const struct ss_sms_submit *sm)
+static int tx_sms_submit(uint8_t *sms_tpdu, size_t sms_tpdu_len, const struct ss_sms_submit *sm)
 {
 	size_t bytes_used = 0;
 	int rc;
@@ -456,8 +424,7 @@ static int tx_sms_submit(uint8_t *sms_tpdu, size_t sms_tpdu_len,
 	bytes_used++;
 
 	/* TP-DA */
-	rc = encode_addr(&sms_tpdu[bytes_used], sms_tpdu_len - bytes_used,
-			 &sm->tp_da);
+	rc = encode_addr(&sms_tpdu[bytes_used], sms_tpdu_len - bytes_used, &sm->tp_da);
 	if (rc < 0)
 		return -EINVAL;
 	bytes_used += rc;
@@ -496,8 +463,7 @@ static int tx_sms_submit(uint8_t *sms_tpdu, size_t sms_tpdu_len,
  *  \param[in] sms_tpdu_len maximum length of sms_tpdu buffer.
  *  \param[in] sm_hdr pointer to user struct that holds the header data to encode.
  *  \returns 0 on success, -EINVAL on error. */
-int ss_sms_hdr_encode(uint8_t *sms_tpdu, size_t sms_tpdu_len,
-		      const struct ss_sm_hdr *sm_hdr)
+int ss_sms_hdr_encode(uint8_t *sms_tpdu, size_t sms_tpdu_len, const struct ss_sm_hdr *sm_hdr)
 {
 	memset(sms_tpdu, 0, sms_tpdu_len);
 
@@ -508,17 +474,13 @@ int ss_sms_hdr_encode(uint8_t *sms_tpdu, size_t sms_tpdu_len,
 
 	switch (sm_hdr->tp_mti) {
 	case SMS_MTI_DELIVER_REPORT:
-		return tx_sms_deliver_report(sms_tpdu, sms_tpdu_len,
-					     &sm_hdr->u.sms_deliver_report);
+		return tx_sms_deliver_report(sms_tpdu, sms_tpdu_len, &sm_hdr->u.sms_deliver_report);
 	case SMS_MTI_COMMAND:
-		return tx_sms_command(sms_tpdu, sms_tpdu_len,
-				      &sm_hdr->u.sms_command);
+		return tx_sms_command(sms_tpdu, sms_tpdu_len, &sm_hdr->u.sms_command);
 	case SMS_MTI_SUBMIT:
-		return tx_sms_submit(sms_tpdu, sms_tpdu_len,
-				     &sm_hdr->u.sms_submit);
+		return tx_sms_submit(sms_tpdu, sms_tpdu_len, &sm_hdr->u.sms_submit);
 	default:
-		SS_LOGP(SSMS, LERROR,
-			"cannot encode message with unexpected message type (mti=%u)\n",
+		SS_LOGP(SSMS, LERROR, "cannot encode message with unexpected message type (mti=%u)\n",
 			sm_hdr->tp_mti & 0x03);
 		return -EINVAL;
 	}

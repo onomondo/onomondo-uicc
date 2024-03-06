@@ -20,14 +20,15 @@
  * sets how many bytes the buffer pointer (enc) should be be advanced. The
  * parameter "bytes_ahead" sets the minimum valid bytes that the caller expects
  * to be available after the buffer pointer (enc) has been advanced. */
-#define CHECK_AND_ADVANCE(inc, bytes_ahead) \
-	if (len < bytes_used + inc + bytes_ahead) { \
-		SS_LOGP(SBTLV, LDEBUG, "exceeding buffer bounds: len=%zu, inc=%zu, bytes_ahead=%zu, cannot decode IE\n", \
-			len, (size_t) inc, (size_t) bytes_ahead); \
-		return NULL; \
-	} \
-	bytes_used+=inc; \
-	enc+=inc
+#define CHECK_AND_ADVANCE(inc, bytes_ahead)                                                                    \
+	if (len < bytes_used + inc + bytes_ahead) {                                                            \
+		SS_LOGP(SBTLV, LDEBUG,                                                                         \
+			"exceeding buffer bounds: len=%zu, inc=%zu, bytes_ahead=%zu, cannot decode IE\n", len, \
+			(size_t)inc, (size_t)bytes_ahead);                                                     \
+		return NULL;                                                                                   \
+	}                                                                                                      \
+	bytes_used += inc;                                                                                     \
+	enc += inc
 
 /* Return one decoded information element */
 static struct ber_tlv_ie *decode_ie(size_t *used_len, const uint8_t *enc, size_t len)
@@ -77,9 +78,7 @@ static struct ber_tlv_ie *decode_ie(size_t *used_len, const uint8_t *enc, size_t
 
 		/* Make sure the decoded length field length makes sense */
 		if (len_bytes == 0 || len_bytes > SS_BERTLV_MAX_LEN_BYTES) {
-			SS_LOGP(SBTLV, LDEBUG,
-				"invalid ber-tlv length field length (tag = 0x%02x)\n",
-				ie.tag);
+			SS_LOGP(SBTLV, LDEBUG, "invalid ber-tlv length field length (tag = 0x%02x)\n", ie.tag);
 			return NULL;
 		}
 
@@ -109,8 +108,7 @@ static struct ber_tlv_ie *decode_ie(size_t *used_len, const uint8_t *enc, size_t
 }
 
 /* Get a description for an IE with a specified tag that is assigned to a specified parent (id) */
-static const struct ber_tlv_desc *get_ie_descr(const struct ber_tlv_desc *descr,
-					       uint32_t tag_encoded,
+static const struct ber_tlv_desc *get_ie_descr(const struct ber_tlv_desc *descr, uint32_t tag_encoded,
 					       uint32_t id_parent)
 {
 	uint32_t i = 0;
@@ -119,8 +117,7 @@ static const struct ber_tlv_desc *get_ie_descr(const struct ber_tlv_desc *descr,
 		return NULL;
 
 	do {
-		if (descr[i].id_parent == id_parent
-		    && descr[i].tag_encoded == tag_encoded) {
+		if (descr[i].id_parent == id_parent && descr[i].tag_encoded == tag_encoded) {
 			return &descr[i];
 		}
 		i++;
@@ -137,9 +134,7 @@ static const struct ber_tlv_desc *get_ie_descr(const struct ber_tlv_desc *descr,
  *
  * Consecutive 0xFF bytes at the trailing end are tolerated.
  * */
-static struct ss_list *btlv_decode(const uint8_t *enc, size_t len,
-				   const struct ber_tlv_desc *descr,
-				   uint32_t id_parent)
+static struct ss_list *btlv_decode(const uint8_t *enc, size_t len, const struct ber_tlv_desc *descr, uint32_t id_parent)
 {
 	struct ber_tlv_ie *ie;
 	const struct ber_tlv_desc *ie_descr;
@@ -156,11 +151,9 @@ static struct ss_list *btlv_decode(const uint8_t *enc, size_t len,
 		ie = decode_ie(&used_len, enc, remaining_len);
 		if (ie) {
 			ss_list_put(list, &ie->list);
-			ie_descr = get_ie_descr(descr, ie->tag_encoded,
-						id_parent);
+			ie_descr = get_ie_descr(descr, ie->tag_encoded, id_parent);
 			if (ie_descr && ie_descr->title) {
-				ie->title =
-				    SS_ALLOC_N(strlen(ie_descr->title) + 1);
+				ie->title = SS_ALLOC_N(strlen(ie_descr->title) + 1);
 				strcpy(ie->title, ie_descr->title);
 			}
 		} else if (remaining_len > 0) {
@@ -179,13 +172,9 @@ static struct ss_list *btlv_decode(const uint8_t *enc, size_t len,
 		 * list of the IE. */
 		if (ie && ie->constr) {
 			if (ie_descr) {
-				ie->nested =
-				    btlv_decode(ie->value->data, ie->value->len,
-						descr, ie_descr->id);
+				ie->nested = btlv_decode(ie->value->data, ie->value->len, descr, ie_descr->id);
 			} else {
-				ie->nested =
-				    btlv_decode(ie->value->data, ie->value->len,
-						NULL, 0);
+				ie->nested = btlv_decode(ie->value->data, ie->value->len, NULL, 0);
 			}
 		}
 
@@ -202,8 +191,7 @@ static struct ss_list *btlv_decode(const uint8_t *enc, size_t len,
  *  \param[in] len length of the buffer that contains the BER-TLV encoded data.
  *  \param[in] descr decoded BER-TLV data that serves a description (titles).
  *  \returns pointer to allocated linked list with BER-TLV data (can be empty). */
-struct ss_list *ss_btlv_decode(const uint8_t *enc, size_t len,
-			       const struct ber_tlv_desc *descr)
+struct ss_list *ss_btlv_decode(const uint8_t *enc, size_t len, const struct ber_tlv_desc *descr)
 {
 	return btlv_decode(enc, len, descr, 0);
 }

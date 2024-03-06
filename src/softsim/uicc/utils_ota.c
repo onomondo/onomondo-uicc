@@ -32,7 +32,7 @@ uint8_t ss_utils_ota_calc_pcnt(enum enc_algorithm algorithm, size_t data_len)
 	default:
 		blocksize = 1; /* No padding */
 	}
-	
+
 	return (-(blocksize + data_len)) % blocksize;
 }
 
@@ -46,10 +46,8 @@ uint8_t ss_utils_ota_calc_pcnt(enum enc_algorithm algorithm, size_t data_len)
  *  \param[in] data2 user buffer containing part 2 of the data.
  *  \param[in] data2_len length of data part 2 (unpadded).
  *  \returns 0 on success, -EINVAL on error. */
-int ss_utils_ota_calc_cc(uint8_t *cc, size_t cc_len,
-			 uint8_t *key, size_t key_len, enum enc_algorithm alg,
-			 uint8_t *data1, size_t data1_len,
-			 uint8_t *data2, size_t data2_len)
+int ss_utils_ota_calc_cc(uint8_t *cc, size_t cc_len, uint8_t *key, size_t key_len, enum enc_algorithm alg,
+			 uint8_t *data1, size_t data1_len, uint8_t *data2, size_t data2_len)
 {
 	struct utils_3des_cc_ctx cc_des;
 	struct utils_aes_cc_ctx cc_aes;
@@ -87,8 +85,7 @@ int ss_utils_ota_calc_cc(uint8_t *cc, size_t cc_len,
 		memcpy(cc, cc_aes.cbc, cc_len);
 		return 0;
 	default:
-		SS_LOGP(SREMOTECMD, LERROR,
-			"unable to calculate cc, improper crypto algorithm selected\n");
+		SS_LOGP(SREMOTECMD, LERROR, "unable to calculate cc, improper crypto algorithm selected\n");
 		return -EINVAL;
 	}
 }

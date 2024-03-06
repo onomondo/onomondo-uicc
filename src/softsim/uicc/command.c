@@ -129,7 +129,7 @@ const struct ss_command commands[] = {
 	{
 		.name = "CREATE FILE",
 		.cla = 0x00,
-		.cla_mask = 0xB0,	/* 0X or 4X */
+		.cla_mask = 0xB0, /* 0X or 4X */
 		.ins = TS_102_222_INS_CREATE_FILE,
 		.handler = ss_uicc_admin_cmd_create_file,
 		.case_ = SS_COMMAND_CASE_3,
@@ -137,7 +137,7 @@ const struct ss_command commands[] = {
 	{
 		.name = "DELETE FILE",
 		.cla = 0x00,
-		.cla_mask = 0xB0,	/* 0X or 4X */
+		.cla_mask = 0xB0, /* 0X or 4X */
 		.ins = TS_102_222_INS_DELETE_FILE,
 		.handler = ss_uicc_admin_cmd_delete_file,
 		.case_ = SS_COMMAND_CASE_3,
@@ -145,7 +145,7 @@ const struct ss_command commands[] = {
 	{
 		.name = "ACTIVATE",
 		.cla = 0x00,
-		.cla_mask = 0xB0,	/* 0X or 4X */
+		.cla_mask = 0xB0, /* 0X or 4X */
 		.ins = TS_102_221_INS_ACTIVATE_FILE,
 		.handler = ss_uicc_admin_cmd_activate_file,
 		.case_ = SS_COMMAND_CASE_3,
@@ -155,7 +155,7 @@ const struct ss_command commands[] = {
 	{
 		.name = "TERMINAL PROFILE",
 		.cla = 0x80,
-		.cla_mask = 0xB0,	/* 0X or 4X */
+		.cla_mask = 0xB0, /* 0X or 4X */
 		.ins = TS_102_221_INS_TERMINAL_PROFILE,
 		.handler = ss_uicc_cat_cmd_term_profile,
 		.case_ = SS_COMMAND_CASE_3,
@@ -163,7 +163,7 @@ const struct ss_command commands[] = {
 	{
 		.name = "ENVELOPE",
 		.cla = 0x80,
-		.cla_mask = 0xB0,	/* 0X or 4X */
+		.cla_mask = 0xB0, /* 0X or 4X */
 		.ins = TS_102_221_INS_ENVELOPE,
 		.handler = ss_uicc_cat_cmd_envelope,
 		.case_ = SS_COMMAND_CASE_3, /* It does have response data, but that's not being asked for by an LE */
@@ -171,7 +171,7 @@ const struct ss_command commands[] = {
 	{
 		.name = "FETCH",
 		.cla = 0x80,
-		.cla_mask = 0xB0,	/* 0X or 4X */
+		.cla_mask = 0xB0, /* 0X or 4X */
 		.ins = TS_102_221_INS_FETCH,
 		.handler = ss_uicc_cat_cmd_fetch,
 		.case_ = SS_COMMAND_CASE_2,
@@ -179,7 +179,7 @@ const struct ss_command commands[] = {
 	{
 		.name = "TERMINAL RESPONSE",
 		.cla = 0x80,
-		.cla_mask = 0xB0,	/* 0X or 4X */
+		.cla_mask = 0xB0, /* 0X or 4X */
 		.ins = TS_102_221_INS_TERMINAL_RESPONSE,
 		.handler = ss_uicc_cat_cmd_term_resp,
 		.case_ = SS_COMMAND_CASE_3,
@@ -189,7 +189,7 @@ const struct ss_command commands[] = {
 	{
 		.name = "MANAGE CHANNEL",
 		.cla = 0x00,
-		.cla_mask = 0xB0,	/* 0X or 4X */
+		.cla_mask = 0xB0, /* 0X or 4X */
 		.ins = TS_102_221_INS_MANAGE_CHANNEL,
 		.handler = ss_uicc_lchan_cmd_manage_channel,
 		.case_ = SS_COMMAND_CASE_2,
@@ -215,20 +215,18 @@ const struct ss_command *ss_command_match(struct ss_apdu *apdu)
 	unsigned int i;
 	bool cla_seen = false;
 
-	for(i = 0; i < SS_ARRAY_SIZE(commands); i++) {
+	for (i = 0; i < SS_ARRAY_SIZE(commands); i++) {
 		if ((apdu->hdr.cla & commands[i].cla_mask) == commands[i].cla)
 			cla_seen = true;
 
-		if ((apdu->hdr.cla & commands[i].cla_mask) == commands[i].cla
-		    && apdu->hdr.ins == commands[i].ins) {
+		if ((apdu->hdr.cla & commands[i].cla_mask) == commands[i].cla && apdu->hdr.ins == commands[i].ins) {
 			SS_LOGP(SCMD, LINFO, "command found (cla=%02X, cla_mask=%02X, ins=%02X, name=\"%s\")\n",
-			        commands[i].cla, commands[i].cla_mask, commands[i].ins, commands[i].name);
+				commands[i].cla, commands[i].cla_mask, commands[i].ins, commands[i].name);
 			return &commands[i];
 		}
 	}
 
-	SS_LOGP(SCMD, LERROR, "command not found (cla=%02X, ins=%02X)\n",
-		apdu->hdr.cla, apdu->hdr.ins);
+	SS_LOGP(SCMD, LERROR, "command not found (cla=%02X, ins=%02X)\n", apdu->hdr.cla, apdu->hdr.ins);
 
 	if (!cla_seen)
 		apdu->sw = SS_SW_ERR_CHECKING_CLA_INVALID;

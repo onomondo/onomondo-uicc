@@ -48,16 +48,12 @@ int ss_sfi_update(const struct ss_list *path)
 	file = ss_get_file_from_path(path);
 
 	/* get FID */
-	fcp_fid_ie =
-	    ss_btlv_get_ie_minlen(file->fcp_decoded,
-				  TS_102_221_IEI_FCP_FILE_ID, 2);
+	fcp_fid_ie = ss_btlv_get_ie_minlen(file->fcp_decoded, TS_102_221_IEI_FCP_FILE_ID, 2);
 	if (!fcp_fid_ie)
 		return -EINVAL;
 
 	/* get SFI */
-	fcp_sfi_ie =
-	    ss_btlv_get_ie(file->fcp_decoded,
-			   TS_102_221_IEI_FCP_SHORT_FILE_ID);
+	fcp_sfi_ie = ss_btlv_get_ie(file->fcp_decoded, TS_102_221_IEI_FCP_SHORT_FILE_ID);
 	if (!fcp_sfi_ie) {
 		/* See also ETSI TS 102 221 11.1.1.4.8 */
 		sfi = fcp_fid_ie->value->data[1] & 0x1f;
@@ -77,24 +73,19 @@ int ss_sfi_update(const struct ss_list *path)
 		return -EINVAL;
 	rc = ss_fs_select(&path_copy, SFI_FID);
 	if (rc < 0) {
-		SS_LOGP(SSFI, LERROR,
-			"cannot register SFI=%02x, unable to select lookup file %s\n",
-			sfi, ss_fs_utils_dump_path(&path_copy));
+		SS_LOGP(SSFI, LERROR, "cannot register SFI=%02x, unable to select lookup file %s\n", sfi,
+			ss_fs_utils_dump_path(&path_copy));
 		rc = -EINVAL;
 		goto leave;
 	}
-	rc = ss_fs_write_file_record(&path_copy, sfi,
-				     fcp_fid_ie->value->data,
-				     fcp_fid_ie->value->len);
+	rc = ss_fs_write_file_record(&path_copy, sfi, fcp_fid_ie->value->data, fcp_fid_ie->value->len);
 	if (rc < 0) {
 		rc = -EINVAL;
 		goto leave;
 	}
 
-	SS_LOGP(SSFI, LDEBUG,
-		"registered SFI=%02x for FID=%s in lookup file %s\n", sfi,
-		ss_hexdump(fcp_fid_ie->value->data, fcp_fid_ie->value->len),
-		ss_fs_utils_dump_path(&path_copy));
+	SS_LOGP(SSFI, LDEBUG, "registered SFI=%02x for FID=%s in lookup file %s\n", sfi,
+		ss_hexdump(fcp_fid_ie->value->data, fcp_fid_ie->value->len), ss_fs_utils_dump_path(&path_copy));
 	rc = 0;
 leave:
 	ss_path_reset(&path_copy);
@@ -123,24 +114,21 @@ int ss_sfi_resolve(const struct ss_list *path, uint8_t sfi)
 		return -EINVAL;
 	rc = ss_fs_select(&path_copy, SFI_FID);
 	if (rc < 0) {
-		SS_LOGP(SSFI, LERROR,
-			"cannot resolve SFI=%02x, unable to select lookup file %s\n",
-			sfi, ss_fs_utils_dump_path(&path_copy));
+		SS_LOGP(SSFI, LERROR, "cannot resolve SFI=%02x, unable to select lookup file %s\n", sfi,
+			ss_fs_utils_dump_path(&path_copy));
 		rc = -EINVAL;
 		goto leave;
 	}
 	fid = ss_fs_read_file_record(&path_copy, sfi);
 	if (!fid) {
-		SS_LOGP(SSFI, LERROR,
-			"unable to resolve SFI=%02x to FID - lookup file %s is not readable\n",
-			sfi, ss_fs_utils_dump_path(&path_copy));
+		SS_LOGP(SSFI, LERROR, "unable to resolve SFI=%02x to FID - lookup file %s is not readable\n", sfi,
+			ss_fs_utils_dump_path(&path_copy));
 		rc = -EINVAL;
 		goto leave;
 	}
 
 	rc = ss_uint32_from_array(fid->data, fid->len);
-	SS_LOGP(SSFI, LDEBUG,
-		"resolved SFI=%02x to FID=%04x using lookup file %s\n", sfi, rc,
+	SS_LOGP(SSFI, LDEBUG, "resolved SFI=%02x to FID=%04x using lookup file %s\n", sfi, rc,
 		ss_fs_utils_dump_path(&path_copy));
 leave:
 	ss_path_reset(&path_copy);
