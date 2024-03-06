@@ -27,8 +27,7 @@ void setup_key(const uint8_t *src, struct des3_key_s *dest)
  *  \param[inout] buffer user provided memory with plaintext to decrypt.
  *  \param[in] buffer_len length of the plaintext data to decrypt (multiple of 8).
  *  \param[in] key 16 byte DES key. */
-void ss_utils_3des_decrypt(uint8_t *buffer, size_t buffer_len,
-			   const uint8_t *key)
+void ss_utils_3des_decrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key)
 {
 	struct des3_key_s configured_key;
 	setup_key(key, &configured_key);
@@ -55,13 +54,12 @@ void ss_utils_3des_decrypt(uint8_t *buffer, size_t buffer_len,
  *  \param[inout] buffer user provided memory with plaintext to encrypt.
  *  \param[in] buffer_len length of the plaintext data to encrypt (multiple of 8).
  *  \param[in] key 16 byte DES key. */
-void ss_utils_3des_encrypt(uint8_t *buffer, size_t buffer_len,
-			   const uint8_t *key)
+void ss_utils_3des_encrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key)
 {
 	struct des3_key_s configured_key;
 	setup_key(key, &configured_key);
 
-	uint8_t cbc[DES_BLOCKSIZE] = { 0 };	/* The IV */
+	uint8_t cbc[DES_BLOCKSIZE] = { 0 }; /* The IV */
 
 	/* Adjusted from hostap's crypto_internal-cipher.c */
 	for (int i = 0; i < buffer_len / DES_BLOCKSIZE; i++) {
@@ -90,8 +88,7 @@ void ss_utils_3des_cc_setup(struct utils_3des_cc_ctx *cc, const uint8_t *key)
  *  \param[inout] cc user provided memory with checksum context.
  *  \param[in] data_len length of data slice (must be multiple of 8).
  *  \param[in] data user provided memory with data slice. */
-void ss_utils_3des_cc_feed(struct utils_3des_cc_ctx *cc, const uint8_t *data,
-			   size_t data_len)
+void ss_utils_3des_cc_feed(struct utils_3des_cc_ctx *cc, const uint8_t *data, size_t data_len)
 {
 	/*! Calculation of the cryptographic checksum (CC) using 3DES.
 	 *

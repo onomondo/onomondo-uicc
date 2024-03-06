@@ -20,14 +20,15 @@
  * sets how many bytes the buffer pointer (enc) should be be advanced. The
  * parameter "bytes_ahead" sets the minimum valid bytes that the caller expects
  * to be available after the buffer pointer (enc) has been advanced. */
-#define CHECK_AND_ADVANCE(inc, bytes_ahead) \
-	if (len < bytes_used + inc + bytes_ahead) { \
-		SS_LOGP(SCTLV, LDEBUG, "exceeding buffer bounds: len=%zu, inc=%zu, bytes_ahead=%zu, cannot decode IE\n", \
-			len, (size_t) inc, (size_t) bytes_ahead); \
-		return NULL; \
-	} \
-	bytes_used+=inc; \
-	enc+=inc \
+#define CHECK_AND_ADVANCE(inc, bytes_ahead)                                                                    \
+	if (len < bytes_used + inc + bytes_ahead) {                                                            \
+		SS_LOGP(SCTLV, LDEBUG,                                                                         \
+			"exceeding buffer bounds: len=%zu, inc=%zu, bytes_ahead=%zu, cannot decode IE\n", len, \
+			(size_t)inc, (size_t)bytes_ahead);                                                     \
+		return NULL;                                                                                   \
+	}                                                                                                      \
+	bytes_used += inc;                                                                                     \
+	enc += inc
 
 static struct cmp_tlv_ie *decode_ie(size_t *used_len, const uint8_t *enc, size_t len)
 {
@@ -130,10 +131,8 @@ struct ss_list *ss_ctlv_decode(const uint8_t *enc, size_t len)
 		} else if (remaining_len > 0) {
 			for (i = used_len; i < used_len + remaining_len; ++i) {
 				if (enc[i] != 0xff) {
-					SS_LOGP(SCTLV, LERROR,
-						"Error decoding COMPREHENSION-BTLV (%s).\n",
-						ss_hexdump(&enc[used_len],
-							   remaining_len));
+					SS_LOGP(SCTLV, LERROR, "Error decoding COMPREHENSION-BTLV (%s).\n",
+						ss_hexdump(&enc[used_len], remaining_len));
 					ss_ctlv_free(list);
 					return NULL;
 				}
@@ -148,8 +147,7 @@ struct ss_list *ss_ctlv_decode(const uint8_t *enc, size_t len)
 	return list;
 }
 
-static void dump_ie(const struct cmp_tlv_ie *ie, uint8_t indent,
-		    enum log_subsys subsys, enum log_level level)
+static void dump_ie(const struct cmp_tlv_ie *ie, uint8_t indent, enum log_subsys subsys, enum log_level level)
 {
 	char indent_str[256];
 	char *value_str;
@@ -179,9 +177,8 @@ static void dump_ie(const struct cmp_tlv_ie *ie, uint8_t indent,
 	if (ie->cr)
 		tag_cr |= 0x80;
 
-	SS_LOGP(subsys, level, "%s(tag=0x%02x(0x%02x), cr=%s, len=%zu)%c %s\n",
-		indent_str, tag_cr, ie->tag, ie->cr ? "true" : "false",
-		value_len, delimiter, value_str);
+	SS_LOGP(subsys, level, "%s(tag=0x%02x(0x%02x), cr=%s, len=%zu)%c %s\n", indent_str, tag_cr, ie->tag,
+		ie->cr ? "true" : "false", value_len, delimiter, value_str);
 }
 
 /*! Dump decoded COMPREHENSION-TLV data.
@@ -189,8 +186,7 @@ static void dump_ie(const struct cmp_tlv_ie *ie, uint8_t indent,
  *  \param[in] indent indentation level of the generated output.
  *  \param[in] log_subsys log subsystem to generate the output for.
  *  \param[in] log_level log level to generate the output for. */
-void ss_ctlv_dump(const struct ss_list *list, uint8_t indent,
-		  enum log_subsys log_subsys, enum log_level log_level)
+void ss_ctlv_dump(const struct ss_list *list, uint8_t indent, enum log_subsys log_subsys, enum log_level log_level)
 {
 	struct cmp_tlv_ie *ie;
 
@@ -243,8 +239,7 @@ void ss_ctlv_free(struct ss_list *list)
  *  \param[in] len COMPREHENSION-TLV value length.
  *  \param[in] value pointer to COMPREHENSION-TLV value (data is copied).
  *  \returns pointer to allocated IE struct. */
-struct cmp_tlv_ie *ss_ctlv_new_ie(struct ss_list *list, uint16_t tag, bool cr,
-				  size_t len, const uint8_t *value)
+struct cmp_tlv_ie *ss_ctlv_new_ie(struct ss_list *list, uint16_t tag, bool cr, size_t len, const uint8_t *value)
 {
 	struct cmp_tlv_ie *ie = SS_ALLOC(struct cmp_tlv_ie);
 
@@ -289,8 +284,7 @@ struct cmp_tlv_ie *ss_ctlv_get_ie(const struct ss_list *list, uint16_t tag)
  *  \param[in] tag COMPREHENSION-TLV tag to look for.
  *  \param[in] min_len minimum required length.
  *  \returns pointer to IE struct on success, NULL if IE is not found. */
-struct cmp_tlv_ie *ss_ctlv_get_ie_minlen(const struct ss_list *list,
-					 uint16_t tag, size_t min_len)
+struct cmp_tlv_ie *ss_ctlv_get_ie_minlen(const struct ss_list *list, uint16_t tag, size_t min_len)
 {
 	struct cmp_tlv_ie *ie = ss_ctlv_get_ie(list, tag);
 	if (!ie)
@@ -336,17 +330,13 @@ static size_t encode_ie(uint8_t *enc, size_t len, const struct cmp_tlv_ie *ie)
 	/* Do not encode anything when we are unable to determine the length
 	 * or when the predicted length exceeds the buffer. */
 	if (ie_len == 0 || ie_len > len) {
-		SS_LOGP(SCTLV, LERROR,
-			"not enough buffer space to encode TLV string, aborting at IE %02x.\n",
-			ie->tag);
+		SS_LOGP(SCTLV, LERROR, "not enough buffer space to encode TLV string, aborting at IE %02x.\n", ie->tag);
 		return 0;
 	}
 
 	/* Do not allow tag values that are not allowed. */
 	if (ie->tag == 0x00 || ie->tag == 0xff || ie->tag == 0x80) {
-		SS_LOGP(SCTLV, LERROR,
-			"tag %02x is not allowed in COMPRENSION-TLV, aborting at IE\n",
-			ie->tag);
+		SS_LOGP(SCTLV, LERROR, "tag %02x is not allowed in COMPRENSION-TLV, aborting at IE\n", ie->tag);
 		return 0;
 	}
 
@@ -389,8 +379,7 @@ static size_t encode_ie(uint8_t *enc, size_t len, const struct cmp_tlv_ie *ie)
 		enc++;
 		*enc = ie->value->len & 0xFF;
 	} else {
-		SS_LOGP(SCTLV, LERROR,
-			"Error encoding IE, length field too large (%zu), aborting at IE %02x\n",
+		SS_LOGP(SCTLV, LERROR, "Error encoding IE, length field too large (%zu), aborting at IE %02x\n",
 			ie->value->len, ie->tag);
 		return 0;
 	}

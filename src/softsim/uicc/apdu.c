@@ -48,12 +48,14 @@ void ss_apdu_toss(struct ss_apdu *apdu)
 	 * where an APDU is freed. */
 
 	if (apdu->lchan->last_apdu_keep) {
-		SS_LOGP(SLCHAN, LDEBUG, "freeing APDU %p (current), keeping APDU %p (last)\n", apdu, apdu->lchan->last_apdu);
+		SS_LOGP(SLCHAN, LDEBUG, "freeing APDU %p (current), keeping APDU %p (last)\n", apdu,
+			apdu->lchan->last_apdu);
 		SS_FREE(apdu);
 	} else {
 		if (apdu->lchan->last_apdu)
 			SS_FREE(apdu->lchan->last_apdu);
-		SS_LOGP(SLCHAN, LDEBUG, "freeing APDU %p (last), keeping APDU %p (current)\n", apdu->lchan->last_apdu, apdu);
+		SS_LOGP(SLCHAN, LDEBUG, "freeing APDU %p (last), keeping APDU %p (current)\n", apdu->lchan->last_apdu,
+			apdu);
 		apdu->lchan->last_apdu = apdu;
 	}
 }

@@ -92,8 +92,7 @@ void ss_free_ctx(struct ss_context *ctx)
  *  \param[inout] ctx softsim context. */
 void ss_reset(struct ss_context *ctx)
 {
-	SS_LOGP(SLCHAN, LDEBUG,
-		"------------------------------- reset -------------------------------\n");
+	SS_LOGP(SLCHAN, LDEBUG, "------------------------------- reset -------------------------------\n");
 
 	/* Reset lchan(s) */
 	ss_uicc_lchan_reset(ctx);
@@ -128,10 +127,8 @@ size_t ss_atr(struct ss_context *ctx, uint8_t *atr_buf, size_t atr_buf_len)
 	uint8_t tck = 0;
 	size_t i;
 
-	uint8_t atr[] =
-	    { 0x3B, 0x9F, 0x01, 0x80, 0x1F, 0x87, 0x80, 0x31, 0xE0, 0x73, 0xFE,
-		0x21, 0x00, 0x67, 0x4A, 0x4C, 0x75, 0x30, 0x34, 0x05, 0x4B
-	};
+	uint8_t atr[] = { 0x3B, 0x9F, 0x01, 0x80, 0x1F, 0x87, 0x80, 0x31, 0xE0, 0x73, 0xFE,
+			  0x21, 0x00, 0x67, 0x4A, 0x4C, 0x75, 0x30, 0x34, 0x05, 0x4B };
 
 	for (i = 1; i < sizeof(atr); i++) {
 		tck ^= atr[i];
@@ -155,12 +152,10 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 
 	int processed_length = -1;
 
-	SS_LOGP(SLCHAN, LDEBUG,
-		"------------------------- transaction begins ------------------------\n");
+	SS_LOGP(SLCHAN, LDEBUG, "------------------------- transaction begins ------------------------\n");
 
-	SS_LOGP(SLCHAN, LDEBUG, "Rx C-APDU %02X-%02X %02X-%02X %02X\n",
-		apdu->hdr.cla, apdu->hdr.ins, apdu->hdr.p1, apdu->hdr.p2,
-		apdu->hdr.p3);
+	SS_LOGP(SLCHAN, LDEBUG, "Rx C-APDU %02X-%02X %02X-%02X %02X\n", apdu->hdr.cla, apdu->hdr.ins, apdu->hdr.p1,
+		apdu->hdr.p2, apdu->hdr.p3);
 
 	/* TS 102 221 Table 10.3 */
 	if (apdu->hdr.cla & 0x0C) {
@@ -184,8 +179,7 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 	 * error cases. */
 	ss_fs_utils_path_clone(&backup_path, &apdu->lchan->fs_path);
 
-	if (((apdu->hdr.cla & 0x70) == 0x00)
-	    && apdu->hdr.ins == TS_102_221_INS_GET_RESPONSE) {
+	if (((apdu->hdr.cla & 0x70) == 0x00) && apdu->hdr.ins == TS_102_221_INS_GET_RESPONSE) {
 		/* The GET RESPONSE command is of command case 2 (see also command.h) */
 		processed_length = 5;
 
@@ -197,23 +191,20 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 		if (apdu->hdr.p1 != 0 || apdu->hdr.p2 != 0) {
 			apdu->sw = SS_SW_ERR_CHECKING_WRONG_P1_P2;
 			apdu->le = 0;
-			SS_LOGP(SLCHAN, LERROR,
-				"P1 and P2 must be 0x00 -- abort.\n");
+			SS_LOGP(SLCHAN, LERROR, "P1 and P2 must be 0x00 -- abort.\n");
 			goto out;
 		}
 		if (!last_apdu) {
 			apdu->sw = SS_SW_ERR_CHECKING_NO_PRECISE_DIAG;
 			apdu->le = 0;
-			SS_LOGP(SLCHAN, LERROR,
-				"no previous APDU in storage, cannot return any response -- abort.\n");
+			SS_LOGP(SLCHAN, LERROR, "no previous APDU in storage, cannot return any response -- abort.\n");
 			goto out;
 		}
 		if (last_apdu->rsp_len == 0) {
 			apdu->rsp_len = 0;
 			apdu->sw = SS_SW_ERR_CHECKING_WRONG_LENGTH;
 			apdu->le = 0;
-			SS_LOGP(SLCHAN, LERROR,
-				"last command did not return any response -- abort.\n");
+			SS_LOGP(SLCHAN, LERROR, "last command did not return any response -- abort.\n");
 			goto out;
 		}
 
@@ -226,8 +217,7 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 			 * up the data in a second try. */
 			apdu->lchan->last_apdu_keep = true;
 			apdu->le = 0;
-			SS_LOGP(SLCHAN, LERROR,
-				"incorrect response length requested (%u), expecting %lu\n",
+			SS_LOGP(SLCHAN, LERROR, "incorrect response length requested (%u), expecting %lu\n",
 				apdu->hdr.p3, last_apdu->rsp_len);
 		} else {
 			memcpy(apdu->rsp, last_apdu->rsp, last_apdu->rsp_len);
@@ -238,13 +228,11 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 		/* Match APDU and execute command handler */
 		cmd = ss_command_match(apdu);
 		if (cmd) {
-
 			/* Verify properties */
 			switch (cmd->case_) {
 			case SS_COMMAND_CASE_UNDEF:
 				SS_LOGP(SLCHAN, LERROR,
-					"Command %s found, but not executing for lack of case definition\n",
-					cmd->name);
+					"Command %s found, but not executing for lack of case definition\n", cmd->name);
 				apdu->sw = SS_SW_ERR_CHECKING_INS_INVALID;
 				goto out;
 			case SS_COMMAND_CASE_1:
@@ -261,25 +249,20 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 					/* Abort here, the handler would treat
 					 * p3 as Lc and then peek into
 					 * uninitialized memory */
-					SS_LOGP(SLCHAN, LERROR,
-						"Insufficient data for Case 3/4 command\n");
-					apdu->sw =
-					    SS_SW_ERR_CHECKING_WRONG_LENGTH;
+					SS_LOGP(SLCHAN, LERROR, "Insufficient data for Case 3/4 command\n");
+					apdu->sw = SS_SW_ERR_CHECKING_WRONG_LENGTH;
 					goto out;
 				}
 				processed_length = 4 + 1 + apdu->hdr.p3;
 				break;
 			}
 
-			SS_LOGP(SLCHAN, LDEBUG,
-				"Command %s is APDU CASE %u => lc=%u, le=%u\n",
-				cmd->name, cmd->case_, apdu->lc, apdu->le);
+			SS_LOGP(SLCHAN, LDEBUG, "Command %s is APDU CASE %u => lc=%u, le=%u\n", cmd->name, cmd->case_,
+				apdu->lc, apdu->le);
 
 			if (apdu->lc)
-				SS_LOGP(SLCHAN, LDEBUG,
-					"Rx C-APDU body %s (%u bytes)\n",
-					ss_hexdump(apdu->cmd, apdu->lc),
-					apdu->lc);
+				SS_LOGP(SLCHAN, LDEBUG, "Rx C-APDU body %s (%u bytes)\n",
+					ss_hexdump(apdu->cmd, apdu->lc), apdu->lc);
 
 			apdu->sw = 0;
 			rc = cmd->handler(apdu);
@@ -289,8 +272,7 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 				 * use the rc as SW or set a generic one here,
 				 * depending on the handler return code */
 				if (rc < 0)
-					apdu->sw =
-					    SS_SW_ERR_CHECKING_NO_PRECISE_DIAG;
+					apdu->sw = SS_SW_ERR_CHECKING_NO_PRECISE_DIAG;
 				else if (rc == 0)
 					apdu->sw = SS_SW_NORMAL_ENDING;
 				else
@@ -312,28 +294,23 @@ out:
 		}
 	} else {
 		if (apdu->le == 0) {
-			SS_LOGP(SLCHAN, LDEBUG,
-				"Returning rsp_len = %lu bytes after le = 0\n",
-				apdu->rsp_len);
+			SS_LOGP(SLCHAN, LDEBUG, "Returning rsp_len = %lu bytes after le = 0\n", apdu->rsp_len);
 		} else if (apdu->le != apdu->rsp_len) {
 			SS_LOGP(SLCHAN, LERROR,
 				"invalid response data, le (%u) != rsp_len (%lu), changing SW=%04x to SW=%04x (wrong length)\n",
-				apdu->le, apdu->rsp_len, apdu->sw,
-				SS_SW_ERR_CHECKING_WRONG_LENGTH);
+				apdu->le, apdu->rsp_len, apdu->sw, SS_SW_ERR_CHECKING_WRONG_LENGTH);
 			apdu->sw = SS_SW_ERR_CHECKING_WRONG_LENGTH;
 			apdu->rsp_len = 0;
 		}
 	}
 
 	/* Add length of proactive sim data */
-	if (ctx->proactive.enabled && apdu->sw == 0x9000
-	    && ctx->proactive.data_len)
+	if (ctx->proactive.enabled && apdu->sw == 0x9000 && ctx->proactive.data_len)
 		apdu->sw = 0x9100 | ctx->proactive.data_len;
 
 	if (apdu->rsp_len) {
-		SS_LOGP(SLCHAN, LDEBUG, "Tx R-APDU SW=%04x %s (%lu bytes)\n",
-			apdu->sw, ss_hexdump(apdu->rsp, apdu->rsp_len),
-			apdu->rsp_len);
+		SS_LOGP(SLCHAN, LDEBUG, "Tx R-APDU SW=%04x %s (%lu bytes)\n", apdu->sw,
+			ss_hexdump(apdu->rsp, apdu->rsp_len), apdu->rsp_len);
 	} else {
 		SS_LOGP(SLCHAN, LDEBUG, "Tx R-APDU SW=%04x\n", apdu->sw);
 	}
@@ -341,9 +318,7 @@ out:
 	if (!ss_sw_is_successful(apdu->sw)
 	    /* If the command just fails with "wrong length", it usually didn't change the path */
 	    && (apdu->sw >> 8) != 0x6c) {
-		SS_LOGP(SLCHAN, LINFO,
-			"Unsuccessful response %04x, restoring backup path.\n",
-			apdu->sw);
+		SS_LOGP(SLCHAN, LINFO, "Unsuccessful response %04x, restoring backup path.\n", apdu->sw);
 		assert(apdu->sw >> 8 != 0x61);
 		/* We could apply various levels of smart here:
 		 *
@@ -355,8 +330,7 @@ out:
 		 * computation time barely matters.
 		 */
 		ss_path_reset(&apdu->lchan->fs_path);
-		rc = ss_fs_utils_path_select(&apdu->lchan->fs_path,
-					     &backup_path);
+		rc = ss_fs_utils_path_select(&apdu->lchan->fs_path, &backup_path);
 		if (rc < 0) {
 			SS_LOGP(SLCHAN, LERROR, "Failed to restore path.\n");
 			/* Not taking any further actions -- the SW is already unsuccessful (with
@@ -380,11 +354,9 @@ out:
 		else
 			SS_LOGP(SLCHAN, LDEBUG, " (none)\n");
 	}
-	SS_LOGP(SPROACT, LDEBUG, "proactive sim: %s\n",
-		ctx->proactive.enabled ? "active" : "inactive");
+	SS_LOGP(SPROACT, LDEBUG, "proactive sim: %s\n", ctx->proactive.enabled ? "active" : "inactive");
 
-	SS_LOGP(SLCHAN, LDEBUG,
-		"------------------------- transaction ended -------------------------\n");
+	SS_LOGP(SLCHAN, LDEBUG, "------------------------- transaction ended -------------------------\n");
 	return processed_length;
 }
 
@@ -395,9 +367,8 @@ out:
  *  \param[in] request_buf user provided memory with request APDU.
  *  \param[inout] request_len length of the request APDU.
  *  \returns length of the resulting response APDU. */
-size_t ss_transact(struct ss_context *ctx,
-		   uint8_t *response_buf, size_t response_buf_len,
-		   uint8_t *request_buf, size_t *request_len)
+size_t ss_transact(struct ss_context *ctx, uint8_t *response_buf, size_t response_buf_len, uint8_t *request_buf,
+		   size_t *request_len)
 {
 	/*! Note: The request_len parameter may indicate a request length
 	 *  longer than 5+255 bytes. At return, command_len indicates the true
@@ -412,12 +383,9 @@ size_t ss_transact(struct ss_context *ctx,
 	/* A valid APDU must have a length of at least 5 bytes, any shorter
 	 * APDU counts as invalid and must not be processed any further. */
 	if (_request_len < 5) {
-		SS_LOGP(SIFACE, LERROR, "ignoring short APDU: %s\n",
-			ss_hexdump(request_buf, _request_len));
-		response_buf[response_len++] =
-		    SS_SW_ERR_CHECKING_WRONG_LENGTH >> 8;
-		response_buf[response_len++] =
-		    SS_SW_ERR_CHECKING_WRONG_LENGTH & 0xff;
+		SS_LOGP(SIFACE, LERROR, "ignoring short APDU: %s\n", ss_hexdump(request_buf, _request_len));
+		response_buf[response_len++] = SS_SW_ERR_CHECKING_WRONG_LENGTH >> 8;
+		response_buf[response_len++] = SS_SW_ERR_CHECKING_WRONG_LENGTH & 0xff;
 		return 2;
 	}
 
@@ -431,9 +399,8 @@ size_t ss_transact(struct ss_context *ctx,
 	 * of the request is not yet known and the APDUs come in a concatenated
 	 * list without delimiters or length information. */
 	if (_request_len > sizeof(apdu->cmd) + sizeof(apdu->hdr)) {
-		SS_LOGP(SIFACE, LINFO,
-			"request exceeds maximum length %lu > %lu, will truncate.\n",
-			_request_len, sizeof(apdu->cmd) + sizeof(apdu->hdr));
+		SS_LOGP(SIFACE, LINFO, "request exceeds maximum length %lu > %lu, will truncate.\n", _request_len,
+			sizeof(apdu->cmd) + sizeof(apdu->hdr));
 		_request_len = sizeof(apdu->cmd) + sizeof(apdu->hdr);
 	}
 
@@ -441,8 +408,7 @@ size_t ss_transact(struct ss_context *ctx,
 
 	/* Parse APDU */
 	memcpy(&apdu->hdr, request_buf, sizeof(apdu->hdr));
-	memcpy(apdu->cmd, request_buf + sizeof(apdu->hdr),
-	       _request_len - sizeof(apdu->hdr));
+	memcpy(apdu->cmd, request_buf + sizeof(apdu->hdr), _request_len - sizeof(apdu->hdr));
 
 	/* Note: We cannot determine the apdu->le and apdu->lc fields yet since
 	 * those depend on extra knowledge about the command itsself. We will
@@ -455,9 +421,8 @@ size_t ss_transact(struct ss_context *ctx,
 		if (processed_length != _request_len) {
 			/* This is not necessarily an error -- on the remote file handling side,
 			 * it's pretty much to be expected. */
-			SS_LOGP(SIFACE, LINFO,
-				"Processed %d bytes, but request was %zu\n",
-				processed_length, *request_len);
+			SS_LOGP(SIFACE, LINFO, "Processed %d bytes, but request was %zu\n", processed_length,
+				*request_len);
 		}
 		/* The case switch should have caught that already; ensure things fail hard
 		 * if we accessed uninitialized memory */

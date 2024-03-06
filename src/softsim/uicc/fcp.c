@@ -16,149 +16,147 @@
 #include "btlv.h"
 #include "fcp.h"
 
-const struct ber_tlv_desc bertlv_tree_descr[] = {
-	{
-		.id = 1,
-		.id_parent = 0,
-		.title = "fcp_template",
-		.tag_encoded = 0x62,
-	},
-	{
-		.id = 2,
-		.id_parent = 1,
-		.title = "file_descriptor",
-		.tag_encoded = 0x82,
-	},
-	{
-		.id = 2,
-		.id_parent = 1,
-		.title = "DF_name",
-		.tag_encoded = 0x84,
-	},
-	{
-		.id = 3,
-		.id_parent = 1,
-		.title = "file_identifier",
-		.tag_encoded = 0x83,
-	},
-	{
-		.id = 4,
-		.id_parent = 1,
-		.title = "proprietary_info",
-		.tag_encoded = 0xA5,
-	},
-	{
-		.id = 4,
-		.id_parent = 4,
-		.title = "uicc_characteristics",
-		.tag_encoded = 0x80,
-	},
-	{
-		.id = 4,
-		.id_parent = 4,
-		.title = "application_power_consumption",
-		.tag_encoded = 0x81,
-	},
-	{
-		.id = 4,
-		.id_parent = 4,
-		.title = "minimum_app_clock_freq",
-		.tag_encoded = 0x82,
-	},
-	{
-		.id = 4,
-		.id_parent = 4,
-		.title = "available_memory",
-		.tag_encoded = 0x83,
-	},
-	{
-		.id = 4,
-		.id_parent = 4,
-		.title = "file_details",
-		.tag_encoded = 0x84,
-	},
-	{
-		.id = 4,
-		.id_parent = 4,
-		.title = "reserved_file_size",
-		.tag_encoded = 0x85,
-	},
-	{
-		.id = 4,
-		.id_parent = 4,
-		.title = "maximum_file_size",
-		.tag_encoded = 0x86,
-	},
-	{
-		.id = 4,
-		.id_parent = 4,
-		.title = "suported_system_commands",
-		.tag_encoded = 0x87,
-	},
-	{
-		.id = 4,
-		.id_parent = 4,
-		.title = "specific_uicc_env_cond",
-		.tag_encoded = 0x88,
-	},
-	{
-		.id = 4,
-		.id_parent = 4,
-		.title = "p2p_cat_secured_apdu",
-		.tag_encoded = 0x89,
-	},
-	{
-		.id = 4,
-		.id_parent = 1,
-		.title = "life_cycle_status_int",
-		.tag_encoded = 0x8A,
-	},
-	{
-		.id = 4,
-		.id_parent = 1,
-		.title = "security_attrib_ref_expanded",
-		.tag_encoded = 0xAB,
-	},
-	{
-		.id = 4,
-		.id_parent = 1,
-		.title = "security_attrib_compact",
-		.tag_encoded = 0x8C,
-	},
-	{
-		.id = 4,
-		.id_parent = 1,
-		.title = "security_attrib_expanded",
-		.tag_encoded = 0x8B,
-	},
-	{
-		.id = 4,
-		.id_parent = 1,
-		.title = "pin_status_template_do",
-		.tag_encoded = 0xC6,
-	},
-	{
-		.id = 4,
-		.id_parent = 1,
-		.title = "file_size",
-		.tag_encoded = 0x80,
-	},
-	{
-		.id = 4,
-		.id_parent = 1,
-		.title = "total_file_size",
-		.tag_encoded = 0x81,
-	},
-	{
-		.id = 4,
-		.id_parent = 1,
-		.title = "short_file_id",
-		.tag_encoded = 0x88,
-	},
-	{
-		.id = 0,
-	}
-};
+const struct ber_tlv_desc bertlv_tree_descr[] = { {
+							  .id = 1,
+							  .id_parent = 0,
+							  .title = "fcp_template",
+							  .tag_encoded = 0x62,
+						  },
+						  {
+							  .id = 2,
+							  .id_parent = 1,
+							  .title = "file_descriptor",
+							  .tag_encoded = 0x82,
+						  },
+						  {
+							  .id = 2,
+							  .id_parent = 1,
+							  .title = "DF_name",
+							  .tag_encoded = 0x84,
+						  },
+						  {
+							  .id = 3,
+							  .id_parent = 1,
+							  .title = "file_identifier",
+							  .tag_encoded = 0x83,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 1,
+							  .title = "proprietary_info",
+							  .tag_encoded = 0xA5,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 4,
+							  .title = "uicc_characteristics",
+							  .tag_encoded = 0x80,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 4,
+							  .title = "application_power_consumption",
+							  .tag_encoded = 0x81,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 4,
+							  .title = "minimum_app_clock_freq",
+							  .tag_encoded = 0x82,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 4,
+							  .title = "available_memory",
+							  .tag_encoded = 0x83,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 4,
+							  .title = "file_details",
+							  .tag_encoded = 0x84,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 4,
+							  .title = "reserved_file_size",
+							  .tag_encoded = 0x85,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 4,
+							  .title = "maximum_file_size",
+							  .tag_encoded = 0x86,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 4,
+							  .title = "suported_system_commands",
+							  .tag_encoded = 0x87,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 4,
+							  .title = "specific_uicc_env_cond",
+							  .tag_encoded = 0x88,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 4,
+							  .title = "p2p_cat_secured_apdu",
+							  .tag_encoded = 0x89,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 1,
+							  .title = "life_cycle_status_int",
+							  .tag_encoded = 0x8A,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 1,
+							  .title = "security_attrib_ref_expanded",
+							  .tag_encoded = 0xAB,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 1,
+							  .title = "security_attrib_compact",
+							  .tag_encoded = 0x8C,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 1,
+							  .title = "security_attrib_expanded",
+							  .tag_encoded = 0x8B,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 1,
+							  .title = "pin_status_template_do",
+							  .tag_encoded = 0xC6,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 1,
+							  .title = "file_size",
+							  .tag_encoded = 0x80,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 1,
+							  .title = "total_file_size",
+							  .tag_encoded = 0x81,
+						  },
+						  {
+							  .id = 4,
+							  .id_parent = 1,
+							  .title = "short_file_id",
+							  .tag_encoded = 0x88,
+						  },
+						  {
+							  .id = 0,
+						  } };
 
 /*! Get a btlv description with the most important FCP information elements.
  *  \returns description for use with ss_btlv_decode(). */
@@ -181,8 +179,7 @@ struct ss_list *ss_fcp_decode(const struct ss_buf *fcp)
  *  \param[out] user provided memory to store parsed file descriptor.
  *  \param[in] encoded representation of the file descriptor.
  *  \returns 0 on success -EINVAL on failure. */
-int ss_fcp_dec_file_descr(struct ss_fcp_file_descr *fd,
-			  const struct ss_buf *fd_encoded)
+int ss_fcp_dec_file_descr(struct ss_fcp_file_descr *fd, const struct ss_buf *fd_encoded)
 {
 	uint8_t fd_byte;
 
@@ -193,7 +190,7 @@ int ss_fcp_dec_file_descr(struct ss_fcp_file_descr *fd,
 	 * though the data coding byte is always 0x21 and ignored by the
 	 * terminal */
 	if (fd_encoded->len < 2)
-	        return -EINVAL;
+		return -EINVAL;
 
 	/* See also: ETSI TS 102 221, Table 11.5 */
 	fd_byte = fd_encoded->data[0];
@@ -212,8 +209,7 @@ int ss_fcp_dec_file_descr(struct ss_fcp_file_descr *fd,
 	}
 
 	/* See also: ETSI TS 102 221, Section 11.1.1.4.3 */
-	if (fd->structure == SS_FCP_LINEAR_FIXED ||
-	    fd->structure == SS_FCP_CYCLIC) {
+	if (fd->structure == SS_FCP_LINEAR_FIXED || fd->structure == SS_FCP_CYCLIC) {
 		if (fd_encoded->len < 5)
 			return -EINVAL;
 		fd->record_len = fd_encoded->data[2] << 8;
@@ -231,8 +227,7 @@ struct ss_buf *ss_fcp_gen_file_descr(const struct ss_fcp_file_descr *fd)
 {
 	struct ss_buf *result;
 
-	if (fd->structure == SS_FCP_LINEAR_FIXED ||
-	    fd->structure == SS_FCP_CYCLIC) {
+	if (fd->structure == SS_FCP_LINEAR_FIXED || fd->structure == SS_FCP_CYCLIC) {
 		result = ss_buf_alloc(5);
 		memset(result->data, 0, 5);
 	} else {
@@ -251,8 +246,7 @@ struct ss_buf *ss_fcp_gen_file_descr(const struct ss_fcp_file_descr *fd)
 	result->data[1] = 0x21;
 
 	/* Record oriented file */
-	if (fd->structure == SS_FCP_LINEAR_FIXED ||
-	    fd->structure == SS_FCP_CYCLIC) {
+	if (fd->structure == SS_FCP_LINEAR_FIXED || fd->structure == SS_FCP_CYCLIC) {
 		result->data[2] = fd->record_len >> 8;
 		result->data[3] = fd->record_len & 0xff;
 		result->data[4] = fd->number_of_records;
@@ -266,8 +260,7 @@ struct ss_buf *ss_fcp_gen_file_descr(const struct ss_fcp_file_descr *fd)
  *  \param[in] fid file ID.
  *  \param[in] file_size size of the file, if not already specified in fd.
  *  \returns buffer with generated file fcp on success NULL on failure. */
-struct ss_buf *ss_fcp_gen(const struct ss_fcp_file_descr *fd, uint32_t fid,
-			  size_t file_size)
+struct ss_buf *ss_fcp_gen(const struct ss_fcp_file_descr *fd, uint32_t fid, size_t file_size)
 {
 	/* NOTE: This file generates a file control parameter template (FCP)
 	 * that fullfills minimal requirements. The function is intended to
@@ -293,8 +286,7 @@ struct ss_buf *ss_fcp_gen(const struct ss_fcp_file_descr *fd, uint32_t fid,
 	fd_encoded = ss_fcp_gen_file_descr(fd);
 	if (!fd_encoded)
 		return NULL;
-	ss_btlv_new_ie(fcp_template->nested, "file_descriptor", 0x82,
-		       fd_encoded->len, fd_encoded->data);
+	ss_btlv_new_ie(fcp_template->nested, "file_descriptor", 0x82, fd_encoded->len, fd_encoded->data);
 	ss_buf_free(fd_encoded);
 
 	/* FID */
@@ -302,18 +294,15 @@ struct ss_buf *ss_fcp_gen(const struct ss_fcp_file_descr *fd, uint32_t fid,
 	if (fid > 0xffff)
 		fid_len = 4;
 	ss_array_from_uint32(fid_array, fid_len, fid);
-	ss_btlv_new_ie(fcp_template->nested, "file_identifier", 0x83, fid_len,
-		       fid_array);
+	ss_btlv_new_ie(fcp_template->nested, "file_identifier", 0x83, fid_len, fid_array);
 
 	/* File size */
-	if (fd->structure == SS_FCP_LINEAR_FIXED ||
-	    fd->structure == SS_FCP_CYCLIC) {
+	if (fd->structure == SS_FCP_LINEAR_FIXED || fd->structure == SS_FCP_CYCLIC) {
 		file_size = fd->record_len * fd->number_of_records;
 	}
 	file_size_len = ss_optimal_len_for_uint32(file_size);
 	ss_array_from_uint32(file_size_array, file_size_len, file_size);
-	ss_btlv_new_ie(fcp_template->nested, "file_size", 0x80, file_size_len,
-		       file_size_array);
+	ss_btlv_new_ie(fcp_template->nested, "file_size", 0x80, file_size_len, file_size_array);
 
 	result = ss_btlv_encode_to_ss_buf(fcp);
 	ss_btlv_free(fcp);
@@ -370,8 +359,7 @@ struct ss_buf *ss_fcp_get_df_name(const struct ss_list *fcp_decoded_envelope)
 	 *  the caller must not take ownership of the buffer (free it) */
 
 	/* Extract DF Name (if present) */
-	fcp_df_name_ie = ss_btlv_get_ie_minlen(fcp_decoded_envelope,
-					       TS_102_221_IEI_FCP_DF_NAME, 1);
+	fcp_df_name_ie = ss_btlv_get_ie_minlen(fcp_decoded_envelope, TS_102_221_IEI_FCP_DF_NAME, 1);
 	if (!fcp_df_name_ie)
 		return NULL;
 
@@ -383,8 +371,7 @@ struct ss_buf *ss_fcp_get_df_name(const struct ss_list *fcp_decoded_envelope)
  *  \param[in] indent indentation level of the generated output.
  *  \param[in] log_subsys log subsystem to generate the output for.
  *  \param[in] log_level log level to generate the output for. */
-void ss_fcp_dump_file_descr(const struct ss_fcp_file_descr *fd, uint8_t indent,
-			    enum log_subsys log_subsys,
+void ss_fcp_dump_file_descr(const struct ss_fcp_file_descr *fd, uint8_t indent, enum log_subsys log_subsys,
 			    enum log_level log_level)
 {
 	char indent_str[256];
@@ -392,61 +379,46 @@ void ss_fcp_dump_file_descr(const struct ss_fcp_file_descr *fd, uint8_t indent,
 	memset(indent_str, ' ', indent);
 	indent_str[indent] = '\0';
 
-	SS_LOGP(log_subsys, log_level, "%sshareable = %s\n", indent_str,
-		fd->shareable ? "true" : "false");
+	SS_LOGP(log_subsys, log_level, "%sshareable = %s\n", indent_str, fd->shareable ? "true" : "false");
 
 	switch (fd->type) {
 	case SS_FCP_WORKING_EF:
-		SS_LOGP(log_subsys, log_level, "%stype = \"working EF\"\n",
-			indent_str);
+		SS_LOGP(log_subsys, log_level, "%stype = \"working EF\"\n", indent_str);
 		break;
 	case SS_FCP_INTERNAL_EF:
-		SS_LOGP(log_subsys, log_level, "%stype = \"internal EF\"\n",
-			indent_str);
+		SS_LOGP(log_subsys, log_level, "%stype = \"internal EF\"\n", indent_str);
 		break;
 	case SS_FCP_DF_OR_ADF:
-		SS_LOGP(log_subsys, log_level, "%stype = \"DF or ADF\"\n",
-			indent_str);
+		SS_LOGP(log_subsys, log_level, "%stype = \"DF or ADF\"\n", indent_str);
 		break;
 	default:
-		SS_LOGP(log_subsys, log_level, "%stype = %x\n", indent_str,
-			fd->type);
+		SS_LOGP(log_subsys, log_level, "%stype = %x\n", indent_str, fd->type);
 		break;
 	}
 
 	switch (fd->structure) {
 	case SS_FCP_UNKNOWN:
-		SS_LOGP(log_subsys, log_level, "%sstructure = \"unknown\"\n",
-			indent_str);
+		SS_LOGP(log_subsys, log_level, "%sstructure = \"unknown\"\n", indent_str);
 		break;
 	case SS_FCP_TRANSPARENT:
-		SS_LOGP(log_subsys, log_level,
-			"%sstructure = \"transparent\"\n", indent_str);
+		SS_LOGP(log_subsys, log_level, "%sstructure = \"transparent\"\n", indent_str);
 		break;
 	case SS_FCP_LINEAR_FIXED:
-		SS_LOGP(log_subsys, log_level,
-			"%sstructure = \"linear fixed\"\n", indent_str);
+		SS_LOGP(log_subsys, log_level, "%sstructure = \"linear fixed\"\n", indent_str);
 		break;
 	case SS_FCP_CYCLIC:
-		SS_LOGP(log_subsys, log_level, "%sstructure = \"cyclic\"\n",
-			indent_str);
+		SS_LOGP(log_subsys, log_level, "%sstructure = \"cyclic\"\n", indent_str);
 		break;
 	case SS_FCP_BTLV:
-		SS_LOGP(log_subsys, log_level, "%sstructure = \"BTLV\"\n",
-			indent_str);
+		SS_LOGP(log_subsys, log_level, "%sstructure = \"BTLV\"\n", indent_str);
 		break;
 	default:
-		SS_LOGP(log_subsys, log_level, "%sstructure = %x\n", indent_str,
-			fd->structure);
+		SS_LOGP(log_subsys, log_level, "%sstructure = %x\n", indent_str, fd->structure);
 		break;
 	}
 
-	if (fd->structure == SS_FCP_LINEAR_FIXED
-	    || fd->structure == SS_FCP_CYCLIC) {
-		SS_LOGP(log_subsys, log_level, "%srecord_len = %u\n",
-			indent_str, fd->record_len);
-		SS_LOGP(log_subsys, log_level, "%snumber_of_records = %u\n",
-			indent_str, fd->number_of_records);
+	if (fd->structure == SS_FCP_LINEAR_FIXED || fd->structure == SS_FCP_CYCLIC) {
+		SS_LOGP(log_subsys, log_level, "%srecord_len = %u\n", indent_str, fd->record_len);
+		SS_LOGP(log_subsys, log_level, "%snumber_of_records = %u\n", indent_str, fd->number_of_records);
 	}
 }
-

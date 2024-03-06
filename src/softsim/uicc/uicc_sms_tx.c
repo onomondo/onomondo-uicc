@@ -53,8 +53,7 @@ static void clear_state(struct ss_uicc_sms_tx_state *state)
 	if (!ss_list_initialized(&state->sm))
 		goto leave;
 
-	SS_LIST_FOR_EACH_SAVE(&state->sm, sm, sm_pre,
-			      struct ss_uicc_sms_tx_sm, list) {
+	SS_LIST_FOR_EACH_SAVE(&state->sm, sm, sm_pre, struct ss_uicc_sms_tx_sm, list) {
 		ss_list_remove(&sm->list);
 		SS_FREE(sm);
 	}
@@ -73,9 +72,8 @@ void ss_uicc_sms_tx_clear(struct ss_context *ctx)
 }
 
 /* Encode a single short message TPDU */
-int encode_sm(uint8_t *sm_enc, size_t sm_enc_len, const struct ss_sm_hdr *sm_hdr,
-	      const uint8_t *ud_hdr, size_t ud_hdr_len, const uint8_t *tp_ud,
-	      size_t tp_ud_len, bool recalc_tp_udl)
+int encode_sm(uint8_t *sm_enc, size_t sm_enc_len, const struct ss_sm_hdr *sm_hdr, const uint8_t *ud_hdr,
+	      size_t ud_hdr_len, const uint8_t *tp_ud, size_t tp_ud_len, bool recalc_tp_udl)
 {
 	int rc;
 	size_t bytes_used = 0;
@@ -111,11 +109,10 @@ int encode_sm(uint8_t *sm_enc, size_t sm_enc_len, const struct ss_sm_hdr *sm_hdr
 		break;
 	case SMS_MTI_COMMAND:
 		tp_udl = &sm_hdr_copy->u.sms_command.tp_cdl;
-		tp_dcs = 0xff;	/* not applicable */
+		tp_dcs = 0xff; /* not applicable */
 		break;
 	default:
-		SS_LOGP(SSMS, LERROR,
-			"failed to encode incompatible SMS-TPDU (tp-mti=%02x)\n",
+		SS_LOGP(SSMS, LERROR, "failed to encode incompatible SMS-TPDU (tp-mti=%02x)\n",
 			sm_hdr_copy->tp_mti & 3);
 		return -EINVAL;
 	}
@@ -129,15 +126,14 @@ int encode_sm(uint8_t *sm_enc, size_t sm_enc_len, const struct ss_sm_hdr *sm_hdr
 		/* A user data header needs one byte length field + the actual
 		 * header data. */
 		if (ud_hdr && ud_hdr_len)
-			*tp_udl = (uint8_t) (1 + ud_hdr_len);
+			*tp_udl = (uint8_t)(1 + ud_hdr_len);
 
 		/* Add the length of the actual user data (this only works for
 		 * 8 bit encoding, see error message above) */
 		if (tp_ud && tp_ud_len)
-			*tp_udl += (uint8_t) tp_ud_len;
+			*tp_udl += (uint8_t)tp_ud_len;
 
-		SS_LOGP(SSMS, LINFO,
-			"using calculated value for tp_udl=%u (8 bit encoding)\n", *tp_udl);
+		SS_LOGP(SSMS, LINFO, "using calculated value for tp_udl=%u (8 bit encoding)\n", *tp_udl);
 	}
 
 	/* Ensure that the User Data Header Indicator is set in case a user
@@ -154,8 +150,7 @@ int encode_sm(uint8_t *sm_enc, size_t sm_enc_len, const struct ss_sm_hdr *sm_hdr
 			sm_hdr_copy->u.sms_command.tp_udhi = true;
 			break;
 		default:
-			SS_LOGP(SSMS, LERROR,
-				"failed to encode incompatible SMS-TPDU (tp-mti=%02x)\n",
+			SS_LOGP(SSMS, LERROR, "failed to encode incompatible SMS-TPDU (tp-mti=%02x)\n",
 				sm_hdr_copy->tp_mti & 3);
 			return -EINVAL;
 		}
@@ -174,19 +169,17 @@ int encode_sm(uint8_t *sm_enc, size_t sm_enc_len, const struct ss_sm_hdr *sm_hdr
 	/* Copy user data header (if present) */
 	if (ud_hdr && ud_hdr_len > 0) {
 		if (sm_enc_len < ud_hdr_len + 1) {
-			SS_LOGP(SSMS, LERROR,
-				"failed to encode SMS-TPDU, no space to fit user data header\n");
+			SS_LOGP(SSMS, LERROR, "failed to encode SMS-TPDU, no space to fit user data header\n");
 			return -EINVAL;
 		}
 
 		if (ud_hdr_len > 254) {
-			SS_LOGP(SSMS, LERROR,
-				"failed to encode SMS-TPDU, data header too large\n");
+			SS_LOGP(SSMS, LERROR, "failed to encode SMS-TPDU, data header too large\n");
 			return -EINVAL;
 		}
 
 		/* Prepend user data header length */
-		sm_enc[0] = (uint8_t) ud_hdr_len;
+		sm_enc[0] = (uint8_t)ud_hdr_len;
 		sm_enc_len -= 1;
 		sm_enc += 1;
 		bytes_used += 1;
@@ -201,8 +194,7 @@ int encode_sm(uint8_t *sm_enc, size_t sm_enc_len, const struct ss_sm_hdr *sm_hdr
 	/* Copy user data (if present) */
 	if (tp_ud && tp_ud_len > 0) {
 		if (sm_enc_len < tp_ud_len) {
-			SS_LOGP(SSMS, LERROR,
-				"failed to encode SMS-TPDU, no space to fit user data\n");
+			SS_LOGP(SSMS, LERROR, "failed to encode SMS-TPDU, no space to fit user data\n");
 			return -EINVAL;
 		}
 		memcpy(sm_enc, tp_ud, tp_ud_len);
@@ -214,12 +206,9 @@ int encode_sm(uint8_t *sm_enc, size_t sm_enc_len, const struct ss_sm_hdr *sm_hdr
 	return bytes_used;
 }
 
-static int sms_tx_single(struct ss_uicc_sms_tx_state *state,
-			 const struct ss_sm_hdr *sm_hdr,
-			 const uint8_t *ud_hdr, size_t ud_hdr_len,
-			 const uint8_t *tp_ud, size_t tp_ud_len,
-			 sms_result_cb sms_result_cb, bool last_msg,
-			 uint8_t msg_id, bool recalc_tp_udl)
+static int sms_tx_single(struct ss_uicc_sms_tx_state *state, const struct ss_sm_hdr *sm_hdr, const uint8_t *ud_hdr,
+			 size_t ud_hdr_len, const uint8_t *tp_ud, size_t tp_ud_len, sms_result_cb sms_result_cb,
+			 bool last_msg, uint8_t msg_id, bool recalc_tp_udl)
 {
 	struct ss_uicc_sms_tx_sm *sm;
 	int rc;
@@ -230,8 +219,7 @@ static int sms_tx_single(struct ss_uicc_sms_tx_state *state,
 
 	/* Encode and Enqueue SMS TPDU */
 	sm = SS_ALLOC(struct ss_uicc_sms_tx_sm);
-	rc = encode_sm(sm->msg, sizeof(sm->msg), sm_hdr, ud_hdr, ud_hdr_len,
-		       tp_ud, tp_ud_len, recalc_tp_udl);
+	rc = encode_sm(sm->msg, sizeof(sm->msg), sm_hdr, ud_hdr, ud_hdr_len, tp_ud, tp_ud_len, recalc_tp_udl);
 	if (rc < 0) {
 		SS_FREE(sm);
 		SS_LOGP(SSMS, LERROR, "error encoding SMS-TPDU - tossed!\n");
@@ -241,8 +229,7 @@ static int sms_tx_single(struct ss_uicc_sms_tx_state *state,
 	sm->sms_result_cb = sms_result_cb;
 	sm->last_msg = last_msg;
 	sm->msg_id = msg_id;
-	SS_LOGP(SSMS, LINFO, "enqueueing SMS-TPDU: %s\n",
-		ss_hexdump(sm->msg, sm->msg_len));
+	SS_LOGP(SSMS, LINFO, "enqueueing SMS-TPDU: %s\n", ss_hexdump(sm->msg, sm->msg_len));
 	ss_list_put(&state->sm, &sm->list);
 
 	return 0;
@@ -269,7 +256,7 @@ static uint8_t calc_message_parts(size_t ud_hdr_len, size_t tp_ud_len)
 		return 0;
 	}
 
-	return (uint8_t) result;
+	return (uint8_t)result;
 }
 
 /* Remove all messages with a specified message id from the queue. This is
@@ -284,12 +271,9 @@ void cancel_sm(struct ss_uicc_sms_tx_state *state, uint8_t msg_id)
 	if (!ss_list_initialized(&state->sm))
 		return;
 
-	SS_LIST_FOR_EACH_SAVE(&state->sm, sm, sm_pre,
-			      struct ss_uicc_sms_tx_sm, list) {
+	SS_LIST_FOR_EACH_SAVE(&state->sm, sm, sm_pre, struct ss_uicc_sms_tx_sm, list) {
 		if (sm->msg_id == msg_id) {
-			SS_LOGP(SSMS, LINFO,
-				"canceling pending SMS-TPDU: %s\n",
-				ss_hexdump(sm->msg, sm->msg_len));
+			SS_LOGP(SSMS, LINFO, "canceling pending SMS-TPDU: %s\n", ss_hexdump(sm->msg, sm->msg_len));
 			ss_list_remove(&sm->list);
 			SS_FREE(sm);
 		}
@@ -305,11 +289,8 @@ void cancel_sm(struct ss_uicc_sms_tx_state *state, uint8_t msg_id)
  *  \param[in] tp_ud_len user data length.
  *  \param[in] ms_rsult_cb callback to inform caller about the outcome.
  *  \returns ISO7816 SW or 0 on success. */
-int ss_uicc_sms_tx(struct ss_context *ctx,
-		   struct ss_sm_hdr *sm_hdr,
-		   uint8_t *ud_hdr, size_t ud_hdr_len,
-		   uint8_t *tp_ud, size_t tp_ud_len,
-		   sms_result_cb sms_result_cb)
+int ss_uicc_sms_tx(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *ud_hdr, size_t ud_hdr_len, uint8_t *tp_ud,
+		   size_t tp_ud_len, sms_result_cb sms_result_cb)
 {
 	struct ss_uicc_sms_tx_state *state = &ctx->proactive.sms_tx_state;
 
@@ -326,8 +307,7 @@ int ss_uicc_sms_tx(struct ss_context *ctx,
 
 	/* Check if user data and user data header will fit in a single SM. */
 	if (ud_hdr_len + 1 + tp_ud_len <= SMS_MAX_SIZE) {
-		rc = sms_tx_single(state, sm_hdr, ud_hdr, ud_hdr_len, tp_ud,
-				   tp_ud_len, sms_result_cb, true,
+		rc = sms_tx_single(state, sm_hdr, ud_hdr, ud_hdr_len, tp_ud, tp_ud_len, sms_result_cb, true,
 				   state->msg_id, false);
 
 		/* Give the SMS a chance to go out immediately */
@@ -342,8 +322,7 @@ int ss_uicc_sms_tx(struct ss_context *ctx,
 	concat_sm_descr[2] = state->msg_id;
 	concat_sm_descr[3] = msg_parts;
 	tp_ud_ptr = tp_ud;
-	SS_LOGP(SSMS, LINFO,
-		"user data too large for a single SM, splitting into %u separate SMs, message id is: %u\n",
+	SS_LOGP(SSMS, LINFO, "user data too large for a single SM, splitting into %u separate SMs, message id is: %u\n",
 		msg_parts, state->msg_id);
 	for (i = 1; i <= msg_parts; i++) {
 		concat_sm_descr[4] = i;
@@ -372,13 +351,11 @@ int ss_uicc_sms_tx(struct ss_context *ctx,
 
 		/* Enqueue message and point tp_ud_ptr to the beginning of the
 		 * user data window that is transmitted with the next turn. */
-		rc = sms_tx_single(state, sm_hdr, ud_hdr_buf, ud_hdr_buf_len,
-				   tp_ud_ptr, tp_ud_len_window, sms_result_cb,
-				   (i == msg_parts), state->msg_id, true);
+		rc = sms_tx_single(state, sm_hdr, ud_hdr_buf, ud_hdr_buf_len, tp_ud_ptr, tp_ud_len_window,
+				   sms_result_cb, (i == msg_parts), state->msg_id, true);
 		if (rc < 0) {
-			SS_LOGP(SSMS, LERROR,
-				"unable to send part %u/%u of message %u!\n", i,
-				msg_parts, state->msg_id);
+			SS_LOGP(SSMS, LERROR, "unable to send part %u/%u of message %u!\n", i, msg_parts,
+				state->msg_id);
 			cancel_sm(state, state->msg_id);
 			return -EINVAL;
 		}
@@ -393,8 +370,7 @@ int ss_uicc_sms_tx(struct ss_context *ctx,
 }
 
 /* Handle terminal response */
-static void term_response_cb(struct ss_context *ctx, uint8_t *resp_data,
-			     uint8_t resp_data_len)
+static void term_response_cb(struct ss_context *ctx, uint8_t *resp_data, uint8_t resp_data_len)
 {
 	int rc;
 	rc = ss_proactive_get_rc(resp_data, resp_data_len, SSMS);
@@ -428,8 +404,7 @@ static struct ss_uicc_sms_tx_sm *pick_sm(struct ss_uicc_sms_tx_state *state)
 		return NULL;
 
 	sm = SS_LIST_GET(state->sm.next, struct ss_uicc_sms_tx_sm, list);
-	SS_LOGP(SSMS, LINFO, "dequeueing SMS-TPDU: %s\n",
-		ss_hexdump(sm->msg, sm->msg_len));
+	SS_LOGP(SSMS, LINFO, "dequeueing SMS-TPDU: %s\n", ss_hexdump(sm->msg, sm->msg_len));
 	ss_list_remove(&sm->list);
 
 	return sm;
@@ -438,28 +413,22 @@ static struct ss_uicc_sms_tx_sm *pick_sm(struct ss_uicc_sms_tx_state *state)
 void ss_uicc_sms_tx_poll(struct ss_context *ctx)
 {
 	struct ss_uicc_sms_tx_sm *sm;
-	uint8_t cmd_sms[] = {
-		0x80 | TS_101_220_IEI_CMD_DETAILS, 0x03, 0x01,
-		TS_102_223_TOC_SEND_SHORT_MESSAGE, 0x00,
-		/* Device identities: From UICC to network is the only combination allowed
+	uint8_t cmd_sms[] = { 0x80 | TS_101_220_IEI_CMD_DETAILS, 0x03, 0x01, TS_102_223_TOC_SEND_SHORT_MESSAGE, 0x00,
+			      /* Device identities: From UICC to network is the only combination allowed
 		 * for Send Short Message per TS 102 223 V4.4.0 Section 10 */
-		0x80 | TS_101_220_IEI_DEV_ID, 0x02, 0x81, 0x83,
-		0x80 | TS_101_220_IEI_SMS_TPDU
-	};
+			      0x80 | TS_101_220_IEI_DEV_ID, 0x02, 0x81, 0x83, 0x80 | TS_101_220_IEI_SMS_TPDU };
 	/* 2 for length; at most 2 bytes as SMS are limited in length */
 	uint8_t cmd[sizeof(cmd_sms) + 2 + sizeof(sm->msg)];
 	uint8_t *cmd_ptr = cmd;
 	int rc;
 
 	if (ctx->proactive.sms_tx_state.pending) {
-		SS_LOGP(SSMS, LINFO,
-			"pending SM not yet sent, skipping...\n");
+		SS_LOGP(SSMS, LINFO, "pending SM not yet sent, skipping...\n");
 		return;
 	}
 
 	if (!ss_proactive_rts(ctx)) {
-		SS_LOGP(SSMS, LINFO,
-			"another proactive command is still pending, skipping...\n");
+		SS_LOGP(SSMS, LINFO, "another proactive command is still pending, skipping...\n");
 		return;
 	}
 
@@ -474,19 +443,16 @@ void ss_uicc_sms_tx_poll(struct ss_context *ctx)
 			*cmd_ptr = sm->msg_len;
 			cmd_ptr++;
 		} else {
-			*cmd_ptr = (uint8_t) sm->msg_len;
+			*cmd_ptr = (uint8_t)sm->msg_len;
 			cmd_ptr++;
 		}
 		memcpy(cmd_ptr, sm->msg, sm->msg_len);
 		cmd_ptr += sm->msg_len;
 
-		SS_LOGP(SSMS, LINFO,
-			"sending CAT command with SMS-TPDU: %s\n",
-			ss_hexdump(cmd, cmd_ptr - cmd));
+		SS_LOGP(SSMS, LINFO, "sending CAT command with SMS-TPDU: %s\n", ss_hexdump(cmd, cmd_ptr - cmd));
 
 		if (check_cat_support(ctx)) {
-			rc = ss_proactive_put(ctx, term_response_cb, cmd,
-					      cmd_ptr - cmd);
+			rc = ss_proactive_put(ctx, term_response_cb, cmd, cmd_ptr - cmd);
 		} else {
 			SS_LOGP(SSMS, LERROR,
 				"cannot send, TERMINAL PROFILE does not support sending of short messages!\n");
@@ -494,14 +460,12 @@ void ss_uicc_sms_tx_poll(struct ss_context *ctx)
 		}
 
 		if (rc < 0) {
-			SS_LOGP(SSMS, LERROR,
-				"error sending CAT command - SMS-TPDU tossed!\n");
+			SS_LOGP(SSMS, LERROR, "error sending CAT command - SMS-TPDU tossed!\n");
 			if (sm->sms_result_cb)
 				sm->sms_result_cb(ctx, -EINVAL);
 			ctx->proactive.sms_tx_state.sms_result_cb = NULL;
 		} else {
-			ctx->proactive.sms_tx_state.sms_result_cb =
-			    sm->sms_result_cb;
+			ctx->proactive.sms_tx_state.sms_result_cb = sm->sms_result_cb;
 			ctx->proactive.sms_tx_state.pending = true;
 			ctx->proactive.sms_tx_state.last_msg = sm->last_msg;
 		}

@@ -20,17 +20,17 @@
  * sets how many bytes the buffer pointer (enc) should be be advanced. The
  * parameter "bytes_ahead" sets the minimum valid bytes that the caller expects
  * to be available after the buffer pointer (enc) has been advanced. */
-#define CHECK_AND_ADVANCE(inc, bytes_ahead) \
-	if (len < bytes_used + inc + bytes_ahead) { \
-		SS_LOGP(STLV8, LDEBUG, "exceeding buffer bounds: len=%zu, inc=%zu, bytes_ahead=%zu, cannot decode IE\n", \
-			len, (size_t) inc, (size_t) bytes_ahead); \
-		return NULL; \
-	} \
-	bytes_used+=inc; \
-	enc+=inc \
+#define CHECK_AND_ADVANCE(inc, bytes_ahead)                                                                    \
+	if (len < bytes_used + inc + bytes_ahead) {                                                            \
+		SS_LOGP(STLV8, LDEBUG,                                                                         \
+			"exceeding buffer bounds: len=%zu, inc=%zu, bytes_ahead=%zu, cannot decode IE\n", len, \
+			(size_t)inc, (size_t)bytes_ahead);                                                     \
+		return NULL;                                                                                   \
+	}                                                                                                      \
+	bytes_used += inc;                                                                                     \
+	enc += inc
 
-static struct tlv8_ie *decode_ie(size_t *used_len, const uint8_t *enc,
-				 size_t len)
+static struct tlv8_ie *decode_ie(size_t *used_len, const uint8_t *enc, size_t len)
 {
 	struct tlv8_ie ie;
 	struct tlv8_ie *ie_ret;
@@ -93,10 +93,8 @@ struct ss_list *ss_tlv8_decode(const uint8_t *enc, size_t len)
 		} else if (remaining_len > 0) {
 			for (i = used_len; i < used_len + remaining_len; ++i) {
 				if (enc[i] != 0xff) {
-					SS_LOGP(STLV8, LERROR,
-						"Error decoding TLV8 (%s).\n",
-						ss_hexdump(&enc[used_len],
-							   remaining_len));
+					SS_LOGP(STLV8, LERROR, "Error decoding TLV8 (%s).\n",
+						ss_hexdump(&enc[used_len], remaining_len));
 					ss_tlv8_free(list);
 					return NULL;
 				}
@@ -111,8 +109,7 @@ struct ss_list *ss_tlv8_decode(const uint8_t *enc, size_t len)
 	return list;
 }
 
-static void dump_ie(struct tlv8_ie *ie, uint8_t indent,
-		    enum log_subsys subsys, enum log_level level)
+static void dump_ie(struct tlv8_ie *ie, uint8_t indent, enum log_subsys subsys, enum log_level level)
 {
 	char indent_str[256];
 	char *value_str;
@@ -137,8 +134,7 @@ static void dump_ie(struct tlv8_ie *ie, uint8_t indent,
 		delimiter = ' ';
 	}
 
-	SS_LOGP(subsys, level, "%s(tag=0x%02x, len=%zu)%c %s\n", indent_str,
-		ie->tag, value_len, delimiter, value_str);
+	SS_LOGP(subsys, level, "%s(tag=0x%02x, len=%zu)%c %s\n", indent_str, ie->tag, value_len, delimiter, value_str);
 }
 
 /*! Dump decoded TLV8 data.
@@ -146,8 +142,7 @@ static void dump_ie(struct tlv8_ie *ie, uint8_t indent,
  *  \param[in] indent indentation level of the generated output.
  *  \param[in] log_subsys log subsystem to generate the output for.
  *  \param[in] log_level log level to generate the output for. */
-void ss_tlv8_dump(const struct ss_list *list, uint8_t indent,
-		  enum log_subsys log_subsys, enum log_level log_level)
+void ss_tlv8_dump(const struct ss_list *list, uint8_t indent, enum log_subsys log_subsys, enum log_level log_level)
 {
 	struct tlv8_ie *ie;
 
@@ -200,8 +195,7 @@ void ss_tlv8_free(struct ss_list *list)
  *  \param[in] len TLV8 value length.
  *  \param[in] value pointer to TLV8 value (data is copied).
  *  \returns pointer to allocated IE struct. */
-struct tlv8_ie *ss_tlv8_new_ie(struct ss_list *list, uint8_t tag, size_t len,
-			       const uint8_t *value)
+struct tlv8_ie *ss_tlv8_new_ie(struct ss_list *list, uint8_t tag, size_t len, const uint8_t *value)
 {
 	struct tlv8_ie *ie = SS_ALLOC(struct tlv8_ie);
 
@@ -244,8 +238,7 @@ struct tlv8_ie *ss_tlv8_get_ie(const struct ss_list *list, uint8_t tag)
  *  \param[in] tag TLV8 tag to look for.
  *  \param[in] min_len minimum required length.
  *  \returns pointer to IE struct on success, NULL if IE is not found. */
-struct tlv8_ie *ss_tlv8_get_ie_minlen(const struct ss_list *list, uint8_t tag,
-				      size_t min_len)
+struct tlv8_ie *ss_tlv8_get_ie_minlen(const struct ss_list *list, uint8_t tag, size_t min_len)
 {
 	struct tlv8_ie *ie = ss_tlv8_get_ie(list, tag);
 	if (!ie)
@@ -264,9 +257,7 @@ static size_t encode_ie(uint8_t *enc, size_t len, struct tlv8_ie *ie)
 	/* Do not encode anything when we are unable to determine the length
 	 * or when the predicted length exceeds the buffer. */
 	if (ie_len == 0 || ie_len > len) {
-		SS_LOGP(STLV8, LERROR,
-			"not enough buffer space to encode TLV string, aborting at IE %02x.\n",
-			ie->tag);
+		SS_LOGP(STLV8, LERROR, "not enough buffer space to encode TLV string, aborting at IE %02x.\n", ie->tag);
 		return 0;
 	}
 

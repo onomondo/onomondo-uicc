@@ -25,10 +25,10 @@ struct ss_file_blacklist {
  * identifiers. We don't want the terminal to be notified about file changes
  * in those files even when there is a file change */
 const static struct ss_file_blacklist blacklist[] = {
-	{.path_len = 4,.path = "\x3F\x00\xA0\x01" },
-	{.path_len = 4,.path = "\x3F\x00\xA0\x02" },
-	{.path_len = 4,.path = "\x3F\x00\xA0\x03" },
-	{.path_len = 4,.path = "\x3F\x00\xA0\x04" },
+	{ .path_len = 4, .path = "\x3F\x00\xA0\x01" },
+	{ .path_len = 4, .path = "\x3F\x00\xA0\x02" },
+	{ .path_len = 4, .path = "\x3F\x00\xA0\x03" },
+	{ .path_len = 4, .path = "\x3F\x00\xA0\x04" },
 };
 
 /* Check if a path is blacklisted */
@@ -93,14 +93,13 @@ static int pack_path(uint8_t result[SS_FS_CHG_PATH_MAXLEN], const struct ss_list
  *  \param[in] indent indentation level of the generated output.
  *  \param[in] log_subsys log subsystem to generate the output for.
  *  \param[in] log_level log level to generate the output for. */
-void ss_fs_chg_dump(const uint8_t filelist[SS_FS_CHG_BUF_SIZE], uint8_t indent,
-		    enum log_subsys subsys, enum log_level level)
+void ss_fs_chg_dump(const uint8_t filelist[SS_FS_CHG_BUF_SIZE], uint8_t indent, enum log_subsys subsys,
+		    enum log_level level)
 {
 	unsigned int i;
 	const uint8_t *files = filelist;
 	uint16_t fid;
-	char path_prn[SS_FS_CHG_PATH_MAXLEN * 2 + SS_FS_CHG_PATH_MAXLEN / 2 +
-		      1];
+	char path_prn[SS_FS_CHG_PATH_MAXLEN * 2 + SS_FS_CHG_PATH_MAXLEN / 2 + 1];
 	char *path_prn_ptr;
 	char indent_str[256];
 
@@ -118,29 +117,24 @@ void ss_fs_chg_dump(const uint8_t filelist[SS_FS_CHG_BUF_SIZE], uint8_t indent,
 		fid |= *files;
 		files++;
 		if ((fid & 0xFF00) != 0x3F00) {
-			SS_LOGP(subsys, level,
-				"Filelist invalid, path does not begin with 0x3FXX (MF)\n");
+			SS_LOGP(subsys, level, "Filelist invalid, path does not begin with 0x3FXX (MF)\n");
 			return;
 		}
 
 		do {
-			snprintf(path_prn_ptr,
-				 sizeof(path_prn) - (path_prn_ptr - path_prn),
-				 "/%04x", fid);
+			snprintf(path_prn_ptr, sizeof(path_prn) - (path_prn_ptr - path_prn), "/%04x", fid);
 			path_prn_ptr += 5;
 
 			fid = *files << 8;
 			files++;
 			if (files - filelist > SS_FS_CHG_BUF_SIZE) {
-				SS_LOGP(subsys, level,
-					"Filelist invalid, end of path not detected!");
+				SS_LOGP(subsys, level, "Filelist invalid, end of path not detected!");
 				return;
 			}
 			fid |= *files;
 			files++;
 			if (files - filelist > SS_FS_CHG_BUF_SIZE) {
-				SS_LOGP(subsys, level,
-					"Filelist invalid, end of path not detected!");
+				SS_LOGP(subsys, level, "Filelist invalid, end of path not detected!");
 				return;
 			}
 
@@ -180,10 +174,9 @@ int ss_fs_chg_add(uint8_t filelist[SS_FS_CHG_BUF_SIZE], const struct ss_list *pa
 
 	/* Advance to the end of the list */
 	for (i = 0; i < filelist[0]; i++) {
-
 		/* Check whether the file is already known */
-		if (files - filelist < SS_FS_CHG_BUF_SIZE - path_packed_len
-		    && memcmp(path_packed, files, path_packed_len) == 0)
+		if (files - filelist < SS_FS_CHG_BUF_SIZE - path_packed_len &&
+		    memcmp(path_packed, files, path_packed_len) == 0)
 			add = false;
 
 		/* Make sure the path starts with MF */

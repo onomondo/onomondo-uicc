@@ -142,25 +142,18 @@ struct command_parameters {
 /* Parse the clear text part of the command packet header
  * (until and including tar). This function returns the length of the consumed
  * header bytes or a suitable SW as error code (negative) */
-static int parse_cmd_hdr_clrtxt(struct command_parameters *param,
-				size_t cmd_packet_len,
-				const uint8_t *cmd_packet)
+static int parse_cmd_hdr_clrtxt(struct command_parameters *param, size_t cmd_packet_len, const uint8_t *cmd_packet)
 {
 	/* CPL, CHL, SPI, KIc, KID, TAR */
 	const size_t minimal_length = 2 + 1 + 2 + 1 + 1 + 3;
-	if (cmd_packet_len <= minimal_length ||
-	    (((size_t)cmd_packet[0] << 8) | cmd_packet[1]) !=
-	    cmd_packet_len - 2) {
-		SS_LOGP(SREMOTECMD, LERROR,
-			"Received comand packet too short\n");
+	if (cmd_packet_len <= minimal_length || (((size_t)cmd_packet[0] << 8) | cmd_packet[1]) != cmd_packet_len - 2) {
+		SS_LOGP(SREMOTECMD, LERROR, "Received comand packet too short\n");
 		/* Is there any better guidance? This is only based on general ISO 7816
 		 * ENVELOPE descriptions. */
 		return SS_SW_ERR_CHECKING_WRONG_LENGTH;
 	}
 
-	SS_LOGP(SREMOTECMD, LDEBUG,
-		"command packet header data (cleartext): %s\n",
-		ss_hexdump(cmd_packet, 10));
+	SS_LOGP(SREMOTECMD, LDEBUG, "command packet header data (cleartext): %s\n", ss_hexdump(cmd_packet, 10));
 
 	/* Interpreting incoming message */
 	uint8_t chl = cmd_packet[2];
@@ -169,9 +162,8 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param,
 	uint8_t kic = cmd_packet[5];
 	uint8_t kid = cmd_packet[6];
 
-	SS_LOGP(SREMOTECMD, LDEBUG,
-		"Received command with CHL %02x, SPI %02x %02x, KIc %02x, KID %02x\n",
-		chl, spi1, spi2, kic, kid);
+	SS_LOGP(SREMOTECMD, LDEBUG, "Received command with CHL %02x, SPI %02x %02x, KIc %02x, KID %02x\n", chl, spi1,
+		spi2, kic, kid);
 
 	if (chl < 4) {
 		/* Checking this after the DEBUG line because the access were all
@@ -206,8 +198,7 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param,
 	param->cntr_mgmnt = (spi1 >> 3) & 0x03;
 
 	if ((spi2 & 0x03) != 0x01) {
-		SS_LOGP(SREMOTECMD, LERROR,
-			"SPI2 supported values are limited to \"PoR required\"\n");
+		SS_LOGP(SREMOTECMD, LERROR, "SPI2 supported values are limited to \"PoR required\"\n");
 		return -SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 	}
 	param->out_ciphering = spi2 & 0x10;
@@ -221,18 +212,15 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param,
 		param->out_integrity_len = OTA_INTEGRITY_LEN;
 		break;
 	default:
-		SS_LOGP(SREMOTECMD, LERROR,
-			"Unsupported SPI2 integrity mode\n");
+		SS_LOGP(SREMOTECMD, LERROR, "Unsupported SPI2 integrity mode\n");
 		return -SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 	}
 
 	param->out_por_via_sms_submit = (spi2 & 0x20) >> 5;
 
 	if (chl !=
-	    2 /* SPI */  + 1 /* KIc */  + 1 /* KID */ + TAR_LEN +
-	    CNTR_LEN + 1 /* PCNTR */  + param->in_integrity_len) {
-		SS_LOGP(SREMOTECMD, LERROR,
-			"CHL does not match expected integrity length\n");
+	    2 /* SPI */ + 1 /* KIc */ + 1 /* KID */ + TAR_LEN + CNTR_LEN + 1 /* PCNTR */ + param->in_integrity_len) {
+		SS_LOGP(SREMOTECMD, LERROR, "CHL does not match expected integrity length\n");
 		return -SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 	}
 
@@ -248,8 +236,7 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param,
 			param->kic_algorithm = AES_CBC;
 			break;
 		default:
-			SS_LOGP(SREMOTECMD, LERROR,
-				"Key KIc uses unsupported algorithm / key setup\n");
+			SS_LOGP(SREMOTECMD, LERROR, "Key KIc uses unsupported algorithm / key setup\n");
 			return -SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 		}
 		switch (kid & 0x0F) {
@@ -260,8 +247,7 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param,
 			param->kid_algorithm = AES_CMAC;
 			break;
 		default:
-			SS_LOGP(SREMOTECMD, LERROR,
-				"Key KID uses unsupported algorithm / key setup\n");
+			SS_LOGP(SREMOTECMD, LERROR, "Key KID uses unsupported algorithm / key setup\n");
 			return -SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 		}
 	} else {
@@ -272,22 +258,14 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param,
 	memcpy(param->tar, &cmd_packet[7], TAR_LEN);
 
 	SS_LOGP(SREMOTECMD, LDEBUG, "command parameters (cleartext):\n");
-	SS_LOGP(SREMOTECMD, LDEBUG, "  cryptographic checksum (in): %s\n",
-		param->in_cc ? "yes" : "no");
-	SS_LOGP(SREMOTECMD, LDEBUG, "  cryptographic checksum (out): %s\n",
-		param->out_cc ? "yes" : "no");
-	SS_LOGP(SREMOTECMD, LDEBUG, "  chiphering (in): %s\n",
-		param->in_ciphering ? "yes" : "no");
-	SS_LOGP(SREMOTECMD, LDEBUG, "  chiphering (out): %s\n",
-		param->out_ciphering ? "yes" : "no");
-	SS_LOGP(SREMOTECMD, LDEBUG, "  integrity parameter len (in): %zu\n",
-		param->in_integrity_len);
-	SS_LOGP(SREMOTECMD, LDEBUG, "  integrity parameter len (out): %zu\n",
-		param->out_integrity_len);
-	SS_LOGP(SREMOTECMD, LDEBUG, "  KIC indication: %02x\n",
-		param->kic_indication);
-	SS_LOGP(SREMOTECMD, LDEBUG, "  KID indication: %02x\n",
-		param->kid_indication);
+	SS_LOGP(SREMOTECMD, LDEBUG, "  cryptographic checksum (in): %s\n", param->in_cc ? "yes" : "no");
+	SS_LOGP(SREMOTECMD, LDEBUG, "  cryptographic checksum (out): %s\n", param->out_cc ? "yes" : "no");
+	SS_LOGP(SREMOTECMD, LDEBUG, "  chiphering (in): %s\n", param->in_ciphering ? "yes" : "no");
+	SS_LOGP(SREMOTECMD, LDEBUG, "  chiphering (out): %s\n", param->out_ciphering ? "yes" : "no");
+	SS_LOGP(SREMOTECMD, LDEBUG, "  integrity parameter len (in): %zu\n", param->in_integrity_len);
+	SS_LOGP(SREMOTECMD, LDEBUG, "  integrity parameter len (out): %zu\n", param->out_integrity_len);
+	SS_LOGP(SREMOTECMD, LDEBUG, "  KIC indication: %02x\n", param->kic_indication);
+	SS_LOGP(SREMOTECMD, LDEBUG, "  KID indication: %02x\n", param->kid_indication);
 	switch (param->kic_algorithm) {
 	case NONE:
 		SS_LOGP(SREMOTECMD, LDEBUG, "  KIC algorithm: NONE\n");
@@ -322,8 +300,7 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param,
 		SS_LOGP(SREMOTECMD, LERROR, "  KID algorithm: invalid\n");
 		return -SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 	}
-	SS_LOGP(SREMOTECMD, LDEBUG, "  TAR: %s\n",
-		ss_hexdump(param->tar, sizeof(param->tar)));
+	SS_LOGP(SREMOTECMD, LDEBUG, "  TAR: %s\n", ss_hexdump(param->tar, sizeof(param->tar)));
 	switch (param->cntr_mgmnt) {
 	case CNTR_IGNORE:
 		SS_LOGP(SREMOTECMD, LDEBUG, "  cntr mgmnt: ignore\n");
@@ -335,8 +312,7 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param,
 		SS_LOGP(SREMOTECMD, LDEBUG, "  cntr mgmnt: match greater\n");
 		break;
 	case CNTR_CHECK_STRICT:
-		SS_LOGP(SREMOTECMD, LDEBUG,
-			"  cntr mgmnt: match greater one (strict)\n");
+		SS_LOGP(SREMOTECMD, LDEBUG, "  cntr mgmnt: match greater one (strict)\n");
 		break;
 	default:
 		SS_LOGP(SREMOTECMD, LERROR, "  cntr mgmnt: invalid\n");
@@ -350,12 +326,9 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param,
  * This function returns the length of the consumed header bytes or a suitable
  * SW as error code (negative). The input data must start at the beginning of
  * the CNTR value. */
-static int parse_cmd_hdr_ciphtxt(struct command_parameters *param,
-				 size_t cmd_packet_len,
-				 const uint8_t *cmd_packet)
+static int parse_cmd_hdr_ciphtxt(struct command_parameters *param, size_t cmd_packet_len, const uint8_t *cmd_packet)
 {
-	SS_LOGP(SREMOTECMD, LDEBUG,
-		"command packet header data (decrypted ciphertext): %s\n",
+	SS_LOGP(SREMOTECMD, LDEBUG, "command packet header data (decrypted ciphertext): %s\n",
 		ss_hexdump(cmd_packet, 6));
 
 	/* We need at least 6 bytes of data (5 byte CNTR + 1 byte PCNTR) */
@@ -367,12 +340,9 @@ static int parse_cmd_hdr_ciphtxt(struct command_parameters *param,
 	param->cntr = ss_uint64_from_array(&cmd_packet[0], CNTR_LEN);
 	param->pcntr = cmd_packet[5];
 
-	SS_LOGP(SREMOTECMD, LDEBUG,
-		"command parameters (decrypted cleartext):\n");
-	SS_LOGP(SREMOTECMD, LDEBUG, "  CNTR: %lu/%010lx\n",
-		param->cntr, param->cntr);
-	SS_LOGP(SREMOTECMD, LDEBUG, "  PCNTR: %u/%02x\n",
-		param->pcntr, param->pcntr);
+	SS_LOGP(SREMOTECMD, LDEBUG, "command parameters (decrypted cleartext):\n");
+	SS_LOGP(SREMOTECMD, LDEBUG, "  CNTR: %lu/%010lx\n", param->cntr, param->cntr);
+	SS_LOGP(SREMOTECMD, LDEBUG, "  PCNTR: %u/%02x\n", param->pcntr, param->pcntr);
 
 	return 6;
 }
@@ -419,8 +389,7 @@ static void setup_ctx_from_tar(struct ss_context *ctx, uint8_t *tar)
  *
  * The precise evaluation logic is part of the file description provided with
  * @ref TAR_KEY_FID. */
-static bool setup_keys_from_tar(struct command_parameters *param, uint8_t *kic,
-				uint8_t *kid)
+static bool setup_keys_from_tar(struct command_parameters *param, uint8_t *kic, uint8_t *kid)
 {
 	struct ss_list tar_path;
 	struct ss_buf *tar_buf;
@@ -448,14 +417,12 @@ static bool setup_keys_from_tar(struct command_parameters *param, uint8_t *kic,
 	for (i = 0; i < n_tars && !(checked_msl && ready_kic && ready_kid); i++) {
 		tar_buf = ss_fs_read_file_record(&tar_path, i + 1);
 		if (!tar_buf) {
-			SS_LOGP(SREMOTECMD, LERROR,
-				"TAR file inconsistent -- cannot read record\n");
+			SS_LOGP(SREMOTECMD, LERROR, "TAR file inconsistent -- cannot read record\n");
 			goto exit;
 		}
 		if (tar_buf->len != sizeof(struct tar_record)) {
-			SS_LOGP(SREMOTECMD, LERROR,
-				"TAR file has wrong record length\n");
-			i = n_tars;	/* goto exit but leave through cleanup */
+			SS_LOGP(SREMOTECMD, LERROR, "TAR file has wrong record length\n");
+			i = n_tars; /* goto exit but leave through cleanup */
 			goto continue_;
 		}
 
@@ -473,15 +440,13 @@ static bool setup_keys_from_tar(struct command_parameters *param, uint8_t *kic,
 			 * make sense */
 			switch (record->msl) {
 			case 0x00:
-				SS_LOGP(SREMOTECMD, LINFO,
-					"Accepting SPI1 based on permissive MSL\n");
+				SS_LOGP(SREMOTECMD, LINFO, "Accepting SPI1 based on permissive MSL\n");
 				checked_msl = true;
 				break;
 			case 0x06:
 				if (!param->in_cc || !param->in_ciphering) {
-					SS_LOGP(SREMOTECMD, LERROR,
-						"Request SPI1 does not satisfy MSL\n");
-					i = n_tars;	/* goto exit but leave through cleanup */
+					SS_LOGP(SREMOTECMD, LERROR, "Request SPI1 does not satisfy MSL\n");
+					i = n_tars; /* goto exit but leave through cleanup */
 					goto continue_;
 				} else {
 					SS_LOGP(SREMOTECMD, LINFO,
@@ -490,27 +455,20 @@ static bool setup_keys_from_tar(struct command_parameters *param, uint8_t *kic,
 				}
 				break;
 			default:
-				SS_LOGP(SREMOTECMD, LERROR,
-					"Unsupported MSL, rejecting\n");
-				i = n_tars;	/* goto exit but leave through cleanup */
+				SS_LOGP(SREMOTECMD, LERROR, "Unsupported MSL, rejecting\n");
+				i = n_tars; /* goto exit but leave through cleanup */
 				goto continue_;
 			}
 		}
 
-		if (!ready_kic &&
-		    record->kic_indication != 0xff &&
-		    (record->kic_indication == param->kic_indication
-		     || param->kic_indication == 0)
-		    ) {
+		if (!ready_kic && record->kic_indication != 0xff &&
+		    (record->kic_indication == param->kic_indication || param->kic_indication == 0)) {
 			memcpy(kic, record->kic, OTA_KEY_LEN);
 			ready_kic = true;
 		}
 
-		if (!ready_kid &&
-		    record->kid_indication != 0xff &&
-		    (record->kid_indication == param->kid_indication
-		     || param->kid_indication == 0)
-		    ) {
+		if (!ready_kid && record->kid_indication != 0xff &&
+		    (record->kid_indication == param->kid_indication || param->kid_indication == 0)) {
 			memcpy(kid, record->kid, OTA_KEY_LEN);
 			ready_kid = true;
 		}
@@ -522,16 +480,14 @@ continue_:
 
 exit:
 	ss_path_reset(&tar_path);
-	SS_LOGP(SREMOTECMD, LINFO,
-		"Key selection result: MSL check %d, KIC readiness %d, KID readiness %d\n",
+	SS_LOGP(SREMOTECMD, LINFO, "Key selection result: MSL check %d, KIC readiness %d, KID readiness %d\n",
 		checked_msl, ready_kic, ready_kid);
 	return checked_msl && ready_kic && ready_kid;
 }
 
 /* Get the current CNTR value for a specified TAR (param). The record number of
  * the matching record is also returned to directly update the record later. */
-static int get_cntr_from_tar(uint64_t * cntr, size_t *record_no,
-			     struct command_parameters *param)
+static int get_cntr_from_tar(uint64_t *cntr, size_t *record_no, struct command_parameters *param)
 {
 	struct ss_list cntr_path;
 	struct ss_buf *cntr_buf;
@@ -564,15 +520,13 @@ static int get_cntr_from_tar(uint64_t * cntr, size_t *record_no,
 	for (i = 0; i < n_cntrs; i++) {
 		cntr_buf = ss_fs_read_file_record(&cntr_path, i + 1);
 		if (!cntr_buf) {
-			SS_LOGP(SREMOTECMD, LERROR,
-				"CNTR file inconsistent -- cannot read record\n");
+			SS_LOGP(SREMOTECMD, LERROR, "CNTR file inconsistent -- cannot read record\n");
 			rc = -EINVAL;
 			goto exit;
 		}
 		if (cntr_buf->len != sizeof(struct cntr_record)) {
-			SS_LOGP(SREMOTECMD, LERROR,
-				"CNTR file has wrong record length\n");
-			i = n_cntrs;	/* goto exit but leave through cleanup */
+			SS_LOGP(SREMOTECMD, LERROR, "CNTR file has wrong record length\n");
+			i = n_cntrs; /* goto exit but leave through cleanup */
 			ss_buf_free(cntr_buf);
 			rc = -EINVAL;
 			goto exit;
@@ -580,13 +534,11 @@ static int get_cntr_from_tar(uint64_t * cntr, size_t *record_no,
 
 		/* Cast OK: Struct is packed, and none of its fields have alignment
 		 * requirements */
-		struct cntr_record *record =
-		    (struct cntr_record *)cntr_buf->data;
+		struct cntr_record *record = (struct cntr_record *)cntr_buf->data;
 
 		tar_match = true;
 		for (k = 0; k < TAR_LEN; k++) {
-			if ((record->tar[k] & record->tar_mask[k]) !=
-			    (param->tar[k] & record->tar_mask[k]))
+			if ((record->tar[k] & record->tar_mask[k]) != (param->tar[k] & record->tar_mask[k]))
 				tar_match = false;
 		}
 
@@ -594,12 +546,9 @@ static int get_cntr_from_tar(uint64_t * cntr, size_t *record_no,
 			*cntr = ss_uint64_from_array(record->cntr, CNTR_LEN);
 			*record_no = i + 1;
 			SS_LOGP(SREMOTECMD, LINFO,
-				"CNTR selection result: record %zu, TAR %s, TAR mask %s, CNTR %lu/%010lx\n",
-				*record_no,
+				"CNTR selection result: record %zu, TAR %s, TAR mask %s, CNTR %lu/%010lx\n", *record_no,
 				ss_hexdump(record->tar, sizeof(record->tar)),
-				ss_hexdump(record->tar_mask,
-					   sizeof(record->tar_mask)), *cntr,
-				*cntr);
+				ss_hexdump(record->tar_mask, sizeof(record->tar_mask)), *cntr, *cntr);
 			ss_buf_free(cntr_buf);
 			break;
 		}
@@ -607,8 +556,7 @@ static int get_cntr_from_tar(uint64_t * cntr, size_t *record_no,
 	}
 
 	if (!tar_match) {
-		SS_LOGP(SREMOTECMD, LERROR,
-			"CNTR file does not contain record for TAR %s\n",
+		SS_LOGP(SREMOTECMD, LERROR, "CNTR file does not contain record for TAR %s\n",
 			ss_hexdump(param->tar, sizeof(param->tar)));
 		rc = -EINVAL;
 	}
@@ -644,14 +592,12 @@ static int update_cntr(uint64_t cntr, size_t record_no)
 
 	cntr_buf = ss_fs_read_file_record(&cntr_path, record_no);
 	if (!cntr_buf) {
-		SS_LOGP(SREMOTECMD, LERROR,
-			"CNTR file inconsistent -- cannot read record\n");
+		SS_LOGP(SREMOTECMD, LERROR, "CNTR file inconsistent -- cannot read record\n");
 		rc = -EINVAL;
 		goto exit;
 	}
 	if (cntr_buf->len != sizeof(struct cntr_record)) {
-		SS_LOGP(SREMOTECMD, LERROR,
-			"CNTR file has wrong record length\n");
+		SS_LOGP(SREMOTECMD, LERROR, "CNTR file has wrong record length\n");
 		rc = -EINVAL;
 		goto exit;
 	}
@@ -661,12 +607,9 @@ static int update_cntr(uint64_t cntr, size_t record_no)
 	record = (struct cntr_record *)cntr_buf->data;
 	ss_array_from_uint64(record->cntr, CNTR_LEN, cntr);
 
-	SS_LOGP(SREMOTECMD, LINFO,
-		"CNTR update: record %zu, CNTR %lu/%010lx\n",
-		record_no, cntr, cntr);
+	SS_LOGP(SREMOTECMD, LINFO, "CNTR update: record %zu, CNTR %lu/%010lx\n", record_no, cntr, cntr);
 
-	rc = ss_fs_write_file_record(&cntr_path, record_no, cntr_buf->data,
-				     cntr_buf->len);
+	rc = ss_fs_write_file_record(&cntr_path, record_no, cntr_buf->data, cntr_buf->len);
 exit:
 	ss_buf_free(cntr_buf);
 	ss_path_reset(&cntr_path);
@@ -689,11 +632,8 @@ exit:
  * an unsuccessful SW), allocation errors before comand processing result in a
  * return value of 0 (which is otherwise invalid, as the result encoding
  * demands at least 1 byte for the command index, and 2 bytes of SW) */
-static size_t process_commands(uint8_t *tar,
-			       size_t commands_len,
-			       uint8_t *commands,
-			       size_t outbuf_len,
-			       uint8_t *outbuf, uint8_t *main_ctx_filelist)
+static size_t process_commands(uint8_t *tar, size_t commands_len, uint8_t *commands, size_t outbuf_len, uint8_t *outbuf,
+			       uint8_t *main_ctx_filelist)
 {
 	size_t this_command_length;
 	struct ss_context *ctx = ss_new_reporting_ctx(main_ctx_filelist);
@@ -701,8 +641,7 @@ static size_t process_commands(uint8_t *tar,
 
 	if (ctx == NULL)
 		return 0;
-	SS_LOGP(SREMOTECMD, LDEBUG,
-		"+++++++++++++ command processing on RFM context begins ++++++++++++++\n");
+	SS_LOGP(SREMOTECMD, LDEBUG, "+++++++++++++ command processing on RFM context begins ++++++++++++++\n");
 
 	ss_reset(ctx);
 
@@ -715,23 +654,19 @@ static size_t process_commands(uint8_t *tar,
 		/* Count number of executed commands */
 		outbuf[0]++;
 
-		SS_LOGP(SREMOTECMD, LDEBUG, "Processing command %d: %s\n",
-			outbuf[0], ss_hexdump(commands, commands_len));
+		SS_LOGP(SREMOTECMD, LDEBUG, "Processing command %d: %s\n", outbuf[0],
+			ss_hexdump(commands, commands_len));
 		this_command_length = commands_len;
 
 		/* Note: the compact APDU format used with RFM stores the SW at
 		 * the beginning. But ss_transact() will store the SW at the
 		 * end. We will use an offset in order to be able to put the
 		 * SW at the beginning after the command excution. */
-		written_length =
-		    ss_transact(ctx, &outbuf[3], outbuf_len - 3, commands,
-				&this_command_length);
+		written_length = ss_transact(ctx, &outbuf[3], outbuf_len - 3, commands, &this_command_length);
 		outbuf[1] = outbuf[1 + written_length];
 		outbuf[2] = outbuf[2 + written_length];
-		SS_LOGP(SREMOTECMD, LDEBUG,
-			"Command %d produced %ld bytes of output: %s\n",
-			outbuf[0], written_length, ss_hexdump(&outbuf[1],
-							      written_length));
+		SS_LOGP(SREMOTECMD, LDEBUG, "Command %d produced %ld bytes of output: %s\n", outbuf[0], written_length,
+			ss_hexdump(&outbuf[1], written_length));
 
 		/* Align to the beginning of the next command. */
 		commands_len -= this_command_length;
@@ -740,8 +675,7 @@ static size_t process_commands(uint8_t *tar,
 		/* Abort in case the command was not executed successfully. */
 		if (!ss_sw_is_successful((outbuf[1] << 8) | outbuf[2])) {
 			SS_LOGP(SREMOTECMD, LINFO,
-				"Command %d was not successful, not executing any further commands\n",
-				outbuf[0]);
+				"Command %d was not successful, not executing any further commands\n", outbuf[0]);
 			break;
 		}
 	}
@@ -751,16 +685,14 @@ static size_t process_commands(uint8_t *tar,
 			commands_len);
 	}
 
-	SS_LOGP(SREMOTECMD, LDEBUG,
-		"+++++++++++++ command processing on RFM context ended +++++++++++++++\n");
+	SS_LOGP(SREMOTECMD, LDEBUG, "+++++++++++++ command processing on RFM context ended +++++++++++++++\n");
 	ss_free_ctx(ctx);
 
 	return written_length + 1;
 }
 
 /* Decrypt data using a specified algorithm. */
-static int decrypt(uint8_t *data, size_t data_len, uint8_t *key,
-		   size_t key_len, enum enc_algorithm alg)
+static int decrypt(uint8_t *data, size_t data_len, uint8_t *key, size_t key_len, enum enc_algorithm alg)
 {
 	switch (alg) {
 	case TRIPLE_DES_CBC2:
@@ -783,8 +715,7 @@ static int decrypt(uint8_t *data, size_t data_len, uint8_t *key,
 		ss_utils_aes_decrypt(data, data_len, key, key_len);
 		break;
 	default:
-		SS_LOGP(SREMOTECMD, LERROR,
-			"unable to decrypt, improper crypto algorithm selected\n");
+		SS_LOGP(SREMOTECMD, LERROR, "unable to decrypt, improper crypto algorithm selected\n");
 		return -EINVAL;
 	}
 
@@ -792,8 +723,7 @@ static int decrypt(uint8_t *data, size_t data_len, uint8_t *key,
 }
 
 /* Encrypt data using a specified algorithm. */
-static int encrypt(uint8_t *data, size_t data_len, uint8_t *key,
-		   size_t key_len, enum enc_algorithm alg)
+static int encrypt(uint8_t *data, size_t data_len, uint8_t *key, size_t key_len, enum enc_algorithm alg)
 {
 	switch (alg) {
 	case TRIPLE_DES_CBC2:
@@ -816,8 +746,7 @@ static int encrypt(uint8_t *data, size_t data_len, uint8_t *key,
 		ss_utils_aes_encrypt(data, data_len, key, key_len);
 		break;
 	default:
-		SS_LOGP(SREMOTECMD, LERROR,
-			"unable to decrypt, improper crypto algorithm selected\n");
+		SS_LOGP(SREMOTECMD, LERROR, "unable to decrypt, improper crypto algorithm selected\n");
 		return -EINVAL;
 	}
 
@@ -850,10 +779,8 @@ static int encrypt(uint8_t *data, size_t data_len, uint8_t *key,
  * @param[in]    cntr       Counter value (CNTR) to place in the encrypted part
  *                          of the header
  */
-static void build_message(uint8_t *outbuf, size_t *outbuf_len,
-			  uint8_t *plaintext, size_t plaintext_len,
-			  uint8_t rsc, struct command_parameters *param,
-			  uint8_t *kic_key, uint8_t *kid_key, uint8_t *cntr)
+static void build_message(uint8_t *outbuf, size_t *outbuf_len, uint8_t *plaintext, size_t plaintext_len, uint8_t rsc,
+			  struct command_parameters *param, uint8_t *kic_key, uint8_t *kid_key, uint8_t *cntr)
 {
 	uint8_t cc[OTA_INTEGRITY_LEN];
 	uint8_t pcnt = 0;
@@ -882,12 +809,10 @@ static void build_message(uint8_t *outbuf, size_t *outbuf_len,
 		 * encrypted part of the message starts at the location of
 		 * the sequence counter (CNTR). */
 		pcnt = ss_utils_ota_calc_pcnt(param->kic_algorithm,
-					      CNTR_LEN + PCNT_LEN + RSC_LEN +
-					      param->out_integrity_len + plaintext_len);
+					      CNTR_LEN + PCNT_LEN + RSC_LEN + param->out_integrity_len + plaintext_len);
 	};
 	if (pcnt > 0) {
-		switch (param->kic_algorithm)
-		{
+		switch (param->kic_algorithm) {
 		case AES_CBC:
 			/* NIST Special Publication 800-38A states that the padding for the AES should be 0x80 0x00 ... 0x00 */
 			outbuf[16 + param->out_integrity_len + plaintext_len] = 0x80;
@@ -905,9 +830,9 @@ static void build_message(uint8_t *outbuf, size_t *outbuf_len,
 	*outbuf_len = 16 + param->out_integrity_len + plaintext_len + pcnt;
 
 	/* User Data Header */
-	outbuf[0] = 0x02;	/* UDHL */
-	outbuf[1] = IEI_RPI;	/* IEIa: Response Packet Identifier */
-	outbuf[2] = 0;		/* IEIDLa, length of IEa data */
+	outbuf[0] = 0x02;    /* UDHL */
+	outbuf[1] = IEI_RPI; /* IEIa: Response Packet Identifier */
+	outbuf[2] = 0;	     /* IEIDLa, length of IEa data */
 	/* Length of Response Packet */
 	outbuf[3] = (*outbuf_len - 5) >> 8;
 	outbuf[4] = (*outbuf_len - 5);
@@ -929,10 +854,8 @@ static void build_message(uint8_t *outbuf, size_t *outbuf_len,
 		 * Packet, the Length of the Response Header and the three preceding
 		 * octets (UDHL, IEIa and IEIDLa in the above table) shall be
 		 * included in the calculation of RC/CC/DS if used." */
-		rc = ss_utils_ota_calc_cc(cc, param->out_integrity_len, kid_key, OTA_KEY_LEN,
-					  param->kid_algorithm, outbuf, 16,
-					  &outbuf[16 + param->out_integrity_len],
-					  plaintext_len + pcnt);
+		rc = ss_utils_ota_calc_cc(cc, param->out_integrity_len, kid_key, OTA_KEY_LEN, param->kid_algorithm,
+					  outbuf, 16, &outbuf[16 + param->out_integrity_len], plaintext_len + pcnt);
 		if (rc < 0) {
 			/* Clear output buffer before we leave, just to be sure no
 			 * unencrypted data will leak. */
@@ -947,8 +870,7 @@ static void build_message(uint8_t *outbuf, size_t *outbuf_len,
 
 	if (param->out_ciphering) {
 		/* Encrypt everything after TAR */
-		rc = encrypt(&outbuf[9], *outbuf_len - 9, kic_key,
-			     OTA_KEY_LEN, param->kic_algorithm);
+		rc = encrypt(&outbuf[9], *outbuf_len - 9, kic_key, OTA_KEY_LEN, param->kic_algorithm);
 		if (rc < 0) {
 			/* Clear output buffer before we leave, just to be sure no
 			 * unencrypted data will leak. */
@@ -980,10 +902,8 @@ static void build_message(uint8_t *outbuf, size_t *outbuf_len,
  *
  * @return the status word with which to respond to the SMS delivery that sent
  *         the command packet. */
-int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
-			       size_t *response_len, uint8_t *response,
-			       struct ss_buf **sms_response,
-			       uint8_t *main_ctx_filelist)
+int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_t *response_len, uint8_t *response,
+			       struct ss_buf **sms_response, uint8_t *main_ctx_filelist)
 {
 	struct command_parameters param;
 	int ret;
@@ -1013,11 +933,9 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
 		return SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 	ciphertext = &cmd_packet[ret];
 	ciphertext_len = cmd_packet_len - ret;
-	SS_LOGP(SREMOTECMD, LDEBUG, "Ciphertext command: %s\n",
-		ss_hexdump(ciphertext, ciphertext_len));
+	SS_LOGP(SREMOTECMD, LDEBUG, "Ciphertext command: %s\n", ss_hexdump(ciphertext, ciphertext_len));
 	if (param.in_ciphering) {
-		rc = decrypt(ciphertext, ciphertext_len, kic_key,
-			     sizeof(kic_key), param.kic_algorithm);
+		rc = decrypt(ciphertext, ciphertext_len, kic_key, sizeof(kic_key), param.kic_algorithm);
 		if (rc < 0) {
 			ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 			goto clear_out;
@@ -1025,8 +943,7 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
 	}
 	plaintext = ciphertext;
 	plaintext_len = ciphertext_len;
-	SS_LOGP(SREMOTECMD, LDEBUG, "Plaintext command: %s\n",
-		ss_hexdump(plaintext, plaintext_len));
+	SS_LOGP(SREMOTECMD, LDEBUG, "Plaintext command: %s\n", ss_hexdump(plaintext, plaintext_len));
 
 	ret = parse_cmd_hdr_ciphtxt(&param, plaintext_len, plaintext);
 	if (ret <= 0)
@@ -1035,8 +952,7 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
 
 	/* Guard against invalid length params */
 	if (ciph_hdr_len + param.pcntr + param.in_integrity_len > plaintext_len) {
-		SS_LOGP(SREMOTECMD, LERROR,
-			"one or more inconsistent length params/fields received.\n");
+		SS_LOGP(SREMOTECMD, LERROR, "one or more inconsistent length params/fields received.\n");
 		ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 		goto clear_out;
 	}
@@ -1056,9 +972,8 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
 		 * to go with a non-buffering checksum: 2 bytes of CPL (not
 		 * that we'd read it in any other place, currently), CHL, 2
 		 * bytes of SPI, KIC, KID, TAR, CNTR and PCNTR. */
-		rc = ss_utils_ota_calc_cc(compare_cc, param.in_integrity_len, kid_key,
-					  OTA_KEY_LEN, param.kid_algorithm, cmd_packet, 16,
-					  plaintext, plaintext_len);
+		rc = ss_utils_ota_calc_cc(compare_cc, param.in_integrity_len, kid_key, OTA_KEY_LEN, param.kid_algorithm,
+					  cmd_packet, 16, plaintext, plaintext_len);
 		if (rc < 0) {
 			ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 			goto clear_out;
@@ -1082,8 +997,7 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
 
 	switch (param.cntr_mgmnt) {
 	case CNTR_IGNORE:
-		SS_LOGP(SREMOTECMD, LDEBUG,
-			"No counter checks performed, counter ignored\n");
+		SS_LOGP(SREMOTECMD, LDEBUG, "No counter checks performed, counter ignored\n");
 		break;
 	case CNTR_SET_START:
 		/* Make sure the counter cannot be overset. */
@@ -1091,15 +1005,12 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
 			cntr = 0xffffffffff;
 		else
 			cntr = param.cntr;
-		SS_LOGP(SREMOTECMD, LDEBUG,
-			"No counter checks performed, counter set to: %lu\n",
-			cntr);
+		SS_LOGP(SREMOTECMD, LDEBUG, "No counter checks performed, counter set to: %lu\n", cntr);
 		break;
 	case CNTR_CHECK_GREATER:
 		/* Detect blocked counter */
 		if (cntr >= 0xffffffffff) {
-			SS_LOGP(SREMOTECMD, LDEBUG,
-				"Counter has reached its maximum value, blocked!\n");
+			SS_LOGP(SREMOTECMD, LDEBUG, "Counter has reached its maximum value, blocked!\n");
 			ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 			goto clear_out;
 		}
@@ -1108,8 +1019,8 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
 		 * counter value */
 		if (param.cntr <= cntr) {
 			SS_LOGP(SREMOTECMD, LDEBUG,
-				"Received counter value %lu not greater than stored counter value %lu\n",
-				param.cntr, cntr);
+				"Received counter value %lu not greater than stored counter value %lu\n", param.cntr,
+				cntr);
 			ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 			goto clear_out;
 		}
@@ -1121,8 +1032,7 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
 	case CNTR_CHECK_STRICT:
 		/* Detect blocked counter */
 		if (cntr >= 0xffffffffff) {
-			SS_LOGP(SREMOTECMD, LDEBUG,
-				"Counter has reached its maximum value, blocked!\n");
+			SS_LOGP(SREMOTECMD, LDEBUG, "Counter has reached its maximum value, blocked!\n");
 			ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 			goto clear_out;
 		}
@@ -1142,8 +1052,7 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
 			param.cntr, cntr);
 		break;
 	default:
-		SS_LOGP(SREMOTECMD, LERROR,
-			"Invalid counter options requested\n");
+		SS_LOGP(SREMOTECMD, LERROR, "Invalid counter options requested\n");
 		ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 		goto clear_out;
 	}
@@ -1159,26 +1068,21 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
 	 * execution of the remote command. */
 
 	/* Allocate memory for the response. */
-	response_message =
-	    ss_buf_alloc(SS_UICC_REMOTE_COMMAND_RESPONSE_MAXSIZE);
+	response_message = ss_buf_alloc(SS_UICC_REMOTE_COMMAND_RESPONSE_MAXSIZE);
 	if (response_message == NULL) {
-		SS_LOGP(SREMOTECMD, LERROR,
-			"No space to allocate response message\n");
+		SS_LOGP(SREMOTECMD, LERROR, "No space to allocate response message\n");
 		ret = SS_SW_ERR_EXEC_MEMORY_PROBLEM;
 		goto clear_out;
 	}
 
 	/* Execute the command string as RFM (remote file management)
 	 * commands. */
-	command_output_length = process_commands(param.tar,
-						 plaintext_len - param.pcntr,
-						 plaintext,
+	command_output_length = process_commands(param.tar, plaintext_len - param.pcntr, plaintext,
 						 response_message->len - (16 + param.out_integrity_len),
 						 &response_message->data[16 + param.out_integrity_len],
 						 main_ctx_filelist);
 	if (command_output_length == 0) {
-		SS_LOGP(SREMOTECMD, LERROR,
-			"Command processing encountered internal allocation error\n");
+		SS_LOGP(SREMOTECMD, LERROR, "Command processing encountered internal allocation error\n");
 		ret = SS_SW_ERR_EXEC_MEMORY_PROBLEM;
 		ss_buf_free(response_message);
 		goto clear_out;
@@ -1190,8 +1094,7 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
 	 * goes. (we will either just copy the buffer once more or give the
 	 * caller the ownership.) */
 	build_message(response_message->data, &response_message->len,
-		      &response_message->data[16 + param.out_integrity_len],
-		      command_output_length, RSC_POR_OK, &param,
+		      &response_message->data[16 + param.out_integrity_len], command_output_length, RSC_POR_OK, &param,
 		      kic_key, kid_key, &cmd_packet[10]);
 
 	/* Return response message to the caller */
@@ -1206,13 +1109,11 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet,
 		/* The response is to large to fit in the GET RESPONSE buffer
 		 * of the UICC. The UICC (caller) will have to generate one
 		 * or more SM himself and send them through STK commands. */
-		SS_LOGP(SREMOTECMD, LDEBUG,
-			"Response too large for reply, will submit SMS instead.\n");
+		SS_LOGP(SREMOTECMD, LDEBUG, "Response too large for reply, will submit SMS instead.\n");
 
 		*sms_response = response_message;
 
-		build_message(response, response_len, NULL, 0,
-			      RSC_WILL_SMS_SUBMIT, &param, kic_key, kid_key,
+		build_message(response, response_len, NULL, 0, RSC_WILL_SMS_SUBMIT, &param, kic_key, kid_key,
 			      &cmd_packet[10]);
 	}
 	ret = 0;

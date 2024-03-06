@@ -71,7 +71,7 @@ int ss_fs_select_parent(const struct ss_list *path)
 	/* There must be still a file (parent) in the path after we have
 	 * selected the parent! */
 	if (ss_list_empty(path))
-		return -EINVAL;	
+		return -EINVAL;
 
 	return 0;
 }
@@ -91,17 +91,16 @@ void ss_path_reset(struct ss_list *path)
 
 static struct ss_buf *file_descr_from_fcp(const struct ss_list *fcp_decoded_envelope)
 {
-       struct ber_tlv_ie *fcp_decoded_file_descr;
+	struct ber_tlv_ie *fcp_decoded_file_descr;
 
-       if (!fcp_decoded_envelope)
-	       return NULL;
-       fcp_decoded_file_descr =
-	       ss_btlv_get_ie_minlen(fcp_decoded_envelope, 0x82, 2);
-       if (!fcp_decoded_file_descr)
-               return NULL;
+	if (!fcp_decoded_envelope)
+		return NULL;
+	fcp_decoded_file_descr = ss_btlv_get_ie_minlen(fcp_decoded_envelope, 0x82, 2);
+	if (!fcp_decoded_file_descr)
+		return NULL;
 
-       /* NOTE: The caller must not take ownership of the value */
-       return fcp_decoded_file_descr->value;
+	/* NOTE: The caller must not take ownership of the value */
+	return fcp_decoded_file_descr->value;
 }
 
 /**
@@ -117,9 +116,7 @@ static struct ss_buf *file_descr_from_fcp(const struct ss_list *fcp_decoded_enve
  * \return a buffer containing the full record (or NULL if no file was found /
  *   the indicated record was not present)
  */
-struct ss_buf *ss_fs_read_relative_file_record(const struct ss_list *path,
-					       uint16_t file_id,
-					       uint8_t record_number)
+struct ss_buf *ss_fs_read_relative_file_record(const struct ss_list *path, uint16_t file_id, uint8_t record_number)
 {
 	struct ss_list efarr_path;
 	if (ss_fs_utils_path_clone(&efarr_path, path) != 0) {
@@ -140,8 +137,7 @@ struct ss_buf *ss_fs_read_relative_file_record(const struct ss_list *path,
 	 * The MF is excluded from that rule for obvious reasons.
 	 * */
 	if (ss_get_file_from_path(path)->fcp_file_descr->type == SS_FCP_DF_OR_ADF &&
-		ss_get_file_from_path(path)->fid != FILE_MF
-		)
+	    ss_get_file_from_path(path)->fid != FILE_MF)
 		ss_fs_select_parent(&efarr_path);
 
 	int select_rc = -1;
@@ -197,8 +193,7 @@ int ss_fs_select(struct ss_list *path, uint32_t fid)
 	rc = ss_storage_get_file_def(path);
 	if (rc < 0) {
 		ss_fs_select_parent(path);
-		SS_LOGP(SFS, LINFO, "select fid=%04x failed, path=%s\n", fid,
-			ss_fs_utils_dump_path(path));
+		SS_LOGP(SFS, LINFO, "select fid=%04x failed, path=%s\n", fid, ss_fs_utils_dump_path(path));
 		return -EINVAL;
 	}
 
@@ -219,21 +214,20 @@ int ss_fs_select(struct ss_list *path, uint32_t fid)
 
 	if (!selected_file->fcp_decoded) {
 		ss_fs_select_parent(path);
-		SS_LOGP(SBTLV, LERROR, "select fid=%04x failed, path=%s, unable to decode FCP\n",
-			fid, ss_fs_utils_dump_path(path));
+		SS_LOGP(SBTLV, LERROR, "select fid=%04x failed, path=%s, unable to decode FCP\n", fid,
+			ss_fs_utils_dump_path(path));
 		return -EINVAL;
 	}
 
 	file_descr = file_descr_from_fcp(selected_file->fcp_decoded);
 	if (!file_descr) {
 		ss_fs_select_parent(path);
-		SS_LOGP(SBTLV, LERROR, "select fid=%04x failed, path=%s, unable to decode FD\n",
-			fid, ss_fs_utils_dump_path(path));
+		SS_LOGP(SBTLV, LERROR, "select fid=%04x failed, path=%s, unable to decode FD\n", fid,
+			ss_fs_utils_dump_path(path));
 	}
 
 	selected_file->fcp_file_descr = SS_ALLOC(struct ss_fcp_file_descr);
-	ss_fcp_dec_file_descr(selected_file->fcp_file_descr,
-			      file_descr);
+	ss_fcp_dec_file_descr(selected_file->fcp_file_descr, file_descr);
 	return 0;
 }
 
@@ -241,8 +235,7 @@ int ss_fs_select(struct ss_list *path, uint32_t fid)
  *  \param[in] path path to the file to be read.
  *  \param[in] record_no number of the record to be read.
  *  \returns buffer with record data on success, NULL on failure */
-struct ss_buf *ss_fs_read_file_record(const struct ss_list *path,
-				      size_t record_no)
+struct ss_buf *ss_fs_read_file_record(const struct ss_list *path, size_t record_no)
 {
 	struct ss_file *file;
 
@@ -254,29 +247,22 @@ struct ss_buf *ss_fs_read_file_record(const struct ss_list *path,
 	 * has to maintain this state and then call this function with the
 	 * absolue record number. */
 	if (record_no == 0) {
-		SS_LOGP(SFS, LINFO,
-			"non existing record (%lu) referenced in file (%04x)\n",
-			record_no, file->fid);
+		SS_LOGP(SFS, LINFO, "non existing record (%lu) referenced in file (%04x)\n", record_no, file->fid);
 		return NULL;
 	}
 
 	if (record_no > file->fcp_file_descr->number_of_records + 1) {
-		SS_LOGP(SFS, LINFO,
-			"non existing record (%lu) referenced in file (%04x)\n",
-			record_no, file->fid);
+		SS_LOGP(SFS, LINFO, "non existing record (%lu) referenced in file (%04x)\n", record_no, file->fid);
 		return NULL;
 	}
 
-	if (file->fcp_file_descr->structure != SS_FCP_LINEAR_FIXED
-	    && file->fcp_file_descr->structure != SS_FCP_CYCLIC) {
-		SS_LOGP(SFS, LINFO,
-			"cannot read record from non record oriented file (%04x)\n",
-			file->fid);
+	if (file->fcp_file_descr->structure != SS_FCP_LINEAR_FIXED &&
+	    file->fcp_file_descr->structure != SS_FCP_CYCLIC) {
+		SS_LOGP(SFS, LINFO, "cannot read record from non record oriented file (%04x)\n", file->fid);
 		return NULL;
 	}
 
-	return ss_storage_read_file(path, (record_no - 1) *
-				    file->fcp_file_descr->record_len,
+	return ss_storage_read_file(path, (record_no - 1) * file->fcp_file_descr->record_len,
 				    file->fcp_file_descr->record_len);
 }
 
@@ -286,8 +272,7 @@ struct ss_buf *ss_fs_read_file_record(const struct ss_list *path,
  *  \param[in] data user provided memory with record data.
  *  \param[in] data record data length (checked against FCP).
  *  \returns 0 on success, -EINVAL on failure */
-int ss_fs_write_file_record(const struct ss_list *path, size_t record_no,
-			    const uint8_t *data, size_t len)
+int ss_fs_write_file_record(const struct ss_list *path, size_t record_no, const uint8_t *data, size_t len)
 {
 	struct ss_file *file;
 
@@ -297,37 +282,30 @@ int ss_fs_write_file_record(const struct ss_list *path, size_t record_no,
 
 	/* See also note in ss_fs_get_file_record() */
 	if (record_no == 0) {
-		SS_LOGP(SFS, LINFO,
-			"non existing record (%lu) referenced in file (%04x)\n",
-			record_no, file->fid);
+		SS_LOGP(SFS, LINFO, "non existing record (%lu) referenced in file (%04x)\n", record_no, file->fid);
 		return -EINVAL;
 	}
 
 	if (record_no > file->fcp_file_descr->number_of_records + 1) {
-		SS_LOGP(SFS, LINFO,
-			"non existing record (%lu) referenced in file (%04x), file has %u records\n",
+		SS_LOGP(SFS, LINFO, "non existing record (%lu) referenced in file (%04x), file has %u records\n",
 			record_no, file->fid, file->fcp_file_descr->number_of_records);
 		return -EINVAL;
 	}
 
-	if (file->fcp_file_descr->structure != SS_FCP_LINEAR_FIXED
-	    && file->fcp_file_descr->structure != SS_FCP_CYCLIC) {
-		SS_LOGP(SFS, LINFO,
-			"cannot write record on non record oriented file (%04x)\n",
-			file->fid);
+	if (file->fcp_file_descr->structure != SS_FCP_LINEAR_FIXED &&
+	    file->fcp_file_descr->structure != SS_FCP_CYCLIC) {
+		SS_LOGP(SFS, LINFO, "cannot write record on non record oriented file (%04x)\n", file->fid);
 		return -EINVAL;
 	}
 
 	if (file->fcp_file_descr->record_len != len) {
-		SS_LOGP(SFS, LINFO,
-			"cannot write record with improper length (%u != %lu) to file (%04x)\n",
+		SS_LOGP(SFS, LINFO, "cannot write record with improper length (%u != %lu) to file (%04x)\n",
 			file->fcp_file_descr->record_len, len, file->fid);
 		return -EINVAL;
 	}
 
-	return ss_storage_write_file(path, data, (record_no - 1) *
-				    file->fcp_file_descr->record_len,
-				    file->fcp_file_descr->record_len);
+	return ss_storage_write_file(path, data, (record_no - 1) * file->fcp_file_descr->record_len,
+				     file->fcp_file_descr->record_len);
 }
 
 /*! Initialize filesystem.
@@ -379,22 +357,16 @@ int ss_fs_create(struct ss_list *path, const uint8_t *fci_data, size_t fci_len)
 	}
 
 	/* Decode FID */
-	fcp_fid_ie =
-	    ss_btlv_get_ie_minlen(fcp_tmpl_ie->nested,
-				  TS_102_221_IEI_FCP_FILE_ID, 2);
+	fcp_fid_ie = ss_btlv_get_ie_minlen(fcp_tmpl_ie->nested, TS_102_221_IEI_FCP_FILE_ID, 2);
 	if (!fcp_fid_ie) {
 		SS_LOGP(SFS, LERROR, "Missing FID IE in file creation\n");
 		rc = -EINVAL;
 		goto leave;
 	}
-	fid =
-	    ss_uint32_from_array(fcp_fid_ie->value->data,
-				 fcp_fid_ie->value->len);
+	fid = ss_uint32_from_array(fcp_fid_ie->value->data, fcp_fid_ie->value->len);
 
 	/* Decode File descriptor */
-	fcp_file_descr_ie =
-	    ss_btlv_get_ie_minlen(fcp_tmpl_ie->nested,
-				  TS_102_221_IEI_FCP_FILE_DESCR, 2);
+	fcp_file_descr_ie = ss_btlv_get_ie_minlen(fcp_tmpl_ie->nested, TS_102_221_IEI_FCP_FILE_DESCR, 2);
 	if (!fcp_file_descr_ie) {
 		SS_LOGP(SFS, LERROR, "Missing file descriptor in file creation\n");
 		rc = -EINVAL;
@@ -426,9 +398,7 @@ int ss_fs_create(struct ss_list *path, const uint8_t *fci_data, size_t fci_len)
 		rc = ss_storage_create_dir(path);
 	else {
 		/* Decode file size */
-		fcp_file_size_ie =
-		    ss_btlv_get_ie_minlen(fcp_tmpl_ie->nested,
-					  TS_102_221_IEI_FCP_FILE_SIZE, 1);
+		fcp_file_size_ie = ss_btlv_get_ie_minlen(fcp_tmpl_ie->nested, TS_102_221_IEI_FCP_FILE_SIZE, 1);
 		if (!fcp_file_size_ie) {
 			SS_LOGP(SFS, LERROR, "Missing file size file creation\n");
 			rc = -EINVAL;
@@ -436,9 +406,7 @@ int ss_fs_create(struct ss_list *path, const uint8_t *fci_data, size_t fci_len)
 			ss_fs_select_parent(path);
 			goto leave;
 		}
-		size =
-		    ss_uint32_from_array(fcp_file_size_ie->value->data,
-					 fcp_file_size_ie->value->len);
+		size = ss_uint32_from_array(fcp_file_size_ie->value->data, fcp_file_size_ie->value->len);
 		rc = ss_storage_create_file(path, size);
 	}
 
