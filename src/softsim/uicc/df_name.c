@@ -41,25 +41,20 @@ int ss_df_name_update(struct ss_list *path)
 	file = ss_get_file_from_path(path);
 
 	/* get FID */
-	fcp_fid_ie =
-	    ss_btlv_get_ie_minlen(file->fcp_decoded,
-				  TS_102_221_IEI_FCP_FILE_ID, 2);
+	fcp_fid_ie = ss_btlv_get_ie_minlen(file->fcp_decoded, TS_102_221_IEI_FCP_FILE_ID, 2);
 	if (!fcp_fid_ie)
 		return -EINVAL;
 
 	/* Extract DF Name (if present) */
-	fcp_df_name_ie = ss_btlv_get_ie_minlen(file->fcp_decoded,
-					       TS_102_221_IEI_FCP_DF_NAME, 1);
+	fcp_df_name_ie = ss_btlv_get_ie_minlen(file->fcp_decoded, TS_102_221_IEI_FCP_DF_NAME, 1);
 	if (!fcp_df_name_ie) {
 		/* Nothing to do, This file just has no DF_NAME assigned */
 		return 0;
 	}
 
 	if (fcp_df_name_ie->value->len > 16) {
-		SS_LOGP(SDFNAME, LERROR,
-			"cannot register too long DF_NAME %s, len=%lu > 16\n",
-			ss_hexdump(fcp_df_name_ie->value->data,
-				   fcp_df_name_ie->value->len),
+		SS_LOGP(SDFNAME, LERROR, "cannot register too long DF_NAME %s, len=%lu > 16\n",
+			ss_hexdump(fcp_df_name_ie->value->data, fcp_df_name_ie->value->len),
 			fcp_df_name_ie->value->len);
 		return -EINVAL;
 	}
@@ -87,15 +82,12 @@ int ss_df_name_update(struct ss_list *path)
 	/* Select lookup file. If it does not exist, create a new one. */
 	rc = ss_fs_select(&path_copy, DF_NAME_FID);
 	if (rc < 0) {
-		SS_LOGP(SDFNAME, LERROR,
-			"lookup file %s does not exist, creating a new one.\n",
+		SS_LOGP(SDFNAME, LERROR, "lookup file %s does not exist, creating a new one.\n",
 			ss_fs_utils_dump_path(&path_copy));
-		rc = ss_fs_utils_create_record_file(&path_copy, DF_NAME_FID,
-						    16 + 2, 16);
+		rc = ss_fs_utils_create_record_file(&path_copy, DF_NAME_FID, 16 + 2, 16);
 		rc += ss_fs_select(&path_copy, DF_NAME_FID);
 		if (rc < 0) {
-			SS_LOGP(SDFNAME, LERROR,
-				"failed to create lookup file %s\n",
+			SS_LOGP(SDFNAME, LERROR, "failed to create lookup file %s\n",
 				ss_fs_utils_dump_path(&path_copy));
 			rc = -EINVAL;
 			goto leave;
@@ -105,33 +97,25 @@ int ss_df_name_update(struct ss_list *path)
 	/* Find a free record */
 	free_record = ss_fs_utils_find_free_record(&path_copy);
 	if (!free_record) {
-		SS_LOGP(SDFNAME, LERROR,
-			"failed to register DF_NAME=%s in lookup file %s - no free record found\n",
-			ss_hexdump(fcp_df_name_ie->value->data,
-				   fcp_df_name_ie->value->len),
+		SS_LOGP(SDFNAME, LERROR, "failed to register DF_NAME=%s in lookup file %s - no free record found\n",
+			ss_hexdump(fcp_df_name_ie->value->data, fcp_df_name_ie->value->len),
 			ss_fs_utils_dump_path(&path_copy));
 		rc = -EINVAL;
 		goto leave;
 	}
 
-	rc = ss_fs_write_file_record(&path_copy, free_record, record,
-				     sizeof(record));
+	rc = ss_fs_write_file_record(&path_copy, free_record, record, sizeof(record));
 	if (rc < 0) {
-		SS_LOGP(SDFNAME, LERROR,
-			"failed to register DF_NAME=%s in lookup file %s - could not write record\n",
-			ss_hexdump(fcp_df_name_ie->value->data,
-				   fcp_df_name_ie->value->len),
+		SS_LOGP(SDFNAME, LERROR, "failed to register DF_NAME=%s in lookup file %s - could not write record\n",
+			ss_hexdump(fcp_df_name_ie->value->data, fcp_df_name_ie->value->len),
 			ss_fs_utils_dump_path(&path_copy));
 		rc = -EINVAL;
 		goto leave;
 	}
 
-	SS_LOGP(SDFNAME, LDEBUG,
-		"registered DF_NAME=%s for FID=%02x%02x in file %s on record number %lu\n",
-		ss_hexdump(fcp_df_name_ie->value->data,
-			   fcp_df_name_ie->value->len),
-		fcp_fid_ie->value->data[0], fcp_fid_ie->value->data[1],
-		ss_fs_utils_dump_path(&path_copy), free_record);
+	SS_LOGP(SDFNAME, LDEBUG, "registered DF_NAME=%s for FID=%02x%02x in file %s on record number %lu\n",
+		ss_hexdump(fcp_df_name_ie->value->data, fcp_df_name_ie->value->len), fcp_fid_ie->value->data[0],
+		fcp_fid_ie->value->data[1], ss_fs_utils_dump_path(&path_copy), free_record);
 	rc = 0;
 leave:
 	ss_path_reset(&path_copy);
@@ -143,8 +127,7 @@ leave:
  *  \param[in] df_name DF NAME to look for.
  *  \param[in] df_name_len length of the DF NAME.
  *  \returns 0 success, -EINVAL on failure */
-int ss_df_name_resolve(struct ss_list *path, const uint8_t *df_name,
-		       size_t df_name_len)
+int ss_df_name_resolve(struct ss_list *path, const uint8_t *df_name, size_t df_name_len)
 {
 	struct ss_list path_copy;
 	int rc;
@@ -171,10 +154,8 @@ int ss_df_name_resolve(struct ss_list *path, const uint8_t *df_name,
 		return -EINVAL;
 	rc = ss_fs_select(&path_copy, DF_NAME_FID);
 	if (rc < 0) {
-		SS_LOGP(SDFNAME, LERROR,
-			"cannot resolve DF_NAME=%s, unable to select lookup file in %s\n",
-			ss_hexdump(df_name, df_name_len),
-			ss_fs_utils_dump_path(&path_copy));
+		SS_LOGP(SDFNAME, LERROR, "cannot resolve DF_NAME=%s, unable to select lookup file in %s\n",
+			ss_hexdump(df_name, df_name_len), ss_fs_utils_dump_path(&path_copy));
 		rc = -EINVAL;
 		goto leave;
 	}
@@ -190,14 +171,11 @@ int ss_df_name_resolve(struct ss_list *path, const uint8_t *df_name,
 	memset(mask, 0x00, sizeof(mask));
 	memset(mask, 0xff, df_name_len);
 
-	record_number =
-	    ss_fs_utils_find_record(&path_copy, template, mask,
-				    sizeof(template));
+	record_number = ss_fs_utils_find_record(&path_copy, template, mask, sizeof(template));
 	if (!record_number) {
 		SS_LOGP(SDFNAME, LERROR,
 			"unable to resolve DF_NAME=%s to FID - lookup file %s has no matching record\n",
-			ss_hexdump(df_name, df_name_len),
-			ss_fs_utils_dump_path(&path_copy));
+			ss_hexdump(df_name, df_name_len), ss_fs_utils_dump_path(&path_copy));
 		rc = -EINVAL;
 		goto leave;
 	}
@@ -206,17 +184,14 @@ int ss_df_name_resolve(struct ss_list *path, const uint8_t *df_name,
 	if (!record) {
 		SS_LOGP(SDFNAME, LERROR,
 			"unable to resolve DF_NAME=%s to FID - lookup file %s is not readable at record number %lu\n",
-			ss_hexdump(df_name, df_name_len),
-			ss_fs_utils_dump_path(&path_copy), record_number);
+			ss_hexdump(df_name, df_name_len), ss_fs_utils_dump_path(&path_copy), record_number);
 		rc = -EINVAL;
 		goto leave;
 	}
 
 	fid = ss_uint32_from_array(record->data + 16, 2);
-	SS_LOGP(SDFNAME, LDEBUG,
-		"resolved DF_NAME=%s to FID=%04x using lookup file %s\n",
-		ss_hexdump(df_name, df_name_len), fid,
-		ss_fs_utils_dump_path(&path_copy));
+	SS_LOGP(SDFNAME, LDEBUG, "resolved DF_NAME=%s to FID=%04x using lookup file %s\n",
+		ss_hexdump(df_name, df_name_len), fid, ss_fs_utils_dump_path(&path_copy));
 	ss_buf_free(record);
 	rc = fid;
 

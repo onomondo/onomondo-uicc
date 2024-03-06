@@ -37,16 +37,12 @@ void ss_uicc_lchan_dump(const struct ss_lchan *lchan)
 			SS_LOGP(SLCHAN, LDEBUG, " pin %u verifed\n", i);
 	}
 
-	SS_LOGP(SLCHAN, LDEBUG, " selected file: %s\n",
-		ss_fs_utils_dump_path(&lchan->fs_path));
+	SS_LOGP(SLCHAN, LDEBUG, " selected file: %s\n", ss_fs_utils_dump_path(&lchan->fs_path));
 	active_adf = ss_get_file_from_path(&lchan->adf_path);
 	if (active_adf)
 		active_adf_name = ss_fcp_get_df_name(active_adf->fcp_decoded);
-	SS_LOGP(SLCHAN, LDEBUG, " active ADF: %s - %s\n",
-		ss_fs_utils_dump_path(&lchan->adf_path),
-		active_adf_name ? ss_hexdump(active_adf_name->data,
-					     active_adf_name->len) :
-		"(no AID)");
+	SS_LOGP(SLCHAN, LDEBUG, " active ADF: %s - %s\n", ss_fs_utils_dump_path(&lchan->adf_path),
+		active_adf_name ? ss_hexdump(active_adf_name->data, active_adf_name->len) : "(no AID)");
 	SS_LOGP(SLCHAN, LDEBUG, " current record: %u\n", lchan->current_record);
 }
 
@@ -94,8 +90,7 @@ struct ss_lchan *ss_uicc_lchan_get(struct ss_context *ctx, uint8_t cla)
 	if (lchan_nr == 0)
 		return &ctx->lchan;
 	else {
-		SS_LOGP(SLCHAN, LERROR, "lchan %u not found (cla=%02x)\n",
-			lchan_nr, cla);
+		SS_LOGP(SLCHAN, LERROR, "lchan %u not found (cla=%02x)\n", lchan_nr, cla);
 		return NULL;
 	}
 }

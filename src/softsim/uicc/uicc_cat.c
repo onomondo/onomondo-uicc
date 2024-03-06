@@ -47,23 +47,20 @@ int handle_sms_pp_dwnld(struct ss_apdu *apdu, struct ss_buf *cat_template)
 
 	ctlv_data = ss_ctlv_decode(cat_template->data, cat_template->len);
 	if (!ctlv_data) {
-		SS_LOGP(SPROACT, LERROR,
-			"failed to decode COMPREHENSION-TLV encoded SMS-PP data\n");
+		SS_LOGP(SPROACT, LERROR, "failed to decode COMPREHENSION-TLV encoded SMS-PP data\n");
 		return SS_SW_ERR_WRONG_PARAM_INCORRECT_DATA;
 	}
 	ss_ctlv_dump(ctlv_data, 2, SPROACT, LDEBUG);
 
 	sms_tpdu_ie = ss_ctlv_get_ie(ctlv_data, TS_101_220_IEI_SMS_TPDU);
 	if (!sms_tpdu_ie) {
-		SS_LOGP(SPROACT, LERROR,
-			"failed to receive SMS-PP, SMS-TPDU IE missing\n");
+		SS_LOGP(SPROACT, LERROR, "failed to receive SMS-PP, SMS-TPDU IE missing\n");
 		rc = SS_SW_ERR_WRONG_PARAM_INCORRECT_DATA;
 		goto leave;
 	}
 
 	apdu->rsp_len = SS_ARRAY_SIZE(apdu->rsp);
-	rc = ss_uicc_sms_rx(apdu->ctx,
-			    sms_tpdu_ie->value, &apdu->rsp_len, apdu->rsp);
+	rc = ss_uicc_sms_rx(apdu->ctx, sms_tpdu_ie->value, &apdu->rsp_len, apdu->rsp);
 	if (rc != 0)
 		apdu->rsp_len = 0;
 
@@ -87,8 +84,7 @@ int ss_uicc_cat_cmd_term_profile(struct ss_apdu *apdu)
 	size_t term_profile_len;
 
 	/* Clear old profile */
-	memset(apdu->ctx->proactive.term_profile, 0,
-	       sizeof(apdu->ctx->proactive.term_profile));
+	memset(apdu->ctx->proactive.term_profile, 0, sizeof(apdu->ctx->proactive.term_profile));
 
 	/* Store profile */
 	if (apdu->lc <= sizeof(apdu->ctx->proactive.term_profile)) {
@@ -96,8 +92,7 @@ int ss_uicc_cat_cmd_term_profile(struct ss_apdu *apdu)
 	} else {
 		/* Note: the buffer size is chosen large enough, so that this
 		 * error should never occur. */
-		SS_LOGP(SPROACT, LERROR,
-			"transmitted TERMINAL PROFILE too large for internal buffer\n");
+		SS_LOGP(SPROACT, LERROR, "transmitted TERMINAL PROFILE too large for internal buffer\n");
 		term_profile_len = sizeof(apdu->ctx->proactive.term_profile);
 	}
 	memcpy(apdu->ctx->proactive.term_profile, apdu->cmd, term_profile_len);
@@ -124,11 +119,9 @@ int ss_uicc_cat_cmd_envelope(struct ss_apdu *apdu)
 		SS_LOGP(SPROACT, LERROR, "Data length anounced in P3 exceeds available data\n");
 		return SS_SW_ERR_WRONG_PARAM_INCORRECT_DATA;
 	}
-	envelope =
-	    ss_btlv_decode(apdu->cmd, data_len, ss_proactive_get_cat_descr());
+	envelope = ss_btlv_decode(apdu->cmd, data_len, ss_proactive_get_cat_descr());
 	if (!envelope) {
-		SS_LOGP(SPROACT, LERROR,
-			"failed to decode BER-TLV encoded envelope\n");
+		SS_LOGP(SPROACT, LERROR, "failed to decode BER-TLV encoded envelope\n");
 		return SS_SW_ERR_WRONG_PARAM_INCORRECT_DATA;
 	}
 	ss_btlv_dump(envelope, 2, SPROACT, LDEBUG);
@@ -136,17 +129,11 @@ int ss_uicc_cat_cmd_envelope(struct ss_apdu *apdu)
 	rc = SS_SW_ERR_WRONG_PARAM_FUNCTION_NOT_SUPPORTED;
 	for (i = 0; i < SS_ARRAY_SIZE(cat_envelope_commands); i++) {
 		cat_template =
-		    ss_btlv_get_ie_minlen(envelope,
-					  cat_envelope_commands[i].iei,
-					  cat_envelope_commands[i].minlen);
+			ss_btlv_get_ie_minlen(envelope, cat_envelope_commands[i].iei, cat_envelope_commands[i].minlen);
 		if (cat_template) {
-			SS_LOGP(SPROACT, LDEBUG,
-				"executing handler function for CAT TEMPLATE %02x: %s\n",
-				cat_envelope_commands[i].iei,
-				cat_envelope_commands[i].name);
-			rc = cat_envelope_commands[i].handler(apdu,
-							      cat_template->
-							      value);
+			SS_LOGP(SPROACT, LDEBUG, "executing handler function for CAT TEMPLATE %02x: %s\n",
+				cat_envelope_commands[i].iei, cat_envelope_commands[i].name);
+			rc = cat_envelope_commands[i].handler(apdu, cat_template->value);
 		}
 	}
 
@@ -165,8 +152,7 @@ int ss_uicc_cat_cmd_fetch(struct ss_apdu *apdu)
 		goto leave;
 	}
 
-	memcpy(apdu->rsp, apdu->ctx->proactive.data,
-	       apdu->ctx->proactive.data_len);
+	memcpy(apdu->rsp, apdu->ctx->proactive.data, apdu->ctx->proactive.data_len);
 	apdu->rsp_len = apdu->ctx->proactive.data_len;
 
 leave:
@@ -182,7 +168,6 @@ int ss_uicc_cat_cmd_term_resp(struct ss_apdu *apdu)
 {
 	if (!apdu->ctx->proactive.enabled)
 		return SS_SW_ERR_WRONG_PARAM_FUNCTION_NOT_SUPPORTED;
-
 
 	term_resp_cb callback = apdu->ctx->proactive.term_resp_cb;
 	ss_proactive_reset(apdu->ctx);

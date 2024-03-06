@@ -106,7 +106,7 @@ size_t ss_binary_from_hexstr(uint8_t *binary, size_t binary_len, const char *hex
 				hex_digit_bin = 0xff;
 		}
 
-		binary[binary_count] = (uint8_t) hex_digit_bin & 0xff;
+		binary[binary_count] = (uint8_t)hex_digit_bin & 0xff;
 		binary_count++;
 
 		if (binary_count >= binary_len)
@@ -121,7 +121,7 @@ size_t ss_binary_from_hexstr(uint8_t *binary, size_t binary_len, const char *hex
  *  \returns pointer to newly allocated ss_buf object. */
 struct ss_buf *ss_buf_from_hexstr(const char *hexstr)
 {
-	int bin_len = strlen(hexstr)/2;
+	int bin_len = strlen(hexstr) / 2;
 	struct ss_buf *sb = ss_buf_alloc(bin_len);
 
 	ss_binary_from_hexstr(sb->data, sb->len, hexstr);
@@ -142,8 +142,8 @@ uint32_t ss_uint32_from_array(const uint8_t *array, size_t len)
 	if (len > 4)
 		len = 4;
 
-	for(i = 0; i < len; i++) {
-		byte = array[len-i-1];
+	for (i = 0; i < len; i++) {
+		byte = array[len - i - 1];
 		rc |= (byte << i * 8);
 	}
 
@@ -163,8 +163,8 @@ uint64_t ss_uint64_from_array(const uint8_t *array, size_t len)
 	if (len > 8)
 		len = 8;
 
-	for(i = 0; i < len; i++) {
-		byte = array[len-i-1];
+	for (i = 0; i < len; i++) {
+		byte = array[len - i - 1];
 		rc |= (byte << i * 8);
 	}
 
@@ -226,14 +226,10 @@ size_t ss_optimal_len_for_uint32(uint32_t in)
  *  \returns converted value as uint64_t. */
 uint64_t ss_uint64_load_from_be(const uint8_t *storage)
 {
-	return ((uint64_t)storage[0] << (7 * 8)) |
-		((uint64_t)storage[1] << (6 * 8)) |
-		((uint64_t)storage[2] << (5 * 8)) |
-		((uint64_t)storage[3] << (4 * 8)) |
-		((uint64_t)storage[4] << (3 * 8)) |
-		((uint64_t)storage[5] << (2 * 8)) |
-		((uint64_t)storage[6] << (1 * 8)) |
-		((uint64_t)storage[7] << (0 * 8));
+	return ((uint64_t)storage[0] << (7 * 8)) | ((uint64_t)storage[1] << (6 * 8)) |
+	       ((uint64_t)storage[2] << (5 * 8)) | ((uint64_t)storage[3] << (4 * 8)) |
+	       ((uint64_t)storage[4] << (3 * 8)) | ((uint64_t)storage[5] << (2 * 8)) |
+	       ((uint64_t)storage[6] << (1 * 8)) | ((uint64_t)storage[7] << (0 * 8));
 }
 
 /*! Store an uint64_t value to a storage location (8 bytes, BE).

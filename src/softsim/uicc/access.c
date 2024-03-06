@@ -24,7 +24,7 @@
 #define ACCESSBYTE_MASK_HIGHBITS 0x78
 
 enum arr_ref_type {
-	ARR_REF_NONE,       /**< The FCP contained no access rule reference */
+	ARR_REF_NONE,	    /**< The FCP contained no access rule reference */
 	ARR_REF_IDENTIFIED, /**< A file ID and record number have been identified */
 	ARR_REF_UNMATCHING, /**< The file ID was identified, but no data was */
 			    /*   available for the given SE ID. (Currently,
@@ -37,7 +37,7 @@ struct arr_ref {
 	enum arr_ref_type type;
 	uint16_t file_id;
 	uint8_t record_number; /**< Record number inside the file; only valid */
-	                       /*   for type ARR_REF_IDENTIFIED */
+			       /*   for type ARR_REF_IDENTIFIED */
 };
 
 const uint8_t FCP_TAG_REFERENCED_FORMAT = 0x8b;
@@ -58,8 +58,7 @@ struct arr_ref arr_from_fcp(struct ss_list *fcp_decoded_envelope)
 	if (fcp_decoded_arr->value->len == 3) {
 		/* File ID, record number */
 		result.type = ARR_REF_IDENTIFIED;
-		result.file_id = (fcp_decoded_arr->value->data[0] << 8) |
-		                  fcp_decoded_arr->value->data[1];
+		result.file_id = (fcp_decoded_arr->value->data[0] << 8) | fcp_decoded_arr->value->data[1];
 		result.record_number = fcp_decoded_arr->value->data[2];
 	} else {
 		/* File ID, pairs of SE ID and record numbers */
@@ -132,7 +131,8 @@ void ss_access_populate(struct ss_lchan *lchan)
 			selected_file->access = ss_btlv_decode(record->data, record->len, NULL);
 			ss_buf_free(record);
 		}
-		SS_LOGP(SACCESS, LDEBUG, "Access referenced into file %04x record %02x, loaded:\n", arr.file_id, arr.record_number);
+		SS_LOGP(SACCESS, LDEBUG, "Access referenced into file %04x record %02x, loaded:\n", arr.file_id,
+			arr.record_number);
 		if (selected_file->access == NULL) {
 			SS_LOGP(SACCESS, LDEBUG, "(No valid access condition loaded)\n");
 		} else {
@@ -149,8 +149,7 @@ static bool apdu_matches_am_byte(enum ss_access_intention intention, uint8_t am_
 		return false;
 	}
 
-	if ((intention & ACCESSBYTE_MASK_HIGHBITS) &&
-	    (am_byte & ACCESSBYTE_FLAG_PROPRIETARY_HIGHBITS)) {
+	if ((intention & ACCESSBYTE_MASK_HIGHBITS) && (am_byte & ACCESSBYTE_FLAG_PROPRIETARY_HIGHBITS)) {
 		/* Intention has standardized high bits set, but the required am_byte does
 		 * not even express them */
 		return false;
@@ -237,11 +236,12 @@ bool ss_access_check_command(struct ss_apdu *apdu, enum ss_access_intention inte
 		 * this double check is performed to verify that there is indeed no MF
 		 * loadable.
 		 * */
-		struct ss_list check_mf_path = {NULL, NULL};
+		struct ss_list check_mf_path = { NULL, NULL };
 		ss_fs_init(&check_mf_path);
 		assert(ss_get_file_from_path(&apdu->lchan->fs_path) == NULL);
 
-		SS_LOGP(SACCESS, LINFO, "MF in creation / initialization state (MF not even present), bypassing authorizations.\n");
+		SS_LOGP(SACCESS, LINFO,
+			"MF in creation / initialization state (MF not even present), bypassing authorizations.\n");
 		return true;
 	}
 
@@ -260,7 +260,8 @@ bool ss_access_check_command(struct ss_apdu *apdu, enum ss_access_intention inte
 	}
 	SS_LOGP(SACCESS, LDEBUG, "MF lifecycle is %02x\n", lcsi_do->value->data[0]);
 	if (lcsi_do->value->data[0] < 4) {
-		SS_LOGP(SACCESS, LINFO, "MF in creation / initialization state (as indicated in the MF), bypassing authorizations.\n");
+		SS_LOGP(SACCESS, LINFO,
+			"MF in creation / initialization state (as indicated in the MF), bypassing authorizations.\n");
 		return true;
 	}
 	/* FIXME #56: Do we want to check for MF deactivation / termination as well, while we're at it? */
@@ -268,8 +269,7 @@ bool ss_access_check_command(struct ss_apdu *apdu, enum ss_access_intention inte
 	/* Card is in operational state or later -- performing regular access control. */
 
 	SS_LOGP(SACCESS, LDEBUG, "Checking access to path=%s with intention=%02x\n",
-		ss_fs_utils_dump_path(&apdu->lchan->fs_path),
-		intention);
+		ss_fs_utils_dump_path(&apdu->lchan->fs_path), intention);
 
 	if (selected_file->access == NULL) {
 		SS_LOGP(SACCESS, LERROR, "No valid access rules available, rejecting.\n");
@@ -302,133 +302,136 @@ bool ss_access_check_command(struct ss_apdu *apdu, enum ss_access_intention inte
 
 		if (!sc_phase) {
 			switch (item->tag_encoded) {
-				/* The SCs according to ISO/IEC 7816-4:2005(e) table 23 */
-				case 0x90:
-				case 0x97:
-				case 0x9E:
-				case 0xA4:
-				case 0xB4:
-				case 0xB6:
-				case 0xB8:
-				case 0xA0:
-				case 0xA7:
-				case 0xAF:
-					if (&item->list == selected_file->access) {
-						SS_LOGP(SACCESS, LERROR, "Invalid access rule: Starts with an SC\n");
-						return false;
-					}
-					/* Ignore: We didn't match on the preceding AM */
-					continue;
-				case 0x80:
-					if (item->value->len != 1) {
-						SS_LOGP(SACCESS, LERROR, "Invalid access rule: AM byte with len != 1\n");
-						return false;
-					}
-					if (apdu_matches_am_byte(intention, item->value->data[0]))  {
-						SS_LOGP(SACCESS, LDEBUG, "Matched on AM %02x, evaluating SCs.\n",
-								item->value->data[0]);
-						sc_phase = true;
-					}
-					continue;
-				/* Command headers currently not supported. */
-				case 0x81:
-				case 0x82:
-				case 0x83:
-				case 0x84:
-				case 0x85:
-				case 0x86:
-				case 0x87:
-				case 0x88:
-				case 0x89:
-				case 0x8A:
-				case 0x8B:
-				case 0x8C:
-				case 0x8D:
-				case 0x8E:
-				case 0x8F:
-				/* We don't have a proprietary state machine */
-				case 0x9C:
-					SS_LOGP(SACCESS, LERROR, "Access rule with unknown AM %02x. Continuing to look for satisfiable rules.\n",
-						item->tag_encoded);
-					/* There is no harm in doing this: the rules do not overlap, so if we
-					 * find something later, nothing in here could have overlapped with it,
-					 * and if we don't find anything, we reject by default anyway. */
-					continue;
-				default:
-					SS_LOGP(SACCESS, LERROR, "Access rule with entry neither AM nor SC tag %02x, aborting.\n",
-							item->tag_encoded);
+			/* The SCs according to ISO/IEC 7816-4:2005(e) table 23 */
+			case 0x90:
+			case 0x97:
+			case 0x9E:
+			case 0xA4:
+			case 0xB4:
+			case 0xB6:
+			case 0xB8:
+			case 0xA0:
+			case 0xA7:
+			case 0xAF:
+				if (&item->list == selected_file->access) {
+					SS_LOGP(SACCESS, LERROR, "Invalid access rule: Starts with an SC\n");
 					return false;
+				}
+				/* Ignore: We didn't match on the preceding AM */
+				continue;
+			case 0x80:
+				if (item->value->len != 1) {
+					SS_LOGP(SACCESS, LERROR, "Invalid access rule: AM byte with len != 1\n");
+					return false;
+				}
+				if (apdu_matches_am_byte(intention, item->value->data[0])) {
+					SS_LOGP(SACCESS, LDEBUG, "Matched on AM %02x, evaluating SCs.\n",
+						item->value->data[0]);
+					sc_phase = true;
+				}
+				continue;
+			/* Command headers currently not supported. */
+			case 0x81:
+			case 0x82:
+			case 0x83:
+			case 0x84:
+			case 0x85:
+			case 0x86:
+			case 0x87:
+			case 0x88:
+			case 0x89:
+			case 0x8A:
+			case 0x8B:
+			case 0x8C:
+			case 0x8D:
+			case 0x8E:
+			case 0x8F:
+			/* We don't have a proprietary state machine */
+			case 0x9C:
+				SS_LOGP(SACCESS, LERROR,
+					"Access rule with unknown AM %02x. Continuing to look for satisfiable rules.\n",
+					item->tag_encoded);
+				/* There is no harm in doing this: the rules do not overlap, so if we
+         * find something later, nothing in here could have overlapped with it,
+         * and if we don't find anything, we reject by default anyway. */
+				continue;
+			default:
+				SS_LOGP(SACCESS, LERROR,
+					"Access rule with entry neither AM nor SC tag %02x, aborting.\n",
+					item->tag_encoded);
+				return false;
 			}
 		} else {
 			switch (item->tag_encoded) {
-				/* The SCs according to ISO/IEC 7816-4:2005(e) table 23 */
-				case 0x90:
-					SS_LOGP(SACCESS, LDEBUG, "Continuing on 'always' SC.\n");
-					sc_leastone = true;
-					continue;
-				case 0x97:
-					SS_LOGP(SACCESS, LDEBUG, "Encountered on 'never' SC, rejecting.\n");
-					return false;
-				case 0x9E:
-					if (item->value->len != 1) {
-						SS_LOGP(SACCESS, LERROR, "Invalid access rule: SC byte with len != 1\n");
-						return false;
-					}
-					if (apdu_matches_sc_byte(apdu, item->value->data[0])) {
-						sc_leastone = true;
-						continue;
-					} else {
-						SS_LOGP(SACCESS, LDEBUG, "SC %02x not matched, rejecting.\n", item->value->data[0]);
-						return false;
-					}
-				case 0xA4:
-				{
-					uint8_t access_condition = access_condition_extract(item->nested);
-					if (access_condition == 0) {
-						SS_LOGP(SACCESS, LERROR, "Acccess condition not understood, rejecting.\n");
-						return false;
-					}
-					if (ss_uicc_pin_verified(access_condition, apdu->lchan)) {
-						sc_leastone = true;
-						continue;
-					}
-					SS_LOGP(SACCESS, LDEBUG, "Access condition %02x required but pin not verified.\n",
-							access_condition);
+			/* The SCs according to ISO/IEC 7816-4:2005(e) table 23 */
+			case 0x90:
+				SS_LOGP(SACCESS, LDEBUG, "Continuing on 'always' SC.\n");
+				sc_leastone = true;
+				continue;
+			case 0x97:
+				SS_LOGP(SACCESS, LDEBUG, "Encountered on 'never' SC, rejecting.\n");
+				return false;
+			case 0x9E:
+				if (item->value->len != 1) {
+					SS_LOGP(SACCESS, LERROR, "Invalid access rule: SC byte with len != 1\n");
 					return false;
 				}
-				case 0xB4:
-				case 0xB6:
-				case 0xB8:
-				case 0xA0: /* OR template, not supported */
-				case 0xA7: /* NOT template, not supported */
-				case 0xAF: /* AND template, not supported, and useless without OR and NOT */
-					SS_LOGP(SACCESS, LDEBUG, "Encountered unknown SC %02x, rejecting.\n",
-							item->tag_encoded);
+				if (apdu_matches_sc_byte(apdu, item->value->data[0])) {
+					sc_leastone = true;
+					continue;
+				} else {
+					SS_LOGP(SACCESS, LDEBUG, "SC %02x not matched, rejecting.\n",
+						item->value->data[0]);
 					return false;
-				/* All known AMs */
-				case 0x80:
-				case 0x81:
-				case 0x82:
-				case 0x83:
-				case 0x84:
-				case 0x85:
-				case 0x86:
-				case 0x87:
-				case 0x88:
-				case 0x89:
-				case 0x8A:
-				case 0x8B:
-				case 0x8C:
-				case 0x8D:
-				case 0x8E:
-				case 0x8F:
-				case 0x9C:
-					/* break from switch and from loop */
-					goto end_sc;
-				default:
-					SS_LOGP(SACCESS, LERROR, "Access rule with entry neither AM nor SC tag %02x, aborting.\n",
-							item->tag_encoded);
+				}
+			case 0xA4: {
+				uint8_t access_condition = access_condition_extract(item->nested);
+				if (access_condition == 0) {
+					SS_LOGP(SACCESS, LERROR, "Acccess condition not understood, rejecting.\n");
 					return false;
+				}
+				if (ss_uicc_pin_verified(access_condition, apdu->lchan)) {
+					sc_leastone = true;
+					continue;
+				}
+				SS_LOGP(SACCESS, LDEBUG, "Access condition %02x required but pin not verified.\n",
+					access_condition);
+				return false;
+			}
+			case 0xB4:
+			case 0xB6:
+			case 0xB8:
+			case 0xA0: /* OR template, not supported */
+			case 0xA7: /* NOT template, not supported */
+			case 0xAF: /* AND template, not supported, and useless without OR and NOT */
+				SS_LOGP(SACCESS, LDEBUG, "Encountered unknown SC %02x, rejecting.\n",
+					item->tag_encoded);
+				return false;
+			/* All known AMs */
+			case 0x80:
+			case 0x81:
+			case 0x82:
+			case 0x83:
+			case 0x84:
+			case 0x85:
+			case 0x86:
+			case 0x87:
+			case 0x88:
+			case 0x89:
+			case 0x8A:
+			case 0x8B:
+			case 0x8C:
+			case 0x8D:
+			case 0x8E:
+			case 0x8F:
+			case 0x9C:
+				/* break from switch and from loop */
+				goto end_sc;
+			default:
+				SS_LOGP(SACCESS, LERROR,
+					"Access rule with entry neither AM nor SC tag %02x, aborting.\n",
+					item->tag_encoded);
+				return false;
 			}
 		}
 	}

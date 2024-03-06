@@ -68,32 +68,25 @@ static struct pin_context *get_pin_context(uint16_t *sw, uint8_t pin_no)
 	ss_fs_init(&pin_context_path);
 	rc = ss_fs_select(&pin_context_path, PIN_FID);
 	if (rc < 0) {
-		SS_LOGP(SPIN, LERROR,
-			"PIN code file not selectable -- cannot load context for PIN No.:%02x!\n",
+		SS_LOGP(SPIN, LERROR, "PIN code file not selectable -- cannot load context for PIN No.:%02x!\n",
 			pin_no);
 		ss_path_reset(&pin_context_path);
 		return NULL;
 	}
 	pin_context_file = ss_get_file_from_path(&pin_context_path);
 	if (!pin_context_file) {
-		SS_LOGP(SPIN, LERROR,
-			"PIN code file not available -- cannot load context for PIN No.:%02x!\n",
-			pin_no);
+		SS_LOGP(SPIN, LERROR, "PIN code file not available -- cannot load context for PIN No.:%02x!\n", pin_no);
 		ss_path_reset(&pin_context_path);
 		return NULL;
 	}
 
 	/* Read pin context from pin code file */
-	SS_LOGP(SPIN, LINFO, "loading pin PIN code file for PIN No.:%02x...\n",
-		pin_no);
+	SS_LOGP(SPIN, LINFO, "loading pin PIN code file for PIN No.:%02x...\n", pin_no);
 	n_pins = pin_context_file->fcp_file_descr->number_of_records;
 	for (i = 0; i < n_pins; i++) {
-		pin_context_buf =
-		    ss_fs_read_file_record(&pin_context_path, i + 1);
+		pin_context_buf = ss_fs_read_file_record(&pin_context_path, i + 1);
 		if (!pin_context_buf) {
-			SS_LOGP(SPIN, LERROR,
-				"PIN code file inconsistent -- cannot read record (%u)!\n",
-				i + 1);
+			SS_LOGP(SPIN, LERROR, "PIN code file inconsistent -- cannot read record (%u)!\n", i + 1);
 			ss_path_reset(&pin_context_path);
 			return NULL;
 		}
@@ -131,7 +124,7 @@ static void pin_context_free(struct pin_context *pin)
 	if (pin == NULL)
 		return;
 
-	struct ss_buf *pin_context_buf = (struct ss_buf *)(((char*)pin) - sizeof(struct ss_buf));
+	struct ss_buf *pin_context_buf = (struct ss_buf *)(((char *)pin) - sizeof(struct ss_buf));
 	ss_buf_free(pin_context_buf);
 }
 
@@ -150,46 +143,35 @@ static int update_pin_context(const struct pin_context *pin)
 	ss_fs_init(&pin_context_path);
 	rc = ss_fs_select(&pin_context_path, PIN_FID);
 	if (rc < 0) {
-		SS_LOGP(SPIN, LERROR,
-			"PIN code file not selectable -- cannot update context for PIN No.:%02x!\n",
+		SS_LOGP(SPIN, LERROR, "PIN code file not selectable -- cannot update context for PIN No.:%02x!\n",
 			pin->pin_no);
 		ss_path_reset(&pin_context_path);
 		return -EINVAL;
 	}
 	pin_context_file = ss_get_file_from_path(&pin_context_path);
 	if (!pin_context_file) {
-		SS_LOGP(SPIN, LERROR,
-			"PIN code file not available -- cannot update context for PIN No.:%02x!\n",
+		SS_LOGP(SPIN, LERROR, "PIN code file not available -- cannot update context for PIN No.:%02x!\n",
 			pin->pin_no);
 		ss_path_reset(&pin_context_path);
 		return -EINVAL;
 	}
 
 	/* Update pin context from pin code file */
-	SS_LOGP(SPIN, LINFO,
-		"updating pin PIN code file for PIN No.:%02x...\n",
-		pin->pin_no);
+	SS_LOGP(SPIN, LINFO, "updating pin PIN code file for PIN No.:%02x...\n", pin->pin_no);
 	n_pins = pin_context_file->fcp_file_descr->number_of_records;
 	for (i = 0; i < n_pins; i++) {
-		pin_context_buf =
-		    ss_fs_read_file_record(&pin_context_path, i + 1);
+		pin_context_buf = ss_fs_read_file_record(&pin_context_path, i + 1);
 		if (!pin_context_buf) {
-			SS_LOGP(SPIN, LERROR,
-				"PIN code file inconsistent -- cannot read record (%u)!\n",
-				i + 1);
+			SS_LOGP(SPIN, LERROR, "PIN code file inconsistent -- cannot read record (%u)!\n", i + 1);
 			ss_path_reset(&pin_context_path);
 			return -EINVAL;
 		}
 
 		pin_context_ptr = (struct pin_context *)pin_context_buf->data;
 		if (pin->pin_no == pin_context_ptr->pin_no) {
-
-			rc = ss_fs_write_file_record(&pin_context_path, i + 1,
-						     (uint8_t *) pin,
-						     sizeof(*pin));
+			rc = ss_fs_write_file_record(&pin_context_path, i + 1, (uint8_t *)pin, sizeof(*pin));
 			if (rc < 0) {
-				SS_LOGP(SPIN, LERROR,
-					"PIN code file update failed -- cannot write record (%u)!\n",
+				SS_LOGP(SPIN, LERROR, "PIN code file update failed -- cannot write record (%u)!\n",
 					i + 1);
 				ss_buf_free(pin_context_buf);
 				ss_path_reset(&pin_context_path);
@@ -213,8 +195,7 @@ static int update_pin_context(const struct pin_context *pin)
 static bool check_pin_retry_counter(const struct pin_context *pin)
 {
 	if (pin->tries >= pin->max_tries) {
-		SS_LOGP(SPIN, LERROR, "PIN (%u) is blocked -- abort\n",
-			pin->pin_no);
+		SS_LOGP(SPIN, LERROR, "PIN (%u) is blocked -- abort\n", pin->pin_no);
 		return false;
 	}
 
@@ -236,11 +217,9 @@ int ss_uicc_pin_cmd_verify_pin(struct ss_apdu *apdu)
 	/* Return number of remaining tries, see also ETSI TS 102 221,
 	 * section 11.1.9.1.2 */
 	if (apdu->lc == 0) {
-		SS_LOGP(SPIN, LDEBUG,
-			"no operation, number of remaining tries (%u) requested\n",
+		SS_LOGP(SPIN, LDEBUG, "no operation, number of remaining tries (%u) requested\n",
 			(pin->max_tries - pin->tries) & 0x0f);
-		result = SS_SW_WARN_VERIFICATION_FAILED_X_REMAIN |
-		    ((pin->max_tries - pin->tries) & 0x0f);
+		result = SS_SW_WARN_VERIFICATION_FAILED_X_REMAIN | ((pin->max_tries - pin->tries) & 0x0f);
 		goto leave;
 	}
 
@@ -252,29 +231,24 @@ int ss_uicc_pin_cmd_verify_pin(struct ss_apdu *apdu)
 
 	/* PIN must not be disabled */
 	if (!pin->enabled) {
-		SS_LOGP(SPIN, LERROR,"cannot verify, PIN (%u) is disabled -- abort\n", pin->pin_no);
+		SS_LOGP(SPIN, LERROR, "cannot verify, PIN (%u) is disabled -- abort\n", pin->pin_no);
 		result = SS_SW_ERR_CMD_NOT_ALLOWED_CONDITONS_NOT_SATISFIED;
 		goto leave;
 	}
 
 	/* Check length and match PIN code */
-	if (apdu->lc != sizeof(pin->pin)
-	    || memcmp(apdu->cmd, pin->pin, sizeof(pin->pin))) {
-		SS_LOGP(SPIN, LERROR,
-			"incorrect PIN (%u), VERIFY PIN failed -- abort\n",
-			pin->pin_no);
+	if (apdu->lc != sizeof(pin->pin) || memcmp(apdu->cmd, pin->pin, sizeof(pin->pin))) {
+		SS_LOGP(SPIN, LERROR, "incorrect PIN (%u), VERIFY PIN failed -- abort\n", pin->pin_no);
 		pin->tries++;
 		rc = update_pin_context(pin);
 		if (rc < 0)
 			result = SS_SW_ERR_CMD_NOT_ALLOWED_PIN_BLOCKED;
 		else
-			result = SS_SW_WARN_VERIFICATION_FAILED_X_REMAIN |
-		    ((pin->max_tries - pin->tries) & 0x0f);
+			result = SS_SW_WARN_VERIFICATION_FAILED_X_REMAIN | ((pin->max_tries - pin->tries) & 0x0f);
 		goto leave;
 	}
 
-	SS_LOGP(SPIN, LINFO, "valid PIN (%u), VERIFY PIN successful\n",
-		pin->pin_no);
+	SS_LOGP(SPIN, LINFO, "valid PIN (%u), VERIFY PIN successful\n", pin->pin_no);
 	apdu->lchan->pin_verfied[pin->pin_no] = true;
 	pin->tries = 0;
 	rc = update_pin_context(pin);
@@ -308,24 +282,20 @@ int ss_uicc_pin_cmd_change_pin(struct ss_apdu *apdu)
 
 	/* PIN must not be disabled */
 	if (!pin->enabled) {
-		SS_LOGP(SPIN, LERROR,"cannot change, PIN (%u) is disabled -- abort\n", pin->pin_no);
+		SS_LOGP(SPIN, LERROR, "cannot change, PIN (%u) is disabled -- abort\n", pin->pin_no);
 		result = SS_SW_ERR_CMD_NOT_ALLOWED_CONDITONS_NOT_SATISFIED;
 		goto leave;
 	}
 
 	/* Check length and match old PIN code */
-	if (apdu->lc != sizeof(pin->pin) * 2
-	    || memcmp(apdu->cmd, pin->pin, sizeof(pin->pin))) {
-		SS_LOGP(SPIN, LERROR,
-			"incorrect old PIN (%u), CHANGE PIN failed -- abort\n",
-			pin->pin_no);
+	if (apdu->lc != sizeof(pin->pin) * 2 || memcmp(apdu->cmd, pin->pin, sizeof(pin->pin))) {
+		SS_LOGP(SPIN, LERROR, "incorrect old PIN (%u), CHANGE PIN failed -- abort\n", pin->pin_no);
 		pin->tries++;
 		rc = update_pin_context(pin);
 		if (rc < 0)
 			result = SS_SW_ERR_CMD_NOT_ALLOWED_PIN_BLOCKED;
 		else
-			result =SS_SW_WARN_VERIFICATION_FAILED_X_REMAIN |
-		    ((pin->max_tries - pin->tries) & 0x0f);
+			result = SS_SW_WARN_VERIFICATION_FAILED_X_REMAIN | ((pin->max_tries - pin->tries) & 0x0f);
 		goto leave;
 	}
 
@@ -337,8 +307,7 @@ int ss_uicc_pin_cmd_change_pin(struct ss_apdu *apdu)
 		goto leave;
 	}
 
-	SS_LOGP(SPIN, LINFO, "valid PIN (%u), CHANGE PIN successful\n",
-		pin->pin_no);
+	SS_LOGP(SPIN, LINFO, "valid PIN (%u), CHANGE PIN successful\n", pin->pin_no);
 
 	result = 0;
 
@@ -369,23 +338,18 @@ int ss_uicc_pin_cmd_disable_pin(struct ss_apdu *apdu)
 	}
 
 	/* Check length and match PIN code */
-	if (apdu->lc != sizeof(pin->pin)
-	    || memcmp(apdu->cmd, pin->pin, sizeof(pin->pin))) {
-		SS_LOGP(SPIN, LERROR,
-			"incorrect PIN (%u), DISABLE PIN failed -- abort\n",
-			pin->pin_no);
+	if (apdu->lc != sizeof(pin->pin) || memcmp(apdu->cmd, pin->pin, sizeof(pin->pin))) {
+		SS_LOGP(SPIN, LERROR, "incorrect PIN (%u), DISABLE PIN failed -- abort\n", pin->pin_no);
 		pin->tries++;
 		rc = update_pin_context(pin);
 		if (rc < 0)
 			result = SS_SW_ERR_CMD_NOT_ALLOWED_PIN_BLOCKED;
 		else
-			result =SS_SW_WARN_VERIFICATION_FAILED_X_REMAIN |
-		    ((pin->max_tries - pin->tries) & 0x0f);
+			result = SS_SW_WARN_VERIFICATION_FAILED_X_REMAIN | ((pin->max_tries - pin->tries) & 0x0f);
 		goto leave;
 	}
 
-	SS_LOGP(SPIN, LINFO, "valid PIN (%u), DISABLE PIN successful\n",
-		pin->pin_no);
+	SS_LOGP(SPIN, LINFO, "valid PIN (%u), DISABLE PIN successful\n", pin->pin_no);
 	pin->tries = 0;
 	pin->enabled = false;
 	rc = update_pin_context(pin);
@@ -421,23 +385,18 @@ int ss_uicc_pin_cmd_enable_pin(struct ss_apdu *apdu)
 	}
 
 	/* Check length and match PIN code */
-	if (apdu->lc != sizeof(pin->pin)
-	    || memcmp(apdu->cmd, pin->pin, sizeof(pin->pin))) {
-		SS_LOGP(SPIN, LERROR,
-			"incorrect PIN (%u), ENABLE PIN failed -- abort\n",
-			pin->pin_no);
+	if (apdu->lc != sizeof(pin->pin) || memcmp(apdu->cmd, pin->pin, sizeof(pin->pin))) {
+		SS_LOGP(SPIN, LERROR, "incorrect PIN (%u), ENABLE PIN failed -- abort\n", pin->pin_no);
 		pin->tries++;
 		rc = update_pin_context(pin);
 		if (rc < 0)
 			result = SS_SW_ERR_CMD_NOT_ALLOWED_PIN_BLOCKED;
 		else
-			result = SS_SW_WARN_VERIFICATION_FAILED_X_REMAIN |
-		    ((pin->max_tries - pin->tries) & 0x0f);
+			result = SS_SW_WARN_VERIFICATION_FAILED_X_REMAIN | ((pin->max_tries - pin->tries) & 0x0f);
 		goto leave;
 	}
 
-	SS_LOGP(SPIN, LINFO, "valid PIN (%u), ENABLE PIN successful\n",
-		pin->pin_no);
+	SS_LOGP(SPIN, LINFO, "valid PIN (%u), ENABLE PIN successful\n", pin->pin_no);
 	pin->tries = 0;
 	pin->enabled = true;
 	rc = update_pin_context(pin);
@@ -466,35 +425,30 @@ int ss_uicc_pin_cmd_unblock_pin(struct ss_apdu *apdu)
 	/* Return number of remaining tries, see also ETSI TS 102 221,
 	 * section 11.1.13.1.2 */
 	if (apdu->lc == 0) {
-		SS_LOGP(SPIN, LDEBUG,
-			"no operation, number of remaining tries (%u) requested\n",
+		SS_LOGP(SPIN, LDEBUG, "no operation, number of remaining tries (%u) requested\n",
 			(pin->max_unblock_tries - pin->unblock_tries) & 0x0f);
 		result = SS_SW_WARN_VERIFICATION_FAILED_X_REMAIN |
-		    ((pin->max_unblock_tries - pin->unblock_tries) & 0x0f);
+			 ((pin->max_unblock_tries - pin->unblock_tries) & 0x0f);
 		goto leave;
 	}
 
 	/* PUK must not be blocked, check retry counter */
 	if (pin->unblock_tries >= pin->max_unblock_tries) {
-		SS_LOGP(SPIN, LERROR, "PUK (%u) is blocked -- abort\n",
-			pin->pin_no);
+		SS_LOGP(SPIN, LERROR, "PUK (%u) is blocked -- abort\n", pin->pin_no);
 		result = SS_SW_ERR_CMD_NOT_ALLOWED_PIN_BLOCKED;
 		goto leave;
 	}
 
 	/* Check length and match PUK code */
-	if (apdu->lc != sizeof(pin->puk) + sizeof(pin->pin)
-	    || memcmp(apdu->cmd, pin->puk, sizeof(pin->puk))) {
-		SS_LOGP(SPIN, LERROR,
-			"incorrect PUK (%u), UNBLOCK PIN failed -- abort\n",
-			pin->pin_no);
+	if (apdu->lc != sizeof(pin->puk) + sizeof(pin->pin) || memcmp(apdu->cmd, pin->puk, sizeof(pin->puk))) {
+		SS_LOGP(SPIN, LERROR, "incorrect PUK (%u), UNBLOCK PIN failed -- abort\n", pin->pin_no);
 		pin->unblock_tries++;
 		rc = update_pin_context(pin);
 		if (rc < 0)
 			result = SS_SW_ERR_CMD_NOT_ALLOWED_PIN_BLOCKED;
 		else
 			result = SS_SW_WARN_VERIFICATION_FAILED_X_REMAIN |
-		    ((pin->max_unblock_tries - pin->unblock_tries) & 0x0f);
+				 ((pin->max_unblock_tries - pin->unblock_tries) & 0x0f);
 		goto leave;
 	}
 
@@ -506,8 +460,7 @@ int ss_uicc_pin_cmd_unblock_pin(struct ss_apdu *apdu)
 	if (rc < 0) {
 		result = SS_SW_ERR_CMD_NOT_ALLOWED_PIN_BLOCKED;
 	} else {
-		SS_LOGP(SPIN, LINFO, "valid PUK (%u), UNBLOCK PIN successful\n",
-			pin->pin_no);
+		SS_LOGP(SPIN, LINFO, "valid PUK (%u), UNBLOCK PIN successful\n", pin->pin_no);
 		result = 0;
 	}
 
@@ -616,8 +569,7 @@ struct ss_buf *ss_uicc_pin_gen_pst_do(void)
 
 	rc = ss_uicc_pin_update_pst_do(pin_stat_templ);
 	if (rc < 0) {
-		SS_LOGP(SPIN, LERROR,
-			"pin status template has been generated but it was not possible to update it!\n");
+		SS_LOGP(SPIN, LERROR, "pin status template has been generated but it was not possible to update it!\n");
 	}
 	return pin_stat_templ;
 }

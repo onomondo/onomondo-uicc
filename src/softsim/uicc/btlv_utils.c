@@ -65,8 +65,7 @@ static int decode_tag(uint16_t *tag, enum ber_tlv_cls *cls, bool *constr, uint32
 	return 0;
 }
 
-static void dump_ie(const struct ber_tlv_ie *ie, uint8_t indent,
-		    enum log_subsys subsys, enum log_level level)
+static void dump_ie(const struct ber_tlv_ie *ie, uint8_t indent, enum log_subsys subsys, enum log_level level)
 {
 	char indent_str[256];
 	char *title_str, *value_str;
@@ -96,9 +95,8 @@ static void dump_ie(const struct ber_tlv_ie *ie, uint8_t indent,
 		delimiter = ' ';
 	}
 
-	SS_LOGP(subsys, level, "%s%s(tag=0x%02x(0x%02x), cls=%x, constr=%s, len=%zu)%c %s\n",
-		indent_str, title_str, ie->tag_encoded, ie->tag, ie->cls, ie->constr ? "true" : "false",
-		value_len, delimiter, value_str);
+	SS_LOGP(subsys, level, "%s%s(tag=0x%02x(0x%02x), cls=%x, constr=%s, len=%zu)%c %s\n", indent_str, title_str,
+		ie->tag_encoded, ie->tag, ie->cls, ie->constr ? "true" : "false", value_len, delimiter, value_str);
 }
 
 /*! Dump decoded BER-TLV data.
@@ -106,16 +104,14 @@ static void dump_ie(const struct ber_tlv_ie *ie, uint8_t indent,
  *  \param[in] indent indentation level of the generated output.
  *  \param[in] log_subsys log subsystem to generate the output for.
  *  \param[in] log_level log level to generate the output for. */
-void ss_btlv_dump(const struct ss_list *list, uint8_t indent,
-		  enum log_subsys log_subsys, enum log_level log_level)
+void ss_btlv_dump(const struct ss_list *list, uint8_t indent, enum log_subsys log_subsys, enum log_level log_level)
 {
 	struct ber_tlv_ie *ie;
 
 	SS_LIST_FOR_EACH(list, ie, struct ber_tlv_ie, list) {
 		dump_ie(ie, indent, log_subsys, log_level);
 		if (ie->constr && ie->nested) {
-			ss_btlv_dump(ie->nested, indent + 2, log_subsys,
-				     log_level);
+			ss_btlv_dump(ie->nested, indent + 2, log_subsys, log_level);
 		}
 	}
 }
@@ -184,8 +180,7 @@ void ss_btlv_free(struct ss_list *list)
  *  \param[in] len BER-TLV value length.
  *  \param[in] value pointer to BER-TLV value (data is copied).
  *  \returns pointer to allocated IE struct. */
-struct ber_tlv_ie *ss_btlv_new_ie(struct ss_list *parent, const char *title,
-				  uint32_t tag, size_t len,
+struct ber_tlv_ie *ss_btlv_new_ie(struct ss_list *parent, const char *title, uint32_t tag, size_t len,
 				  const uint8_t *value)
 {
 	int rc;
@@ -198,14 +193,12 @@ struct ber_tlv_ie *ss_btlv_new_ie(struct ss_list *parent, const char *title,
 	ie->tag_encoded = tag;
 	rc = decode_tag(&ie->tag, &ie->cls, &constr, tag);
 	if (rc < 0) {
-		SS_LOGP(SBTLV, LERROR,
-			"incorrect tag format (%02x), cannot create IE!\n", tag);
+		SS_LOGP(SBTLV, LERROR, "incorrect tag format (%02x), cannot create IE!\n", tag);
 		SS_FREE(ie);
 		return NULL;
 	}
 	if (constr != false) {
-		SS_LOGP(SBTLV, LERROR,
-			"tag does not describe a primitive ie (%02x), cannot create IE!\n", tag);
+		SS_LOGP(SBTLV, LERROR, "tag does not describe a primitive ie (%02x), cannot create IE!\n", tag);
 		SS_FREE(ie);
 		return NULL;
 	}
@@ -230,8 +223,7 @@ struct ber_tlv_ie *ss_btlv_new_ie(struct ss_list *parent, const char *title,
  *  \param[in] title human readable title that serves as a description.
  *  \param[in] tag BER-TLV tag (encoded format).
  *  \returns pointer to allocated IE struct. */
-struct ber_tlv_ie *ss_btlv_new_ie_constr(struct ss_list *parent,
-					 const char *title, uint32_t tag)
+struct ber_tlv_ie *ss_btlv_new_ie_constr(struct ss_list *parent, const char *title, uint32_t tag)
 {
 	int rc;
 	struct ber_tlv_ie *ie = SS_ALLOC(struct ber_tlv_ie);
@@ -243,14 +235,12 @@ struct ber_tlv_ie *ss_btlv_new_ie_constr(struct ss_list *parent,
 	ie->tag_encoded = tag;
 	rc = decode_tag(&ie->tag, &ie->cls, &constr, tag);
 	if (rc < 0) {
-		SS_LOGP(SBTLV, LERROR,
-			"incorrect tag format (%02x), cannot create IE!\n", tag);
+		SS_LOGP(SBTLV, LERROR, "incorrect tag format (%02x), cannot create IE!\n", tag);
 		SS_FREE(ie);
 		return NULL;
 	}
 	if (constr != true) {
-		SS_LOGP(SBTLV, LERROR,
-			"tag does not describe a constructed ie (%02x), cannot create IE!\n", tag);
+		SS_LOGP(SBTLV, LERROR, "tag does not describe a constructed ie (%02x), cannot create IE!\n", tag);
 		SS_FREE(ie);
 		return NULL;
 	}
@@ -284,8 +274,7 @@ struct ber_tlv_ie *ss_btlv_get_ie(const struct ss_list *list, uint32_t tag)
 	/* Make sure we search only for correctly formatted tags */
 	rc = decode_tag(NULL, NULL, NULL, tag);
 	if (rc < 0) {
-		SS_LOGP(SBTLV, LERROR,
-			"incorrect tag format (%02x), cannot search for IE!\n", tag);
+		SS_LOGP(SBTLV, LERROR, "incorrect tag format (%02x), cannot search for IE!\n", tag);
 		return NULL;
 	}
 
@@ -302,8 +291,7 @@ struct ber_tlv_ie *ss_btlv_get_ie(const struct ss_list *list, uint32_t tag)
  *  \param[in] tag BER-TLV tag to look for.
  *  \param[in] min_len minimum required length.
  *  \returns pointer to IE struct on success, NULL if IE is not found. */
-struct ber_tlv_ie *ss_btlv_get_ie_minlen(const struct ss_list *list,
-					 uint16_t tag, size_t min_len)
+struct ber_tlv_ie *ss_btlv_get_ie_minlen(const struct ss_list *list, uint16_t tag, size_t min_len)
 {
 	struct ber_tlv_ie *ie = ss_btlv_get_ie(list, tag);
 	if (!ie)
