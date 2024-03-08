@@ -89,6 +89,8 @@ AC_MSG_RESULT([CPPFLAGS="$CPPFLAGS"])
 dnl Generate the output
 AM_CONFIG_HEADER(config.h)
 
+CFLAGS="$CFLAGS -DCONFIG_USE_SYSTEM_HEAP"
+
 AC_OUTPUT(
     include/Makefile
     include/onomondo/Makefile
