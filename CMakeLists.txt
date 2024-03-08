@@ -35,6 +35,7 @@ install(TARGETS storage uicc milenage crypto
 )
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+	add_compile_definitions(-DCONFIG_USE_SYSTEM_HEAP)
 	include(CTest)
 	add_subdirectory(tests)
 endif()

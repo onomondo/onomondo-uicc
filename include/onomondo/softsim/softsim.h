@@ -8,6 +8,11 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#ifndef _CFG
+#define _CFG
+#include <onomondo/softsim/config.h>
+#endif // !_CFG
+
 struct ss_context;
 
 struct ss_context *ss_new_ctx(void);
