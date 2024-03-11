@@ -20,6 +20,7 @@
 #include "uicc_admin.h"
 #include "uicc_auth.h"
 #include "uicc_cat.h"
+#include "uicc_suspend.h"
 #include "apdu.h"
 #include "sw.h"
 
@@ -203,6 +204,16 @@ const struct ss_command commands[] = {
 		.ins = TS_102_221_INS_AUTHENTICATE_EVEN,
 		.handler = ss_uicc_auth_cmd_authenticate_even_fn,
 		.case_ = SS_COMMAND_CASE_4,
+	},
+
+	/* uicc suspend */
+	{
+		.name = "UICC SUSPEND",
+		.cla = 0x80,
+		.cla_mask = 0xB0, /* 0X or 4X */
+		.ins = TS_102_221_INS_SUSPEND_UICC,
+		.handler = ss_uicc_suspend_cmd,
+		.case_ = SS_COMMAND_CASE_3,
 	},
 
 };

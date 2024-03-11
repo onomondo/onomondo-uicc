@@ -35,6 +35,7 @@ set(uicc_collection
 	utils_3des.c
 	utils_aes.c
 	proactive.c
+	uicc_suspend.c
 )
 
 # Add log.c to get fcp_test working with CTest. It has otherwise been removed from the

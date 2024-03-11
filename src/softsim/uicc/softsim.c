@@ -29,10 +29,13 @@ struct ss_context *ss_new_ctx(void)
 {
 	struct ss_context *ctx;
 	uint8_t *fs_chg_filelist;
+
 	ctx = SS_ALLOC(struct ss_context);
-	if (ctx == NULL)
+	if (ctx == NULL) {
 		return NULL;
+	}
 	fs_chg_filelist = SS_ALLOC(uint8_t[SS_FS_CHG_BUF_SIZE]);
+
 	if (fs_chg_filelist == NULL) {
 		SS_FREE(ctx);
 		return NULL;
@@ -47,7 +50,7 @@ struct ss_context *ss_new_ctx(void)
 	ctx->fs_chg_filelist = fs_chg_filelist;
 	/* Set length indicator; the rest may stay uninitialized */
 	ctx->fs_chg_filelist[0] = 0;
-
+	ctx->is_suspended = 0;
 	return ctx;
 }
 
@@ -140,6 +143,13 @@ size_t ss_atr(struct ss_context *ctx, uint8_t *atr_buf, size_t atr_buf_len)
 	atr_buf[sizeof(atr)] = tck;
 
 	return sizeof(atr) + 1;
+}
+
+uint8_t ss_is_suspended(struct ss_context *ctx)
+{
+	if (!ctx)
+		return 0;
+	return ctx->is_suspended;
 }
 
 /* Perform transaction with UICC using an already parsed APDU */
