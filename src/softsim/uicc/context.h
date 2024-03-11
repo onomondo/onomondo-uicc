@@ -28,6 +28,8 @@ struct ss_context {
 
 	/* If true, then fs_chg_filelist is owned by a different context */
 	bool fs_chg_is_borrowed;
+
+	bool is_suspended;
 };
 
 struct ss_context *ss_new_reporting_ctx(uint8_t *fs_chg_filelist);

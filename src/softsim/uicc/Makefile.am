@@ -52,6 +52,7 @@ libuicc_a_SOURCES = \
 	utils_aes.c \
 	utils_ota.c \
 	proactive.c \
+	uicc_suspend.c \
 	$(NULL)
 
 noinst_HEADERS = \
@@ -84,4 +85,5 @@ noinst_HEADERS = \
 	utils_aes.h \
 	utils_ota.h \
 	proactive.h \
+	uicc_suspend.h \
 	$(NULL)

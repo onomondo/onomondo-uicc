@@ -23,3 +23,4 @@ size_t ss_atr(struct ss_context *ctx, uint8_t *atr_buf, size_t atr_buf_len);
 size_t ss_transact(struct ss_context *ctx,
 		   uint8_t *response_buf, size_t response_buf_len,
 		   uint8_t *request_buf, size_t *request_len);
+uint8_t ss_is_suspended(struct ss_context *ctx);
