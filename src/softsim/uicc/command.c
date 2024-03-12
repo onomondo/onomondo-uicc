@@ -206,7 +206,11 @@ const struct ss_command commands[] = {
 		.case_ = SS_COMMAND_CASE_4,
 	},
 
-	/* uicc suspend */
+#ifdef CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND
+	/* uicc suspend
+	 * This implentation is no where near compliant. Use only if you know what you are doing.
+	 * OK usecase: modem can't to deep sleep without suspend. RAM is retained during this state, so ctx isn't lost.
+	 * */
 	{
 		.name = "UICC SUSPEND",
 		.cla = 0x80,
@@ -215,6 +219,7 @@ const struct ss_command commands[] = {
 		.handler = ss_uicc_suspend_cmd,
 		.case_ = SS_COMMAND_CASE_3,
 	},
+#endif // CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND
 
 };
 

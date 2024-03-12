@@ -7,5 +7,8 @@
   #pragma message "Using port_malloc and port_free instead of system default"
 #endif	// CONFIG_USE_SYSTEM_HEAP
 
+#ifdef CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND
+  #pragma message "Building with experimental support for suspend"
+#endif // CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND
 #endif // INCLUDE_ONOMONDO_SOFTSIM_CONFIG_H_
 
