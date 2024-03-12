@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - "**"
-
+      - "!**cmake**"
 
 jobs:
   build-and-test:

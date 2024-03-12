@@ -9,10 +9,15 @@ project(softsim
 )
 
 option(CONFIG_USE_SYSTEM_HEAP "Use free/malloc instead of port_free/port_malloc" OFF)
+option(CONFIG_USE_LOGS "Set SS_LOGP macro to link against ss_logp")
 option(CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND "Building with experimental support for suspend")
 
 if(CONFIG_USE_SYSTEM_HEAP)
 	add_compile_definitions(-DCONFIG_USE_SYSTEM_HEAP)
+endif()
+
+if(CONFIG_USE_LOGS)
+	add_compile_definitions(-DCONFIG_USE_LOGS)
 endif()
 
 if(CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND)

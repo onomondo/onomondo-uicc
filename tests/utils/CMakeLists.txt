@@ -12,6 +12,6 @@ add_test(NAME utils_test COMMAND sh -c "$<TARGET_FILE:utils_test> > utils_test.o
 
 add_test(NAME utils_test_compare
 		 COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
-				 ${PROJECT_SOURCE_DIR}/build/tests/utils/utils_test.out
+				 ${CMAKE_CURRENT_BINARY_DIR}/utils_test.out
 				 ${CMAKE_CURRENT_SOURCE_DIR}/utils_test.ok
 )
