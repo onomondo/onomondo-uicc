@@ -55,3 +55,22 @@ src/softsim/softsim
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/settings.json
+
+# build directories
+build*/
+
+# install dir
+lib_*/
+lib_*.a
+
+# Visual Studio Code
+.vscode
+
+targets
+.editorconfig
+*.py
+
+# clang-format
+.cache
+compile_commands.json
+

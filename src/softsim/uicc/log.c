@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
- * 
- * SPDX-License-Identifier: GPL-3.0-only 
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 #include <stdarg.h>
@@ -34,6 +34,7 @@ static uint32_t subsys_lvl[_NUM_LOG_SUBSYS] = {
 	[SSMS] = LDEBUG,
 	[SREMOTECMD] = LDEBUG,
 	[SREFRESH] = LDEBUG,
+	[SAPDU] = LDEBUG
 };
 
 static const char *subsys_str[_NUM_LOG_SUBSYS] = {
@@ -58,6 +59,7 @@ static const char *subsys_str[_NUM_LOG_SUBSYS] = {
 	[STLV8]		= "TLV8",
 	[SSMS]		= "SMS",
 	[SREFRESH]	= "REFRESH",
+	[SAPDU]	= "APDU",
 };
 // clang-format on
 static const char *level_str[_NUM_LOG_LEVEL] = {
