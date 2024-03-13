@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
- * 
- * SPDX-License-Identifier: GPL-3.0-only 
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 #include <stdint.h>
@@ -29,18 +29,19 @@ void setup_key(const uint8_t *src, struct des3_key_s *dest)
  *  \param[in] key 16 byte DES key. */
 void ss_utils_3des_decrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key)
 {
+	int i = 0, j = 0;
 	struct des3_key_s configured_key;
 	setup_key(key, &configured_key);
 	uint8_t cbc[DES_BLOCKSIZE] = { 0 }; /* IV, all zero */
 
 	/* Adjusted from hostap's crypto_internal-cipher.c */
-	for (int i = 0; i < buffer_len / DES_BLOCKSIZE; i++) {
+	for (i = 0; i < buffer_len / DES_BLOCKSIZE; i++) {
 		/* Some optimization would be possibly by double-buffering CBC,
 		 * but that'd reduce readability. */
 		uint8_t next_cbc[DES_BLOCKSIZE];
 		memcpy(next_cbc, buffer, DES_BLOCKSIZE);
 		des3_decrypt(buffer, &configured_key, buffer);
-		for (int j = 0; j < DES_BLOCKSIZE; j++)
+		for (j = 0; j < DES_BLOCKSIZE; j++)
 			buffer[j] ^= cbc[j];
 		memcpy(cbc, next_cbc, DES_BLOCKSIZE);
 		buffer += DES_BLOCKSIZE;
@@ -56,14 +57,15 @@ void ss_utils_3des_decrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *ke
  *  \param[in] key 16 byte DES key. */
 void ss_utils_3des_encrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key)
 {
+	int i = 0, j = 0;
 	struct des3_key_s configured_key;
 	setup_key(key, &configured_key);
 
 	uint8_t cbc[DES_BLOCKSIZE] = { 0 }; /* The IV */
 
 	/* Adjusted from hostap's crypto_internal-cipher.c */
-	for (int i = 0; i < buffer_len / DES_BLOCKSIZE; i++) {
-		for (int j = 0; j < DES_BLOCKSIZE; j++)
+	for (i = 0; i < buffer_len / DES_BLOCKSIZE; i++) {
+		for (j = 0; j < DES_BLOCKSIZE; j++)
 			cbc[j] ^= buffer[j];
 		des3_encrypt(cbc, &configured_key, cbc);
 		memcpy(buffer, cbc, DES_BLOCKSIZE);

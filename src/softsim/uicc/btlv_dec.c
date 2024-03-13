@@ -140,6 +140,7 @@ static struct ss_list *btlv_decode(const uint8_t *enc, size_t len, const struct 
 	const struct ber_tlv_desc *ie_descr;
 	size_t used_len;
 	size_t remaining_len = len;
+	int i = 0;
 
 	struct ss_list *list;
 
@@ -157,7 +158,7 @@ static struct ss_list *btlv_decode(const uint8_t *enc, size_t len, const struct 
 				strcpy(ie->title, ie_descr->title);
 			}
 		} else if (remaining_len > 0) {
-			for (int i = used_len; i < used_len + remaining_len; ++i) {
+			for (i = used_len; i < used_len + remaining_len; ++i) {
 				if (enc[i] != 0xff) {
 					SS_LOGP(SBTLV, LERROR, "Error decoding BTLV (%s).\n",
 						ss_hexdump(&enc[used_len], remaining_len));

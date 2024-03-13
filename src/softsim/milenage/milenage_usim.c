@@ -28,8 +28,9 @@
 static u64 get_highest_seq_ms(const struct milenage_seq_data *sd)
 {
 	u64 highest = 0;
+	unsigned int i = 0;
 
-	for (unsigned int i = 0; i < ARRAY_SIZE(sd->seq); i++) {
+	for (i = 0; i < ARRAY_SIZE(sd->seq); i++) {
 		if (sd->seq[i] > highest)
 			highest = sd->seq[i];
 	}
@@ -84,6 +85,7 @@ int milenage_usim_check(const struct milenage_key_data *kd,
 	u8 ind;
 	u64 rx_sqn64, rx_seq, seq_ms;
 	int ret = -1;
+	unsigned int i = 0;
 
 	u8 auts_amf[2] = { 0x00, 0x00 }; /* TS 33.102 v7.0.0, 6.3.3 */
 	/* USIM shall generate a synchronisation failure message
@@ -114,7 +116,7 @@ int milenage_usim_check(const struct milenage_key_data *kd,
 	wpa_hexdump_key(MSG_DEBUG, "Milenage: AK", mr->ak, 6);
 
 	/* AUTN = (SQN ^ AK) || AMF || MAC */
-	for (unsigned int i = 0; i < 6; i++)
+	for (i = 0; i < 6; i++)
 		rx_sqn[i] = autn[i] ^ ak[i];
 	wpa_hexdump(MSG_DEBUG, "Milenage: SQN", rx_sqn, 6);
 
@@ -174,7 +176,7 @@ out_auts:
 	if (milenage_f2345(opc, kd->k, _rand, NULL, NULL, NULL, NULL, ak))
 		goto out;
 	wpa_hexdump_key(MSG_DEBUG, "Milenage: AK*", ak, 6);
-	for (unsigned int i = 0; i < 6; i++)
+	for (i = 0; i < 6; i++)
 		mr->auts[i] = highest_sqn_ms[i] ^ ak[i];
 	if (milenage_f1(opc, kd->k, _rand, highest_sqn_ms, auts_amf, NULL, mr->auts + 6))
 		goto out;
