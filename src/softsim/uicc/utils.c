@@ -281,7 +281,8 @@ size_t ss_strnlen(const char *s, size_t maxlen)
  * SecureZeroMemory as available on different platforms */
 void ss_memzero(void *ptr, size_t len)
 {
+	int i = 0;
 	volatile char *clear_this = (volatile char *)ptr;
-	for (int i = 0; i < len; i++)
+	for (i = 0; i < len; i++)
 		clear_this[i] = 0;
 }

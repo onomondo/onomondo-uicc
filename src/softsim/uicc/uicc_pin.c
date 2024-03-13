@@ -517,9 +517,10 @@ int ss_uicc_pin_update_pst_do(struct ss_buf *pin_stat_templ)
 	}
 
 	uint8_t pins_enabled = 0;
+	int i = 0;
 	/* There is only 1 byte allocated to store the bits */
 	assert(SS_ARRAY_SIZE(pins_in_psdo) <= 7);
-	for (int i = 0; i < SS_ARRAY_SIZE(pins_in_psdo); ++i) {
+	for (i = 0; i < SS_ARRAY_SIZE(pins_in_psdo); ++i) {
 		struct pin_context *pin = NULL;
 		pin = get_pin_context(NULL, pins_in_psdo[i]);
 		if (!pin)
@@ -547,6 +548,7 @@ struct ss_buf *ss_uicc_pin_gen_pst_do(void)
 {
 	struct ss_buf *pin_stat_templ;
 	int rc;
+	int i = 0;
 
 	pin_stat_templ = ss_buf_alloc(3 + 3 * SS_ARRAY_SIZE(pins_in_psdo));
 	if (!pin_stat_templ)
@@ -560,7 +562,7 @@ struct ss_buf *ss_uicc_pin_gen_pst_do(void)
 	 * particular don't set the Key reference value to 0x11, and thus don't
 	 * need a Usage Qualifier (ETSI TS 102 221 V16 p94) */
 
-	for (int i = 0; i < SS_ARRAY_SIZE(pins_in_psdo); ++i) {
+	for (i = 0; i < SS_ARRAY_SIZE(pins_in_psdo); ++i) {
 		/* Key reference */
 		pin_stat_templ->data[3 + i * 3 + 0] = 0x83; /* tag */
 		pin_stat_templ->data[3 + i * 3 + 1] = 0x01; /* length */

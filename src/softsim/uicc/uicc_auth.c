@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
- * 
- * SPDX-License-Identifier: GPL-3.0-only 
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 #include <stdio.h>
@@ -105,7 +105,7 @@ static int get_seq_data(struct milenage_seq_data *seq_data)
 	struct ss_list seq_data_path;
 	struct ss_buf *seq_data_raw;
 	int rc;
-
+	int i = 0;
 	/* File format:
 	 * | 32 64-bit SEQ_M values | 64-bit delta |
 	 * (all big endian)
@@ -135,7 +135,7 @@ static int get_seq_data(struct milenage_seq_data *seq_data)
 		return -EINVAL;
 	}
 
-	for (int i = 0; i < SS_ARRAY_SIZE(seq_data->seq); ++i)
+	for (i = 0; i < SS_ARRAY_SIZE(seq_data->seq); ++i)
 		seq_data->seq[i] = ss_uint64_load_from_be(&seq_data_raw->data[i * 8]);
 	seq_data->delta = ss_uint64_load_from_be(&seq_data_raw->data[SS_ARRAY_SIZE(seq_data->seq) * 8]);
 
@@ -151,7 +151,7 @@ static int update_seq_data(struct milenage_seq_data *seq_data)
 	struct ss_list seq_data_path;
 	uint8_t seq_data_raw[sizeof(seq_data->seq) + sizeof(seq_data->delta)];
 	int rc;
-
+	int i = 0;
 	ss_fs_init(&seq_data_path);
 	rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID);
 	if (rc < 0) {
@@ -160,7 +160,7 @@ static int update_seq_data(struct milenage_seq_data *seq_data)
 		return -EINVAL;
 	}
 
-	for (int i = 0; i < SS_ARRAY_SIZE(seq_data->seq); ++i)
+	for (i = 0; i < SS_ARRAY_SIZE(seq_data->seq); ++i)
 		ss_uint64_store_to_be(&seq_data_raw[i * 8], seq_data->seq[i]);
 	ss_uint64_store_to_be(&seq_data_raw[SS_ARRAY_SIZE(seq_data->seq) * 8], seq_data->delta);
 
