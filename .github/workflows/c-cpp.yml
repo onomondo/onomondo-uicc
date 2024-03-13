@@ -6,9 +6,13 @@ on:
       - "**"
       - "!**cmake**"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
-
+    timeout-minutes: 15
     runs-on: ubuntu-latest
 
 

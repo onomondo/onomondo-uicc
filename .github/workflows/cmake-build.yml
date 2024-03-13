@@ -5,8 +5,15 @@ on:
     branches:
       - "**"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   cmake-build-and-test:
+
+    timeout-minutes: 15
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Project
