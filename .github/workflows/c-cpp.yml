@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - "**"
-      - "!**cmake**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,12 +11,12 @@ concurrency:
 
 jobs:
   build-and-test:
-    timeout-minutes: 15
-    runs-on: ubuntu-latest
 
+    runs-on: ubuntu-20.04
+    timeout-minutes: 15
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Setup build
       run: autoreconf -i --force && ./configure --enable-sanitize --enable-werror
@@ -28,7 +27,7 @@ jobs:
     - name: Make all
       run: make all
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         repository: frankmorgner/vsmartcard
         path: vsmartcard
@@ -40,14 +39,14 @@ jobs:
     - name: make sure virtual card reader can be reached
       run: sudo apt install pcscd && sudo systemctl start pcscd
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         repository: onomondo/onomondo-softsim-test-suite
         submodules: recursive
         path: softsim-tests
         token: ${{ secrets.GH_AUTH_TOKEN }}
 
-    - uses: actions/setup-python@v3
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
