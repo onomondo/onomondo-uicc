@@ -171,6 +171,7 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 	if (apdu->hdr.cla & 0x0C) {
 		/* we don't support secure messaging */
 		apdu->sw = SS_SW_ERR_FUNCTION_IN_CLA_NOT_SUPP_SM;
+		apdu->lc = 0;
 		goto out;
 	}
 
@@ -178,6 +179,7 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 	apdu->lchan = ss_uicc_lchan_get(ctx, apdu->hdr.cla);
 	if (!apdu->lchan) {
 		apdu->sw = SS_SW_ERR_FUNCTION_IN_CLA_NOT_SUPP_LCHAN;
+		apdu->lc = 0;
 		goto out;
 	}
 
@@ -192,6 +194,7 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 	if (((apdu->hdr.cla & 0x70) == 0x00) && apdu->hdr.ins == TS_102_221_INS_GET_RESPONSE) {
 		/* The GET RESPONSE command is of command case 2 (see also command.h) */
 		processed_length = 5;
+		apdu->lc = 0;
 
 		/* Handle GET RESPONSE command */
 		SS_LOGP(SLCHAN, LDEBUG, "handling GET RESPONSE command...\n");
@@ -247,22 +250,26 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 				goto out;
 			case SS_COMMAND_CASE_1:
 				processed_length = 4;
+				apdu->lc = 0;
 				break;
 			case SS_COMMAND_CASE_2:
 				processed_length = 4 + 1;
 				apdu->le = apdu->hdr.p3;
+				apdu->lc = 0;
 				break;
 			case SS_COMMAND_CASE_3:
 			case SS_COMMAND_CASE_4:
-				apdu->lc = apdu->hdr.p3;
+				/* apdu->lc initially set to number of available bytes in cmd buffer */
 				if (apdu->lc < apdu->hdr.p3) {
 					/* Abort here, the handler would treat
 					 * p3 as Lc and then peek into
 					 * uninitialized memory */
 					SS_LOGP(SLCHAN, LERROR, "Insufficient data for Case 3/4 command\n");
 					apdu->sw = SS_SW_ERR_CHECKING_WRONG_LENGTH;
+					apdu->lc = 0;
 					goto out;
 				}
+				apdu->lc = apdu->hdr.p3;
 				processed_length = 4 + 1 + apdu->hdr.p3;
 				break;
 			}
@@ -424,6 +431,9 @@ size_t ss_transact(struct ss_context *ctx, uint8_t *response_buf, size_t respons
 	 * those depend on extra knowledge about the command itsself. We will
 	 * populate those fields in apdu_transact() when the exact command is
 	 * known. */
+
+	/* only way to tell handler how many bytes are at most valid */
+	apdu->lc = _request_len - sizeof(apdu->hdr);
 
 	/* Process APDU (softsim) */
 	processed_length = apdu_transact(ctx, apdu);
