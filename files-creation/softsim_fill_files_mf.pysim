@@ -32,12 +32,144 @@ select A001
 update_binary 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00
 
 #SOFTSIM PROPRITARY
-echo "populete a002, EF.AUTHSEQ (propritary)"
+echo "populete a120, EF.AUTHSEQ_DELTA (propritary)"
 # File format:
-# |256 byte SEQ|8 byte delta|
+# |8 byte delta|
 select MF
-select A002
-update_binary 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000
+select A120
+update_binary 0000000010000000
+
+#SOFTSIM PROPRITARY
+echo "populete a100, EF.AUTHSEQ (propritary)"
+# File format:
+# |8 byte seq|
+select MF
+select A100
+update_binary 0000000000000000
+
+select MF 
+select A101 
+update_binary 0000000000000000
+
+select MF
+select A102
+update_binary 0000000000000000
+
+select MF
+select A103
+update_binary 0000000000000000
+
+select MF
+select A104
+update_binary 0000000000000000
+
+select MF
+select A105
+update_binary 0000000000000000
+
+select MF
+select A106
+update_binary 0000000000000000
+
+select MF
+select A107
+update_binary 0000000000000000
+
+select MF
+select A108
+update_binary 0000000000000000
+
+select MF
+select A109
+update_binary 0000000000000000
+
+select MF
+select A10a
+update_binary 0000000000000000
+
+select MF
+select A10b
+update_binary 0000000000000000
+
+select MF
+select A10c
+update_binary 0000000000000000
+
+select MF
+select A10d
+update_binary 0000000000000000
+
+select MF
+select A10e
+update_binary 0000000000000000
+
+select MF
+select A10f
+update_binary 0000000000000000
+
+select MF
+select A110
+update_binary 0000000000000000
+
+select MF
+select A111
+update_binary 0000000000000000
+
+select MF
+select A112
+update_binary 0000000000000000
+
+select MF
+select A113
+update_binary 0000000000000000
+
+select MF
+select A114
+update_binary 0000000000000000
+
+select MF
+select A115
+update_binary 0000000000000000
+
+select MF
+select A116
+update_binary 0000000000000000
+
+select MF
+select A117
+update_binary 0000000000000000
+
+select MF
+select A118
+update_binary 0000000000000000
+
+select MF
+select A119
+update_binary 0000000000000000
+
+select MF
+select A11a
+update_binary 0000000000000000
+
+select MF
+select A11b
+update_binary 0000000000000000
+
+select MF
+select A11c
+update_binary 0000000000000000
+
+select MF
+select A11d
+update_binary 0000000000000000
+
+select MF
+select A11e
+update_binary 0000000000000000
+
+select MF
+select A11f
+update_binary 0000000000000000
 
 #SOFTSIM PROPRITARY
 echo "populete a003, EF.PIN (propritary)"
