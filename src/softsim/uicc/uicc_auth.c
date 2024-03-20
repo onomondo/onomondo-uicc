@@ -48,7 +48,7 @@ struct auth_res_success_3g {
 } __attribute__((packed));
 
 #define KEY_DATA_FID 0xA001
-#define SEQ_DATA_FID 0xA002
+#define SEQ_DATA_FID_BASE 0xA100
 
 /* Populate key data from file */
 static int get_key_data(struct milenage_key_data *key_data)
@@ -105,43 +105,57 @@ static int get_seq_data(struct milenage_seq_data *seq_data)
 	struct ss_list seq_data_path;
 	struct ss_buf *seq_data_raw;
 	int rc;
-	int i = 0;
+	int file_offset = 0;
+
 	/* File format:
-	 * | 32 64-bit SEQ_M values | 64-bit delta |
+	 * | 64-bit SEQ_M values ]
+   * [ 64-bit delta ]
 	 * (all big endian)
 	 * */
 
 	ss_fs_init(&seq_data_path);
-	rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID);
-	if (rc < 0) {
-		SS_LOGP(SAUTH, LERROR, "seq data file (%04x) not found -- abort\n", KEY_DATA_FID);
-		ss_path_reset(&seq_data_path);
-		return -EINVAL;
-	}
 
-	seq_data_raw = ss_storage_read_file(&seq_data_path, 0, ss_storage_get_file_len(&seq_data_path));
-	if (!seq_data_raw) {
-		SS_LOGP(SAUTH, LERROR, "seq data file (%s) not readable -- abort\n",
-			ss_fs_utils_dump_path(&seq_data_path));
-		ss_path_reset(&seq_data_path);
-		return -EINVAL;
-	}
+	for (file_offset = 0; file_offset < SS_ARRAY_SIZE(seq_data->seq) + 1; file_offset++) {
+		rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID_BASE + file_offset);
 
-	if (seq_data_raw->len < sizeof(seq_data->seq) + sizeof(seq_data->delta)) {
-		SS_LOGP(SAUTH, LERROR, "seq data file (%s) too short -- abort\n",
-			ss_fs_utils_dump_path(&seq_data_path));
-		ss_path_reset(&seq_data_path);
+		if (rc < 0) {
+			SS_LOGP(SAUTH, LERROR, "seq data file (%04x) not found -- abort\n", KEY_DATA_FID);
+			ss_path_reset(&seq_data_path);
+			return -EINVAL;
+		}
+
+		seq_data_raw = ss_storage_read_file(&seq_data_path, 0, ss_storage_get_file_len(&seq_data_path));
+		if (!seq_data_raw) {
+			SS_LOGP(SAUTH, LERROR, "seq data file (%s) not readable -- abort\n",
+				ss_fs_utils_dump_path(&seq_data_path));
+
+			ss_path_reset(&seq_data_path);
+			return -EINVAL;
+		}
+
+		if (seq_data_raw->len < sizeof(uint64_t)) {
+			SS_LOGP(SAUTH, LERROR, "seq data file (%s) too short -- abort\n",
+				ss_fs_utils_dump_path(&seq_data_path));
+			ss_path_reset(&seq_data_path);
+
+			ss_buf_free(seq_data_raw);
+			return -EINVAL;
+		}
+
+		if (file_offset < SS_ARRAY_SIZE(seq_data->seq)) {
+			seq_data->seq[file_offset] = ss_uint64_load_from_be(seq_data_raw->data);
+
+			SS_LOGP(SAUTH, LDEBUG, "seq data file (%s) loaded\n", ss_fs_utils_dump_path(&seq_data_path));
+		} else {
+			seq_data->delta = ss_uint64_load_from_be(seq_data_raw->data);
+
+			SS_LOGP(SAUTH, LDEBUG, "delta data file (%s) loaded\n", ss_fs_utils_dump_path(&seq_data_path));
+		}
+
 		ss_buf_free(seq_data_raw);
-		return -EINVAL;
 	}
 
-	for (i = 0; i < SS_ARRAY_SIZE(seq_data->seq); ++i)
-		seq_data->seq[i] = ss_uint64_load_from_be(&seq_data_raw->data[i * 8]);
-	seq_data->delta = ss_uint64_load_from_be(&seq_data_raw->data[SS_ARRAY_SIZE(seq_data->seq) * 8]);
-
-	SS_LOGP(SAUTH, LDEBUG, "seq data file (%s) loaded\n", ss_fs_utils_dump_path(&seq_data_path));
 	ss_path_reset(&seq_data_path);
-	ss_buf_free(seq_data_raw);
 	return 0;
 }
 
@@ -149,27 +163,37 @@ static int get_seq_data(struct milenage_seq_data *seq_data)
 static int update_seq_data(struct milenage_seq_data *seq_data)
 {
 	struct ss_list seq_data_path;
-	uint8_t seq_data_raw[sizeof(seq_data->seq) + sizeof(seq_data->delta)];
+	uint8_t write_buffer[sizeof(seq_data->delta)]; // 8 bytes
+
 	int rc;
-	int i = 0;
+	int file_offset = 0;
+
 	ss_fs_init(&seq_data_path);
-	rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID);
-	if (rc < 0) {
-		SS_LOGP(SAUTH, LERROR, "seq data file (%04x) not found -- abort\n", KEY_DATA_FID);
-		ss_path_reset(&seq_data_path);
-		return -EINVAL;
-	}
 
-	for (i = 0; i < SS_ARRAY_SIZE(seq_data->seq); ++i)
-		ss_uint64_store_to_be(&seq_data_raw[i * 8], seq_data->seq[i]);
-	ss_uint64_store_to_be(&seq_data_raw[SS_ARRAY_SIZE(seq_data->seq) * 8], seq_data->delta);
+	for (file_offset = 0; file_offset < SS_ARRAY_SIZE(seq_data->seq) + 1; file_offset++) {
+		rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID_BASE + file_offset);
 
-	rc = ss_storage_write_file(&seq_data_path, seq_data_raw, 0, sizeof(seq_data_raw));
-	if (rc < 0) {
-		SS_LOGP(SAUTH, LERROR, "seq data file (%s) not writeable -- abort\n",
-			ss_fs_utils_dump_path(&seq_data_path));
-		ss_path_reset(&seq_data_path);
-		return -EINVAL;
+		if (rc < 0) {
+			SS_LOGP(SAUTH, LERROR, "seq data file (%04x) not found -- abort\n", KEY_DATA_FID);
+			ss_path_reset(&seq_data_path);
+			return -EINVAL;
+		}
+
+		if (file_offset < SS_ARRAY_SIZE(seq_data->seq)) {
+			ss_uint64_store_to_be(write_buffer, seq_data->seq[file_offset]);
+
+		} else {
+			ss_uint64_store_to_be(write_buffer, seq_data->delta);
+		}
+
+		rc = ss_storage_write_file(&seq_data_path, write_buffer, 0, sizeof(write_buffer));
+
+		if (rc < 0) {
+			SS_LOGP(SAUTH, LERROR, "seq data file (%s) not writeable -- abort\n",
+				ss_fs_utils_dump_path(&seq_data_path));
+			ss_path_reset(&seq_data_path);
+			return -EINVAL;
+		}
 	}
 
 	SS_LOGP(SAUTH, LDEBUG, "seq data file (%s) updated\n", ss_fs_utils_dump_path(&seq_data_path));

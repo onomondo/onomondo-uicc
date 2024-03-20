@@ -27,8 +27,40 @@ create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure tra
 
 #SOFTSIM PROPRITARY
 #Access conditions: 06 -- READ:ADM, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
-echo "create a002, EF.AUTHSEQ (propritary)"
-create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 264 a002
+echo "create a100, EF.AUTHSEQ (propritary)"
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a101
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a102
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a103
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a104
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a105
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a106
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a107
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a108
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a109
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a10a
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a10b
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a10c
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a10d
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a10e
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a10f
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a110
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a111
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a112
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a113
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a114
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a115
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a116
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a117
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a118
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a119
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a11a
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a11b
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a11c
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a11d
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a11e
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a11f
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a120
+create_ef --shareable --ef-arr-file-id 2f06 --ef-arr-record-nr 6 --structure transparent --file-size 8 a100
 
 #SOFTSIM PROPRITARY
 #Access conditions: 06 -- READ:ADM, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM

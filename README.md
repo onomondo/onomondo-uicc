@@ -183,7 +183,7 @@ with details in the code's in-line documentation:
 
 * Overview of proprietary files:
   * A001: SIM authentication keys
-  * A002: SIM authentication sequence numbers
+  * A1xx: SIM authentication sequence numbers
   * A003: PINs and their state
   * A004: TARs and keys for remote commands (OTA RFM)
 

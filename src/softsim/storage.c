@@ -48,7 +48,10 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 
 	SS_LIST_FOR_EACH(path, path_cursor, struct ss_file, list) {
 		rc = snprintf(host_fs_path_ptr, sizeof(host_fs_path) - (host_fs_path_ptr - host_fs_path),
-			      path_cursor->fid > 0xffff ? "/%08x" : "/%04x", path_cursor->fid);
+			      path_cursor->fid > 0xffff ? "/%08x" : "/%04x",
+			      // proprietary files (SEQ) identified by 0xa1xx will all have
+			      // the same FCP assosiated with them
+			      (path_cursor->fid & 0xff00) == 0xa100 && def ? 0xa100 : path_cursor->fid);
 		host_fs_path_ptr += rc;
 		path_last = path_cursor;
 	}
@@ -433,3 +436,4 @@ int ss_storage_create_dir(const struct ss_list *path)
 
 	return 0;
 }
+
