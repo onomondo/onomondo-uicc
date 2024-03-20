@@ -25,7 +25,7 @@ jobs:
           ninjaVersion: 1.11.1
 
       - name: Install Embedded Toolchain
-        uses: carlosperate/arm-none-eabi-gcc-action@v1.8.0
+        uses: carlosperate/arm-none-eabi-gcc-action@v1.8.1
 
       - name: Configure and Build Project
         run: |
