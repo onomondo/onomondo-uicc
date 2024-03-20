@@ -37,3 +37,72 @@ jobs:
 
       - name: Install Project
         run: cd build && make install
+
+      - name: Copy executables to src dir
+        run: |
+          cd $GITHUB_WORKSPACE/
+          cp build/src/softsim/softsim src/softsim/softsim
+
+      - uses: actions/checkout@v4
+        with:
+          repository: frankmorgner/vsmartcard
+          path: vsmartcard
+
+      - name: Setup VPCD
+        run:
+          sudo apt install libpcsclite-dev && sudo apt install help2man && cd vsmartcard/virtualsmartcard && autoreconf --verbose --install --force && sudo ./configure --sysconfdir=/etc && sudo make && sudo make install
+
+          # make sure the server is running...
+      - name: make sure virtual card reader can be reached
+        run: sudo apt install pcscd && sudo systemctl start pcscd
+
+      - uses: actions/checkout@v4
+        with:
+          repository: onomondo/onomondo-softsim-test-suite
+          submodules: recursive
+          path: softsim-tests
+          token: ${{ secrets.GH_AUTH_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install test suite (esp. pysim) requirements
+        run: |
+          set -e
+          git clone https://gitea.osmocom.org/sim-card/pysim.git $GITHUB_WORKSPACE/pysim
+          pip3 install -r $GITHUB_WORKSPACE/softsim-tests/requirements.txt
+          # Shouldn't be any additional ones, but running it anyway in case upstream changes them
+          pip3 install -r $GITHUB_WORKSPACE/pysim/requirements.txt
+
+      - name: Remove files before restoring them
+        run: git rm -rf files/3f00 files/3f00.def && mkdir files
+
+      - name: Start soft sim
+        run: cd $GITHUB_WORKSPACE/ && src/softsim/softsim &
+
+      - name: Restore files and verify their identity of restored with original files
+        run: |
+          set -e
+          ./pysim/pySim-shell.py -p0 --script ./files-creation/all.pysim
+          git add files
+          git diff --cached --exit-code
+
+      - name: Run python-test suite
+        run: |
+          set -e
+          cd $GITHUB_WORKSPACE/softsim-tests/
+          # Note that this only logs, and is expected to fail (but does not report that in its error code)
+          python test_SIM_OS.py
+
+      - name: Stop soft sim (standalone version brings its own execution management)
+        # It takes some time for VPCD to be ready again
+        run: pkill -f softsim -USR1 && sleep 1
+
+      - name: Install libosmocore-utils (necessary for testing Milenage)
+        run: sudo apt-get install -y --no-install-recommends libosmocore-utils
+
+      - name: Run python-test suite (standalone version)
+        run: |
+          cd $GITHUB_WORKSPACE/softsim-tests/
+          SOFTSIM_TEST_RUNNER=execute_softsim PYTHONPATH=./pysim SOFTSIM=../src/softsim/softsim python3 -m unittest -v
