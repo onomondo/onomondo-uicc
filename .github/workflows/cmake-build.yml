@@ -11,10 +11,9 @@ concurrency:
 
 jobs:
   cmake-build-and-test:
-
+    runs-on: ubuntu-20.04
     timeout-minutes: 15
 
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout Project
         uses: actions/checkout@v4
@@ -24,17 +23,17 @@ jobs:
         with:
           cmakeVersion: 3.27.0
           ninjaVersion: 1.11.1
-    
+
       - name: Install Embedded Toolchain
         uses: carlosperate/arm-none-eabi-gcc-action@v1.8.0
 
       - name: Configure and Build Project
-        run: | 
-          cmake -S . -B build -DBUILD_TESTING=y -DCONFIG_USE_SYSTEM_HEAP=y
+        run: |
+          cmake -S . -B build -DBUILD_TESTING=y -DCONFIG_USE_SYSTEM_HEAP=y -DCONFIG_ENABLE_SANITIZE=y
           cmake --build build
-          
+
       - name: Test Project
-        run: cd build && ctest
+        run: cd build && ctest --output-on-failure
 
       - name: Install Project
         run: cd build && make install
