@@ -8,7 +8,8 @@ project(softsim
 		LANGUAGES C
 )
 
-option(CONFIG_USE_SYSTEM_HEAP "Use free/malloc instead of port_free/port_malloc" OFF)
+option(CONFIG_ENABLE_SANITIZE "Build with -fsanitize=address -fsanitize=undefined")
+option(CONFIG_USE_SYSTEM_HEAP "Use free/malloc instead of port_free/port_malloc")
 option(CONFIG_USE_LOGS "Set SS_LOGP macro to link against ss_logp")
 option(CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND "Building with experimental support for suspend")
 
@@ -24,6 +25,10 @@ if(CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND)
 	add_compile_definitions(-DCONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND)
 endif()
 
+if(CONFIG_ENABLE_SANITIZE)
+	add_compile_options(-fsanitize=address -fsanitize=undefined)
+	add_link_options(-fsanitize=address -fsanitize=undefined)
+endif()
 add_subdirectory(src)
 
 install(TARGETS storage uicc milenage crypto
