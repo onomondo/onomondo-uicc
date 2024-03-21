@@ -1,0 +1,14 @@
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 2, le: 360
+
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 2, le: 1
+
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 02, lc: 2, le: 104
+
+cla: 00, ins: b2, p1: 01, p2: 04, p3: 00, lc: 0, le: 38
+
+cla: 00, ins: b2, p1: 01, p2: 04, p3: 00, lc: 0, le: 38
+
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 104
+
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 0
+

@@ -5,6 +5,8 @@
 enable_testing()
 
 add_subdirectory(aes)
+add_subdirectory(apdu)
+add_subdirectory(app_transact)
 add_subdirectory(btlv)
 add_subdirectory(ctlv)
 add_subdirectory(des)

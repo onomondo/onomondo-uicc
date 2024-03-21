@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
- * 
- * SPDX-License-Identifier: GPL-3.0-only 
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 #pragma once
@@ -29,13 +29,15 @@ struct ss_apdu {
 
 	/* header + command and response payload */
 	struct ss_apdu_hdr hdr;
-	uint8_t lc;		/*< length (command) */
-	uint8_t le;		/*< length (expected response) */
-	uint8_t cmd[256];	/*< command body */
-	uint8_t rsp[256];	/*< response body */
-	size_t rsp_len;		/*< actual length of of rsp */
-	uint16_t sw;		/*< status word */
+	uint16_t lc; /*< length (command). In case-4 commands, this includes the LE byte; in remote commands it may even contain more data. */
+	uint16_t le; /*< length (expected response) */
+	uint8_t cmd[256]; /*< command body */
+	uint8_t rsp[256]; /*< response body */
+	size_t rsp_len;	  /*< actual length of of rsp */
+	uint16_t sw;	  /*< status word */
+	uint16_t processed_bytes;
 };
 
 struct ss_apdu *ss_apdu_new(struct ss_context *ctx);
 void ss_apdu_toss(struct ss_apdu *apdu);
+void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len);
