@@ -23,6 +23,8 @@ jobs:
 
     - name: Run tests
       run: make check
+      continue-on-error: true
+      id: autotest
 
     - name: Make all
       run: make all

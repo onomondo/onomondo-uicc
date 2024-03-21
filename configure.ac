@@ -112,4 +112,5 @@ AC_OUTPUT(
     tests/aes/Makefile
     tests/des/Makefile
     tests/ota/Makefile
+    tests/apdu/Makefile
     Makefile)

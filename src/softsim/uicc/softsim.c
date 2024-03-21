@@ -1,13 +1,16 @@
 /*
+ * Copyright (c) 2024 Onomondo ApS. All rights reserved.
+ *
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * Author: Philipp Maier
  *
- * This module provides tha API to communicate with softsim. The APDU input and
+ * This module provides tha API to communicate with SoftSIM. The APDU input and
  * output is communicated via ss_apdu structs.
  */
 
 #include <assert.h>
+#include <stdint.h>
 #include <string.h>
 #include <onomondo/softsim/softsim.h>
 #include <onomondo/softsim/log.h>
@@ -253,13 +256,16 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 				apdu->lc = 0;
 				break;
 			case SS_COMMAND_CASE_2:
-				processed_length = 4 + 1;
-				apdu->le = apdu->hdr.p3;
+				/* if processed length is reported by the apdu it was parsed exhaustively and that should take presendence */
+				if (!apdu->le && !apdu->processed_bytes) {
+					processed_length = 4 + 1;
+					apdu->le = apdu->hdr.p3;
+				}
 				apdu->lc = 0;
 				break;
 			case SS_COMMAND_CASE_3:
 			case SS_COMMAND_CASE_4:
-				/* apdu->lc initially set to number of available bytes in cmd buffer */
+
 				if (apdu->lc < apdu->hdr.p3) {
 					/* Abort here, the handler would treat
 					 * p3 as Lc and then peek into
@@ -269,11 +275,17 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 					apdu->lc = 0;
 					goto out;
 				}
-				apdu->lc = apdu->hdr.p3;
-				processed_length = 4 + 1 + apdu->hdr.p3;
+				/* if processed length is reported by the apdu it was parsed exhaustively and that should take precedence */
+				if (!apdu->processed_bytes) {
+					apdu->lc = apdu->hdr.p3;
+					processed_length = 4 + 1 + apdu->lc;
+				}
 				break;
 			}
 
+			if (apdu->processed_bytes) {
+				processed_length = apdu->processed_bytes;
+			}
 			SS_LOGP(SLCHAN, LDEBUG, "Command %s is APDU CASE %u => lc=%u, le=%u\n", cmd->name, cmd->case_,
 				apdu->lc, apdu->le);
 
@@ -304,14 +316,14 @@ out:
 	/* Check result and re-populate the status word if necessary */
 	if (apdu->lc) {
 		/* if the response is successful, and we have response data, signal
-		 * the length via SW=91xx */
+		 * the length via SW=61xx */
 		if (apdu->sw == SS_SW_NORMAL_ENDING && apdu->rsp_len) {
 			assert(apdu->rsp_len <= 0xff);
 			apdu->sw = 0x6100 | apdu->rsp_len;
 		}
 	} else {
 		if (apdu->le == 0) {
-			SS_LOGP(SLCHAN, LDEBUG, "Returning rsp_len = %lu bytes after le = 0\n", apdu->rsp_len);
+			SS_LOGP(SLCHAN, LDEBUG, "Returning rsp_len = %zu bytes after le = 0\n", apdu->rsp_len);
 		} else if (apdu->le != apdu->rsp_len) {
 			SS_LOGP(SLCHAN, LERROR,
 				"invalid response data, le (%u) != rsp_len (%lu), changing SW=%04x to SW=%04x (wrong length)\n",
@@ -458,6 +470,106 @@ size_t ss_transact(struct ss_context *ctx, uint8_t *response_buf, size_t respons
 		memcpy(response_buf, apdu->rsp, apdu->rsp_len);
 		response_len = apdu->rsp_len;
 	}
+	response_buf[response_len++] = apdu->sw >> 8;
+	response_buf[response_len++] = apdu->sw & 0xff;
+
+	ss_apdu_toss(apdu);
+
+	return response_len;
+}
+
+/*! Perform transaction with UICC on application layer
+ *  The APDU is parsed exhaustively and a response is returned i.e. GET RESPONSE is issued automatically
+ *  Extended APDU format is supported in this interface
+ *  \param[inout] ctx softsim context.
+ *  \param[out] response_buf user provided memory to store the resulting response APDU (at least 2+256 bytes).
+ *  \param[in] response_buf_len maximum length of the resulting response APDU.
+ *  \param[in] request_buf user provided memory with request APDU.
+ *  \param[in] request_len length of the request APDU, must not be longer than 5+265 bytes.
+ *  \returns length of the resulting response APDU. */
+size_t ss_application_apdu_transact(struct ss_context *ctx, uint8_t *response_buf, size_t response_buf_len,
+				    uint8_t *request_buf, size_t *request_len)
+{
+	struct ss_apdu *apdu;
+	struct ss_apdu *apdu_orig;
+	size_t response_len = 0;
+	size_t _request_len = *request_len;
+	uint16_t le = 0;
+
+	if (_request_len < 5) {
+		SS_LOGP(SIFACE, LERROR, "ignoring short APDU: %s\n", ss_hexdump(request_buf, _request_len));
+		response_buf[response_len++] = SS_SW_ERR_CHECKING_WRONG_LENGTH >> 8;
+		response_buf[response_len++] = SS_SW_ERR_CHECKING_WRONG_LENGTH & 0xff;
+		return 2;
+	}
+
+	/* A card response can consume up to 256 bytes, it must be ensured that
+	* the response buffer is large enough. */
+	assert(response_buf_len >= sizeof(apdu->rsp) + sizeof(apdu->sw));
+
+	if (_request_len > sizeof(apdu->cmd) + sizeof(apdu->hdr)) {
+		SS_LOGP(SIFACE, LINFO, "request exceeds maximum length %zu > %zu, will truncate.\n", _request_len,
+			sizeof(apdu->cmd) + sizeof(apdu->hdr));
+		_request_len = sizeof(apdu->cmd) + sizeof(apdu->hdr);
+	}
+
+	apdu = ss_apdu_new(ctx);
+
+	/* note that this parsing assumes that the buffer is a single apdu */
+	ss_apdu_parse_exhaustive(apdu, request_buf, _request_len);
+
+	SS_LOGP(SAPDU, LINFO, "Lc: %02X, Le: %04X (%d)\n", apdu->lc, apdu->le, apdu->le);
+
+	do {
+		le = apdu->le;
+		/* Process APDU (SoftSIM) */
+		apdu_transact(ctx, apdu);
+
+		SS_LOGP(SAPDU, LDEBUG, "rsp-len: %zu, sw: %04X \n", apdu->rsp_len, apdu->sw);
+
+		if (apdu->lc == 0) {
+			/* no command data present (case 2), we can return a response */
+			if (le == apdu->rsp_len) {
+				memcpy(response_buf, apdu->rsp, apdu->rsp_len);
+				response_len = apdu->rsp_len;
+				break;
+			}
+		}
+
+		/* Wrong length Le */
+		if ((apdu->sw >> 8) == 0x6c) {
+			SS_LOGP(SAPDU, LINFO, "Requesting correct data len, le=%d\n", apdu->sw & 0xff);
+			/* Keep original APDU so we can re-issue it */
+			apdu_orig = apdu;
+
+			apdu = ss_apdu_new(ctx);
+			apdu->le = apdu_orig->sw & 0xff;
+			memcpy(&apdu->hdr, &apdu_orig->hdr, sizeof(apdu->hdr));
+			apdu->hdr.p3 = apdu->le;
+
+			memcpy(apdu->cmd, apdu_orig->cmd, sizeof(apdu->cmd));
+
+			ss_apdu_toss(apdu_orig);
+		} else if (((apdu->sw >> 8) == 0x61)) {
+			/* Response bytes still available - issue a GET cmd in this case */
+			SS_LOGP(SAPDU, LINFO, "GET AVAILABLE DATA, le=%d\n", apdu->sw & 0xff);
+			apdu_orig = apdu;
+			apdu = ss_apdu_new(ctx);
+
+			apdu->le = apdu_orig->sw & 0xff;
+			apdu->sw = 0x00;
+			apdu->hdr.ins = TS_102_221_INS_GET_RESPONSE;
+			apdu->hdr.cla = 0;
+			apdu->hdr.p3 = apdu->le;
+
+			ss_apdu_toss(apdu_orig);
+		} else {
+			SS_LOGP(SAPDU, LDEBUG, "Transaction completed\n");
+			break;
+		}
+
+	} while (1);
+
 	response_buf[response_len++] = apdu->sw >> 8;
 	response_buf[response_len++] = apdu->sw & 0xff;
 
