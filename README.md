@@ -95,13 +95,13 @@ Getting Started
 
 ### Building from source
 
-Install autoconf, automake, a C compiler and make
-(on Debian: `apt install build-essential autoconf automake`),
+Install cmake, make and a c compiler.
+(on debian: `apt install build-essential cmake`),
 then run:
 
 ```
-$ autoreconf -i
-$ ./configure
+$ cmake -s . -b build -dconfig_use_system_heap=y
+$ cmake --build build
 $ make
 ```
 
