@@ -6,30 +6,37 @@
  * Author: Philipp Maier
  */
 
-#include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <linux/limits.h>
+#ifndef IS_WINDOWS
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
+#endif
 #include <onomondo/softsim/log.h>
 #include <onomondo/softsim/list.h>
 #include <onomondo/softsim/file.h>
 #include <onomondo/softsim/utils.h>
 #include <onomondo/softsim/mem.h>
 #include <onomondo/softsim/storage.h>
+#include <onomondo/softsim/fs.h>
 
-/* TODO #66: Make configurable (commandline option) */
-static char storage_path[] = "./files";
+#ifdef CONFIG_ALT_FILE_SEPERATOR
+#define PATH_SEPARATOR "_"
+#else
+#define PATH_SEPARATOR "/"
+#endif
+
+#ifdef IS_WINDOWS
+// Defined due to missing header file (<unistd.h>) include in ARM DS-5 Windows build.
+#define W_OK 2
+#endif
 
 /* Generate a host filesystem path for a given file path. */
 static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool def, const char *division)
 {
-	char host_fs_path[1024];
-	char abs_host_fs_path[PATH_MAX + 1];
+	char host_fs_path[PATH_MAX - 4 - 7];
+	char abs_host_fs_path[PATH_MAX];
 	static char *host_fs_path_ptr;
 	struct ss_file *path_cursor;
 	struct ss_file *path_last = NULL;
@@ -45,12 +52,14 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 
 	memset(host_fs_path, 0, sizeof(host_fs_path));
 	host_fs_path_ptr = host_fs_path;
-
+	/* we don't strictly need directories
+	 * so we can allow a different separator
+	 * granted that the host file system impl. rm_dir correctly */
 	SS_LIST_FOR_EACH(path, path_cursor, struct ss_file, list) {
 		rc = snprintf(host_fs_path_ptr, sizeof(host_fs_path) - (host_fs_path_ptr - host_fs_path),
-			      path_cursor->fid > 0xffff ? "/%08x" : "/%04x",
+			      path_cursor->fid > 0xffff ? PATH_SEPARATOR "%08x" : PATH_SEPARATOR "%04x",
 			      // proprietary files (SEQ) identified by 0xa1xx will all have
-			      // the same FCP assosiated with them
+			      // the same FCP associated with them
 			      (path_cursor->fid & 0xff00) == 0xa100 && def ? 0xa100 : path_cursor->fid);
 		host_fs_path_ptr += rc;
 		path_last = path_cursor;
@@ -73,18 +82,21 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 /* Read file definition from host file system */
 static int read_file_def(char *host_path, struct ss_file *file)
 {
-	FILE *fd;
+	ss_FILE fd;
 	char line_buf[1024];
-	char *rc;
+	size_t rc;
 
-	fd = fopen(host_path, "r");
+	fd = ss_fopen(host_path, "r");
 	if (!fd) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to open definition file: %s\n", host_path);
 		return -EINVAL;
 	}
 
-	rc = fgets(line_buf, sizeof(line_buf), fd);
-	fclose(fd);
+	// using fread over fgets to minimize unnecessary porting effort
+	rc = ss_fread(line_buf, 2, sizeof(line_buf) / 2 - 1, fd);
+	line_buf[rc * 2] = '\0';
+
+	ss_fclose(fd);
 	if (!rc) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to read definition file: %s\n", host_path);
 		return -EINVAL;
@@ -136,7 +148,7 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 
 	char host_path[PATH_MAX + 1];
 	int rc;
-	FILE *fd;
+	ss_FILE *fd;
 	char *line_buf;
 	size_t fgets_rc;
 	struct ss_buf *result;
@@ -148,32 +160,32 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 	line_buf = SS_ALLOC_N(read_len * 2 + 1);
 	memset(line_buf, 0, read_len * 2 + 1);
 
-	fd = fopen(host_path, "r");
+	fd = ss_fopen(host_path, "r");
 	if (!fd) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to open content file: %s\n", host_path);
 		SS_FREE(line_buf);
 		return NULL;
 	}
 
-	rc = fseek(fd, read_offset * 2, SEEK_SET);
+	rc = ss_fseek(fd, read_offset * 2, SEEK_SET);
 	if (rc != 0) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to seek (read_offset=%lu) requested data in content file: %s\n",
 			read_offset, host_path);
 		SS_FREE(line_buf);
-		fclose(fd);
+		ss_fclose(fd);
 		return NULL;
 	}
 
-	fgets_rc = fread(line_buf, 2, read_len, fd);
+	fgets_rc = ss_fread(line_buf, 2, read_len, fd);
 	if (fgets_rc != read_len) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to load content (read_offset=%lu, read_len=%lu) from file: %s\n",
 			read_offset, read_len, host_path);
 		SS_FREE(line_buf);
-		fclose(fd);
+		ss_fclose(fd);
 		return NULL;
 	}
 
-	fclose(fd);
+	ss_fclose(fd);
 
 	/* Note: Module fs.c must ensure freeing of the content */
 	result = ss_buf_from_hexstr(line_buf);
@@ -199,31 +211,33 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_
 	if (rc < 0)
 		return -EINVAL;
 
-	fd = fopen(host_path, "r+");
+	fd = ss_fopen(host_path, "r+");
 	if (!fd) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to open content file: %s\n", host_path);
 		return -EINVAL;
 	}
 
-	rc = fseek(fd, write_offset * 2, SEEK_SET);
+	rc = ss_fseek(fd, write_offset * 2, SEEK_SET);
 	if (rc != 0) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to seek (write_offset=%lu) data to content file: %s\n", write_offset,
 			host_path);
-		fclose(fd);
+		ss_fclose(fd);
 		return -EINVAL;
 	}
 
+	/* TODO: check if this is impl more efficient for direct storage (different PR!)
+	 * I.e. we can do one write when the hex conversion is dropped*/
 	for (i = 0; i < write_len; i++) {
 		snprintf(hex, sizeof(hex), "%02x", data[i]);
-		fwrite_rc = fwrite(hex, sizeof(hex) - 1, 1, fd);
+		fwrite_rc = ss_fwrite(hex, sizeof(hex) - 1, 1, fd);
 		if (fwrite_rc != 1) {
 			SS_LOGP(SSTORAGE, LERROR, "unable to write (write_offset=%lu+%lu) data to content file: %s\n",
 				write_offset, i, host_path);
-			fclose(fd);
+			ss_fclose(fd);
 			return -EINVAL;
 		}
 	}
-	fclose(fd);
+	ss_fclose(fd);
 
 	return 0;
 }
@@ -235,7 +249,6 @@ size_t ss_storage_get_file_len(const struct ss_list *path)
 {
 	char host_path[PATH_MAX + 1];
 	int rc;
-	FILE *fd;
 	long file_size;
 
 	/* TODO #65: check if the path really points to a file. If the path
@@ -247,28 +260,11 @@ size_t ss_storage_get_file_len(const struct ss_list *path)
 	if (rc < 0)
 		return 0;
 
-	fd = fopen(host_path, "r");
-	if (!fd) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to open content file: %s\n", host_path);
-		return 0;
-	}
-
-	rc = fseek(fd, 0, SEEK_END);
-	if (rc != 0) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to seek requested data in content file: %s\n", host_path);
-		fclose(fd);
-		return 0;
-	}
-
-	file_size = ftell(fd);
+	file_size = ss_file_size(host_path);
 	if (file_size < 0) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to tell the size of the file: %s\n", host_path);
-		fclose(fd);
+		SS_LOGP(SSTORAGE, LERROR, "unable to get the size of the file: %s\n", host_path);
 		return 0;
 	}
-
-	fclose(fd);
-
 	/* The files contain ASCII hex digits */
 	file_size /= 2;
 
@@ -282,7 +278,6 @@ int ss_storage_delete(const struct ss_list *path)
 {
 	char host_path_def[PATH_MAX + 1];
 	char host_path_content[PATH_MAX + 1];
-	char rm_command[10 + PATH_MAX + 1];
 	struct ss_file *file;
 	int rc;
 
@@ -297,17 +292,19 @@ int ss_storage_delete(const struct ss_list *path)
 	if (rc < 0)
 		return -EINVAL;
 
-	rc = remove(host_path_def);
+	rc = ss_delete_file(host_path_def);
 	if (rc < 0) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to remove definition file: %s\n", host_path_def);
 		return -EINVAL;
 	}
 
-	snprintf(rm_command, sizeof(rm_command), "rm -rf %s", host_path_content);
-	rc = system(rm_command);
+	rc = ss_delete_file(host_path_content);
 	if (rc < 0) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to remove content file: %s\n", host_path_content);
-		return -EINVAL;
+		rc = ss_delete_dir(host_path_content);
+		if (rc < 0) {
+			SS_LOGP(SSTORAGE, LERROR, "unable to remove content file: %s\n", host_path_content);
+			return -EINVAL;
+		}
 	}
 	return 0;
 }
@@ -319,7 +316,7 @@ int ss_storage_update_def(const struct ss_list *path)
 {
 	char host_path[PATH_MAX + 1];
 	int rc;
-	FILE *fd;
+	ss_FILE *fd;
 	struct ss_file *file;
 	size_t i;
 	char hex[3];
@@ -339,22 +336,22 @@ int ss_storage_update_def(const struct ss_list *path)
 	if (rc < 0)
 		return -EINVAL;
 
-	fd = fopen(host_path, "w");
+	fd = ss_fopen(host_path, "w");
 	if (!fd) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to create definition file: %s\n", host_path);
 		return -EINVAL;
 	}
 	for (i = 0; i < file->fci->len; i++) {
 		snprintf(hex, sizeof(hex), "%02x", file->fci->data[i]);
-		fwrite_rc = fwrite(hex, sizeof(hex) - 1, 1, fd);
+		fwrite_rc = ss_fwrite(hex, sizeof(hex) - 1, 1, fd);
 		if (fwrite_rc != 1) {
 			SS_LOGP(SSTORAGE, LERROR, "unable to write file definition: %s\n", host_path);
 			ss_storage_delete(path);
-			fclose(fd);
+			ss_fclose(fd);
 			return -EINVAL;
 		}
 	}
-	fclose(fd);
+	ss_fclose(fd);
 	return 0;
 }
 
@@ -369,7 +366,7 @@ int ss_storage_create_file(const struct ss_list *path, size_t file_len)
 
 	char host_path[PATH_MAX + 1];
 	int rc;
-	FILE *fd;
+	ss_FILE *fd;
 	size_t i;
 
 	/* Create definition file */
@@ -383,21 +380,21 @@ int ss_storage_create_file(const struct ss_list *path, size_t file_len)
 		ss_storage_delete(path);
 		return -EINVAL;
 	}
-	fd = fopen(host_path, "w");
+	fd = ss_fopen(host_path, "w");
 	if (!fd) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to create content file: %s\n", host_path);
 		ss_storage_delete(path);
 		return -EINVAL;
 	}
 	for (i = 0; i < file_len * 2; i++) {
-		if (fputc('f', fd) != 'f') {
+		if (ss_fwrite("f", sizeof(char), 1, fd) != 1) {
 			SS_LOGP(SSTORAGE, LERROR, "unable to prefill content file: %s\n", host_path);
 			ss_storage_delete(path);
-			fclose(fd);
+			ss_fclose(fd);
 			return -EINVAL;
 		}
 	}
-	fclose(fd);
+	ss_fclose(fd);
 
 	return 0;
 }
@@ -425,9 +422,9 @@ int ss_storage_create_dir(const struct ss_list *path)
 		return -EINVAL;
 	}
 
-	if (access(host_path, W_OK) == 0)
+	if (ss_access(host_path, W_OK) == 0)
 		return 0;
-	rc = mkdir(host_path, 0700);
+	rc = ss_create_dir(host_path, 0700);
 	if (rc < 0) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to create directory: %s\n", host_path);
 		ss_storage_delete(path);

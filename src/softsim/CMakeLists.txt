@@ -5,8 +5,7 @@ add_subdirectory(crypto)
 add_subdirectory(milenage)
 add_subdirectory(uicc)
 
-add_library(storage STATIC storage.c)
-
+add_library(storage STATIC storage.c fs.c)
 target_include_directories(storage PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
 add_executable(softsim main.c)
