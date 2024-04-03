@@ -12,6 +12,7 @@ option(CONFIG_ENABLE_SANITIZE "Build with -fsanitize=address -fsanitize=undefine
 option(CONFIG_USE_SYSTEM_HEAP "Use free/malloc instead of port_free/port_malloc")
 option(CONFIG_USE_LOGS "Set SS_LOGP macro to link against ss_logp")
 option(CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND "Building with experimental support for suspend")
+option(CONFIG_USE_UTILS "Use the extra functionality found in the collective utils folder" ON)
 
 if(CONFIG_USE_SYSTEM_HEAP)
 	add_compile_definitions(-DCONFIG_USE_SYSTEM_HEAP)
@@ -29,7 +30,12 @@ if(CONFIG_ENABLE_SANITIZE)
 	add_compile_options(-fsanitize=address -fsanitize=undefined)
 	add_link_options(-fsanitize=address -fsanitize=undefined)
 endif()
+
 add_subdirectory(src)
+
+if(CONFIG_USE_UTILS)
+	add_subdirectory(utils)
+endif()
 
 install(TARGETS storage uicc milenage crypto
 		CONFIGURATIONS Debug

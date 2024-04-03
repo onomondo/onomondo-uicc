@@ -1,0 +1,25 @@
+TEST: Decode a decrypted Onomondo SoftSIM profile
+Profile decode return value: 0
+Checking ICCID
+Successfully validated ICCID: 98001032547698103214
+Checking IMSI
+Successfully validated IMSI : 080910101032540636
+Checking OPC
+Successfully validated OPC  : 00000000000000000000000000000000
+Checking Ki
+Successfully validated OPC  : 000102030405060708090A0B0C0D0E0F
+Checking KIC
+Successfully validated KIC  : 000102030405060708090A0B0C0D0E0F
+Checking KIC as bytes
+Successfully validated KIC  : 000102030405060708090A0B0C0D0E0F
+Checking KID
+Successfully validated KID  : 000102030405060708090A0B0C0D0E0F
+TEST: Decode a decrypted Onomondo SoftSIM profile with expected IMSI error
+Profile decode return value: 0
+Checking ICCID
+Successfully validated ICCID: 98001032547698103214
+Checking IMSI
+TEST: Decode a decrypted Onomondo SoftSIM profile with expected decode error
+Profile decode return value: 13
+TEST: Decode a decrypted Onomondo SoftSIM profile with expected decode error
+Profile decode return value: 1
