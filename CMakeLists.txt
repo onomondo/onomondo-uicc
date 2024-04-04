@@ -15,15 +15,15 @@ option(CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND "Building with experimental suppo
 option(CONFIG_USE_UTILS "Use the extra functionality found in the collective utils folder" ON)
 
 if(CONFIG_USE_SYSTEM_HEAP)
-	add_compile_definitions(-DCONFIG_USE_SYSTEM_HEAP)
+	add_compile_definitions(CONFIG_USE_SYSTEM_HEAP)
 endif()
 
 if(CONFIG_USE_LOGS)
-	add_compile_definitions(-DCONFIG_USE_LOGS)
+	add_compile_definitions(CONFIG_USE_LOGS)
 endif()
 
 if(CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND)
-	add_compile_definitions(-DCONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND)
+	add_compile_definitions(CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND)
 endif()
 
 if(CONFIG_ENABLE_SANITIZE)
@@ -56,7 +56,7 @@ install(TARGETS storage uicc milenage crypto
 )
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
-	add_compile_definitions(-DCONFIG_USE_SYSTEM_HEAP)
+	add_compile_definitions(CONFIG_USE_SYSTEM_HEAP)
 	include(CTest)
 	add_subdirectory(tests)
 endif()
