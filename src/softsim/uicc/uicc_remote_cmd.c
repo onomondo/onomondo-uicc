@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
- * 
- * SPDX-License-Identifier: GPL-3.0-only 
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 #include "uicc_remote_cmd.h"
@@ -14,6 +14,7 @@
 #include <onomondo/softsim/file.h>
 #include <onomondo/softsim/log.h>
 #include <onomondo/softsim/softsim.h>
+#include <onomondo/softsim/crypto.h>
 
 #include "context.h"
 #include "fcp.h"
@@ -22,7 +23,6 @@
 #include "uicc_pin.h"
 #include "utils.h"
 #include "utils_3des.h"
-#include "utils_aes.h"
 #include "utils_ota.h"
 
 /* Information element identifier for command packets, as used in TS 23.048

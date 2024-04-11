@@ -1,18 +1,20 @@
 /*
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
- * 
- * SPDX-License-Identifier: GPL-3.0-only 
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <onomondo/softsim/crypto.h>
+#include <onomondo/softsim/log.h>
+#include <onomondo/utils/ss_crypto_extension.h>
+#include "utils_ota.h"
 #include "utils.h"
 #include "utils_3des.h"
 #include "utils_aes.h"
-#include "utils_ota.h"
-#include <onomondo/softsim/log.h>
 
 /*! Calculate the number of padding bytes (pcnt) for a given length.
  *  \param[in] algorithm algorithm to use.
@@ -36,11 +38,13 @@ uint8_t ss_utils_ota_calc_pcnt(enum enc_algorithm algorithm, size_t data_len)
 	return (-(blocksize + data_len)) % blocksize;
 }
 
+#ifndef CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION
+
 /*! Calculate cryptographic checksum (CC) using a specified algorithm.
- *  \param[out] cc user provided memory for resulting cryptpgraphic checksum.
- *  \param[out] cc_len length of user provided memory for resulting cryptpgraphic checksum.
- *  \param[in] key cryptpgraphic key.
- *  \param[in] key_len cryptpgraphic key length.
+ *  \param[out] cc user provided memory for resulting cryptographic checksum.
+ *  \param[out] cc_len length of user provided memory for resulting cryptographic checksum.
+ *  \param[in] key cryptographic key.
+ *  \param[in] key_len cryptographic key length.
  *  \param[in] data1 user buffer containing part 1 of the data.
  *  \param[in] data1_len length of data part 1 (must be multiple of blocksize)
  *  \param[in] data2 user buffer containing part 2 of the data.
@@ -51,6 +55,18 @@ int ss_utils_ota_calc_cc(uint8_t *cc, size_t cc_len, uint8_t *key, size_t key_le
 {
 	struct utils_3des_cc_ctx cc_des;
 	struct utils_aes_cc_ctx cc_aes;
+
+	/* This allows users to fetch keys from more custom locations.
+	 * Very useful for devices where the filesystem isn't trusted.
+	 * I.e. The key is preferably loaded from a secure zone or from encrypted
+	 * representation etc.*/
+#ifdef CONFIG_EXTERNAL_KEY_LOAD
+	uint8_t modified_key[AES_BLOCKSIZE];
+	size_t modified_key_len = AES_BLOCKSIZE;
+	ss_load_key_external(key, key_len, modified_key, &modified_key_len);
+	key = modified_key;
+	key_len = modified_key_len;
+#endif // CONFIG_EXTERNAL_KEY_LOAD
 
 	/* NOTE: This function accepts two separate buffers (data1 and data2).
 	 * The reason for this is that the data we are going to sign is in two
@@ -88,4 +104,10 @@ int ss_utils_ota_calc_cc(uint8_t *cc, size_t cc_len, uint8_t *key, size_t key_le
 		SS_LOGP(SREMOTECMD, LERROR, "unable to calculate cc, improper crypto algorithm selected\n");
 		return -EINVAL;
 	}
+
+#ifdef CONFIG_EXTERNAL_KEY_LOAD
+	ss_memzero(modified_key, sizeof(modified_key));
+#endif // CONFIG_EXTERNAL_KEY_LOAD
 }
+
+#endif // CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION

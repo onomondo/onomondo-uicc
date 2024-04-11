@@ -12,7 +12,9 @@ option(CONFIG_ENABLE_SANITIZE "Build with -fsanitize=address -fsanitize=undefine
 option(CONFIG_USE_SYSTEM_HEAP "Use free/malloc instead of port_free/port_malloc")
 option(CONFIG_USE_LOGS "Set SS_LOGP macro to link against ss_logp")
 option(CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND "Building with experimental support for suspend")
-option(CONFIG_USE_UTILS "Use the extra functionality found in the collective utils folder" ON)
+option(CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION "Use external crypto implementations")
+option(CONFIG_EXTERNAL_KEY_LOAD "Use crypto exstension for loading keys")
+option(CONFIG_USE_UTILS "Use the extra functionality found in the collective utils folder")
 
 if(CONFIG_USE_SYSTEM_HEAP)
 	add_compile_definitions(CONFIG_USE_SYSTEM_HEAP)
@@ -24,6 +26,19 @@ endif()
 
 if(CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND)
 	add_compile_definitions(CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND)
+endif()
+
+if(CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION AND CONFIG_EXTERNAL_KEY_LOAD)
+	message(FATAL_ERROR "CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION and CONFIG_EXTERNAL_KEY_LOAD should not be used together")
+endif()
+
+if(CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION)
+	message(STATUS "Using external crypto implementation")
+	add_compile_definitions(-DCONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION)
+endif()
+
+if(CONFIG_EXTERNAL_KEY_LOAD)
+	add_compile_definitions(-DCONFIG_EXTERNAL_KEY_LOAD)
 endif()
 
 if(CONFIG_ENABLE_SANITIZE)

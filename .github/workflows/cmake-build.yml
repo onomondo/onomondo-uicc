@@ -11,6 +11,11 @@ concurrency:
 
 jobs:
   cmake-build-and-test:
+    strategy:
+      matrix:
+        flags: ["", "-DCONFIG_EXTERNAL_KEY_LOAD=y"]
+        compiler: [gcc, clang]
+
     runs-on: ubuntu-20.04
     timeout-minutes: 15
 
@@ -26,11 +31,28 @@ jobs:
 
       - name: Install Embedded Toolchain
         uses: carlosperate/arm-none-eabi-gcc-action@v1.8.1
+        if: matrix.compiler == 'gcc'
+
+      - name: Install CLANG
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+        if: matrix.compiler == 'clang'
+
+      - name: Add key loaders to tests
+        run: |
+          echo "void ss_load_key_external(const uint8_t *key_id, size_t in_len, uint8_t *key, size_t *key_len){memcpy(key, key_id, in_len);*key_len = in_len;}" >> src/softsim/main.c
+          echo "void ss_load_key_external(const uint8_t *key_id, size_t in_len, uint8_t *key, size_t *key_len){memcpy(key, key_id, in_len);*key_len = in_len;}" >> tests/ota/ota_test.c
+          echo "void ss_load_key_external(const uint8_t *key_id, size_t in_len, uint8_t *key, size_t *key_len){memcpy(key, key_id, in_len);*key_len = in_len;}" >> tests/aes/aes_test.c
+        if: matrix.flags == '-DCONFIG_EXTERNAL_KEY_LOAD=y'
 
       - name: Configure and Build Project
         run: |
-          cmake -S . -B build -DBUILD_TESTING=y -DCONFIG_USE_SYSTEM_HEAP=y -DCONFIG_ENABLE_SANITIZE=y
+          cmake -S . -B build -DBUILD_TESTING=y -DCONFIG_USE_SYSTEM_HEAP=y -DCONFIG_ENABLE_SANITIZE=y ${{ matrix.flags }}
           cmake --build build
+        env:
+          CC: ${{ matrix.compiler }}
+          CXX: ${{ matrix.compiler }}++
 
       - name: Test Project
         run: cd build && ctest --output-on-failure

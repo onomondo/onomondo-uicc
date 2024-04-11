@@ -1,18 +1,16 @@
 /*
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
- * 
- * SPDX-License-Identifier: GPL-3.0-only 
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
+
 #define DES_BLOCKSIZE 8
 #define TRIPLE_DES_KEYLEN 16
-
-void ss_utils_3des_decrypt(uint8_t *buffer, size_t buffer_len,
-			   const uint8_t *key);
-void ss_utils_3des_encrypt(uint8_t *buffer, size_t buffer_len,
-			   const uint8_t *key);
 
 struct des3_key_s;
 struct utils_3des_cc_ctx {
@@ -23,6 +21,5 @@ struct utils_3des_cc_ctx {
 };
 
 void ss_utils_3des_cc_setup(struct utils_3des_cc_ctx *cc, const uint8_t *key);
-void ss_utils_3des_cc_feed(struct utils_3des_cc_ctx *cc, const uint8_t *data,
-			   size_t data_len);
+void ss_utils_3des_cc_feed(struct utils_3des_cc_ctx *cc, const uint8_t *data, size_t data_len);
 void ss_utils_3des_cc_cleanup(struct utils_3des_cc_ctx *cc);

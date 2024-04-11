@@ -8,7 +8,9 @@
 #include "utils.h"
 #include "utils_3des.h"
 #include "crypto/des_i.h"
+#include <onomondo/softsim/crypto.h>
 
+#ifndef CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION
 void setup_key(const uint8_t *src, struct des3_key_s *dest)
 {
 	/* The library wants keys in 24byte form, but we have the 16byte form */
@@ -137,3 +139,4 @@ void ss_utils_3des_cc_cleanup(struct utils_3des_cc_ctx *cc)
 	ss_memzero(cc->key, sizeof(cc->key));
 	SS_FREE(cc->key);
 }
+#endif // CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION

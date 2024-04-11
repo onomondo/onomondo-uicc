@@ -5,8 +5,7 @@ add_executable(aes_test aes_test.c)
 
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/include)
-
-target_link_libraries(aes_test uicc crypto)
+target_link_libraries(aes_test uicc crypto $<$<TARGET_EXISTS:utils>:utils>)
 
 add_test(NAME aes_test COMMAND sh -c "$<TARGET_FILE:aes_test> > aes_test.out")
 
