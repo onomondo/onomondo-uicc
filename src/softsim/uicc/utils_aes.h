@@ -1,17 +1,12 @@
 /*
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
- * 
- * SPDX-License-Identifier: GPL-3.0-only 
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 #pragma once
 
 #define AES_BLOCKSIZE 16
-
-void ss_utils_aes_decrypt(uint8_t *buffer, size_t buffer_len,
-			  const uint8_t *key, size_t key_len);
-void ss_utils_aes_encrypt(uint8_t *buffer, size_t buffer_len,
-			  const uint8_t *key, size_t key_len);
 
 struct utils_aes_cc_ctx {
 	void *aes_ctx;
@@ -30,8 +25,6 @@ struct utils_aes_cc_ctx {
 	bool inert_padding;
 };
 
-void ss_utils_aes_cc_setup(struct utils_aes_cc_ctx *cc, const uint8_t *key,
-			   size_t key_len, bool inert_padding);
-void ss_utils_aes_cc_feed(struct utils_aes_cc_ctx *cc, const uint8_t *data,
-			  size_t data_len, bool last);
+void ss_utils_aes_cc_setup(struct utils_aes_cc_ctx *cc, const uint8_t *key, size_t key_len, bool inert_padding);
+void ss_utils_aes_cc_feed(struct utils_aes_cc_ctx *cc, const uint8_t *data, size_t data_len, bool last);
 void ss_utils_aes_cc_cleanup(struct utils_aes_cc_ctx *cc);

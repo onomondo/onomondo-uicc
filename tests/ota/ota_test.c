@@ -16,7 +16,7 @@ static void calc_and_print_pcnt(enum enc_algorithm algorithm, size_t data_len, u
 {
 	char *algorithm_str;
 	uint8_t pcnt;
-	
+
 	switch (algorithm) {
 	case TRIPLE_DES_CBC2:
 		algorithm_str = "DES_CBC2";
@@ -32,7 +32,7 @@ static void calc_and_print_pcnt(enum enc_algorithm algorithm, size_t data_len, u
 	}
 
 	pcnt = ss_utils_ota_calc_pcnt(algorithm, data_len);
-	
+
 	printf("algorithm=%s data_len=%zu, pcnt=%u, pcnt_expected=%u\n",
 	       algorithm_str, data_len, ss_utils_ota_calc_pcnt(algorithm, data_len), pcnt_expected);
 
@@ -53,7 +53,7 @@ static void ss_utils_ota_calc_pcnt_test(void)
 	calc_and_print_pcnt(TRIPLE_DES_CBC2, 9, 7);
 	calc_and_print_pcnt(TRIPLE_DES_CBC2, 17, 7);
 	calc_and_print_pcnt(TRIPLE_DES_CBC2, 25, 7);
-	
+
 	/* DES Off by -1 */
 	calc_and_print_pcnt(TRIPLE_DES_CBC2, 7, 1);
 	calc_and_print_pcnt(TRIPLE_DES_CBC2, 15, 1);
@@ -70,7 +70,7 @@ static void ss_utils_ota_calc_pcnt_test(void)
 	calc_and_print_pcnt(AES_CBC, 17, 15);
 	calc_and_print_pcnt(AES_CBC, 33, 15);
 	calc_and_print_pcnt(AES_CBC, 49, 15);
-	
+
 	/* AES Off by -1 */
 	calc_and_print_pcnt(AES_CBC, 15, 1);
 	calc_and_print_pcnt(AES_CBC, 31, 1);

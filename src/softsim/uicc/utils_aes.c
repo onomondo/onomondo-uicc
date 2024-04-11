@@ -1,17 +1,34 @@
 /*
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
- * 
- * SPDX-License-Identifier: GPL-3.0-only 
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <onomondo/utils/ss_crypto_extension.h>
+#include <onomondo/softsim/crypto.h>
 #include "utils.h"
 #include "utils_aes.h"
 #include "crypto/common.h"
-
 #include "crypto/aes.h"
+
+/* This allows users to fetch keys from more custom locations.
+ * Very useful for devices where the filesystem isn't trusted.
+ * I.e. The key is preferably loaded from a secure zone or from encrypted
+ * representation etc. */
+
+#define COPY_EXTERNAL_KEY_TO_LOCAL_VAR()                                     \
+	uint8_t modified_key[AES_BLOCKSIZE];                                 \
+	size_t modified_key_len = AES_BLOCKSIZE;                             \
+	ss_load_key_external(key, key_len, modified_key, &modified_key_len); \
+	key = modified_key;                                                  \
+	key_len = modified_key_len;
+
+#define MEMZERO_EXTERNAL_KEY() ss_memzero(modified_key, sizeof(modified_key));
+
+#ifndef CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION
 
 /*! Perform an in-place AES decryption with the common settings of OTA
  *  (CBC mode, zero IV).
@@ -27,6 +44,10 @@ void ss_utils_aes_decrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key
 	int i;
 	int j;
 
+#ifdef CONFIG_EXTERNAL_KEY_LOAD
+	COPY_EXTERNAL_KEY_TO_LOCAL_VAR()
+#endif // CONFIG_EXTERNAL_KEY_LOAD
+
 	aes_ctx = aes_decrypt_init(key, key_len);
 
 	/* Adjusted from hostap's crypto_internal-cipher.c */
@@ -41,6 +62,10 @@ void ss_utils_aes_decrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key
 	}
 
 	aes_decrypt_deinit(aes_ctx);
+
+#ifdef CONFIG_EXTERNAL_KEY_LOAD
+	MEMZERO_EXTERNAL_KEY()
+#endif // CONFIG_EXTERNAL_KEY_LOAD
 }
 
 /*! Perform an in-place AES encryption with the common settings of OTA
@@ -56,6 +81,10 @@ void ss_utils_aes_encrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key
 	int i;
 	int j;
 
+#ifdef CONFIG_EXTERNAL_KEY_LOAD
+	COPY_EXTERNAL_KEY_TO_LOCAL_VAR()
+#endif // CONFIG_EXTERNAL_KEY_LOAD
+
 	aes_ctx = aes_encrypt_init(key, key_len);
 
 	/* Adjusted from hostap's crypto_internal-cipher.c */
@@ -68,7 +97,12 @@ void ss_utils_aes_encrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key
 	}
 
 	aes_encrypt_deinit(aes_ctx);
+
+#ifdef CONFIG_EXTERNAL_KEY_LOAD
+	MEMZERO_EXTERNAL_KEY()
+#endif // CONFIG_EXTERNAL_KEY_LOAD
 }
+#endif // CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION
 
 /* Shift a whole block to the left by one bit position.
  * (See also RFC 4493, appendix A) */

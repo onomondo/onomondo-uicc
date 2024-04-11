@@ -6,7 +6,7 @@ add_executable(ota_test ota_test.c)
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-target_link_libraries(ota_test uicc crypto)
+target_link_libraries(ota_test uicc crypto $<$<TARGET_EXISTS:utils>:utils>)
 
 add_test(NAME ota_test COMMAND sh -c "$<TARGET_FILE:ota_test> > ota_test.out")
 
