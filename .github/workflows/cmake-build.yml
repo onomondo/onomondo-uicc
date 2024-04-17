@@ -10,6 +10,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  verify-c-structs:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Generate C Structs
+        run: |
+          cd files-c-array
+          python3 toCArray.py
+      - name: Restore c-structs and verify their identity of restored with original files
+        run: |
+          set -e
+          git add .
+          git diff --cached --exit-code --ignore-space-at-eol
+
   cmake-build-and-test:
     strategy:
       matrix:
