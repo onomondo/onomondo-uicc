@@ -5,7 +5,7 @@ set(utils_collection
 	ss_profile.c
 )
 
-if(CONFIG_EXTERNAL_KEY_LOAD)
+if(CONFIG_EXTERNAL_KEY_LOAD AND NOT CONFIG_NO_DEFAULT_IMPL)
   set(utils_collection ${utils_collection} ss_crypto_extension.c)
 endif()
 

@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
-#include <ctype.h>
 #include <onomondo/softsim/utils.h>
 
 /*! Generate a hexdump string from the input data.
@@ -51,7 +50,13 @@ char *ss_hexdump(const uint8_t *data, size_t len)
 
 static bool is_hex(char hex_digit)
 {
-	switch (tolower(hex_digit)) {
+	switch (hex_digit) {
+	case 'A':
+	case 'B':
+	case 'C':
+	case 'D':
+	case 'E':
+	case 'F':
 	case 'a':
 	case 'b':
 	case 'c':
