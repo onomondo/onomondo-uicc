@@ -38,7 +38,7 @@ uint8_t ss_utils_ota_calc_pcnt(enum enc_algorithm algorithm, size_t data_len)
 	return (-(blocksize + data_len)) % blocksize;
 }
 
-#ifndef CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION
+#ifndef CONFIG_EXTERNAL_CRYPTO_IMPL
 
 /*! Calculate cryptographic checksum (CC) using a specified algorithm.
  *  \param[out] cc user provided memory for resulting cryptographic checksum.
@@ -110,4 +110,4 @@ int ss_utils_ota_calc_cc(uint8_t *cc, size_t cc_len, uint8_t *key, size_t key_le
 #endif // CONFIG_EXTERNAL_KEY_LOAD
 }
 
-#endif // CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION
+#endif // CONFIG_EXTERNAL_CRYPTO_IMPL

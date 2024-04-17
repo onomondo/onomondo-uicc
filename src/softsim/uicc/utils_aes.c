@@ -28,7 +28,7 @@
 
 #define MEMZERO_EXTERNAL_KEY() ss_memzero(modified_key, sizeof(modified_key));
 
-#ifndef CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION
+#ifndef CONFIG_EXTERNAL_CRYPTO_IMPL
 
 /*! Perform an in-place AES decryption with the common settings of OTA
  *  (CBC mode, zero IV).
@@ -102,7 +102,7 @@ void ss_utils_aes_encrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key
 	MEMZERO_EXTERNAL_KEY()
 #endif // CONFIG_EXTERNAL_KEY_LOAD
 }
-#endif // CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION
+#endif // CONFIG_EXTERNAL_CRYPTO_IMPL
 
 /* Shift a whole block to the left by one bit position.
  * (See also RFC 4493, appendix A) */

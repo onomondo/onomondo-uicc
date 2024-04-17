@@ -19,7 +19,7 @@
  * live in potential non-secure RAM while in use. Immediately after use the keys are zeroed out.
  *
  * At all times where a dedicated crypto engine or other secure implementations exist (i.e. ARM TrustZone)
- * the CONFIG_EXTERNAL_CRYPTO_IMPLEMENTATION should be used.
+ * the CONFIG_EXTERNAL_CRYPTO_IMPL should be used.
  *
  * This function is called immediately before the block encryption/decryption is carried out.
  */
