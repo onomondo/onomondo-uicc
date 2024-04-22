@@ -42,7 +42,7 @@ set(uicc_collection
 # uicc_collection to allow users to implement log.c themselves by default.
 if(BUILD_TESTING)
 	set(uicc_collection ${uicc_collection} log.c)
-	add_compile_definitions(-DCONFIG_USE_LOGS)
+	add_compile_definitions(CONFIG_USE_LOGS)
 endif()
 
 # Combine UICC with or without testing required files
