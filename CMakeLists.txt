@@ -36,11 +36,11 @@ endif()
 
 if(CONFIG_EXTERNAL_CRYPTO_IMPL)
 	message(STATUS "Using external crypto implementation")
-	add_compile_definitions(-DCONFIG_EXTERNAL_CRYPTO_IMPL)
+	add_compile_definitions(CONFIG_EXTERNAL_CRYPTO_IMPL)
 endif()
 
 if(CONFIG_EXTERNAL_KEY_LOAD)
-	add_compile_definitions(-DCONFIG_EXTERNAL_KEY_LOAD)
+	add_compile_definitions(CONFIG_EXTERNAL_KEY_LOAD)
 endif()
 
 if(CONFIG_ENABLE_SANITIZE)
