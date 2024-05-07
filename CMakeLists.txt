@@ -8,15 +8,15 @@ project(softsim
 		LANGUAGES C
 )
 
-option(CONFIG_ENABLE_SANITIZE "Build with -fsanitize=address -fsanitize=undefined")
-option(CONFIG_USE_SYSTEM_HEAP "Use free/malloc instead of port_free/port_malloc")
-option(CONFIG_USE_LOGS "Set SS_LOGP macro to link against ss_logp")
+option(CONFIG_ENABLE_SANITIZE 	"Build with -fsanitize=address -fsanitize=undefined")
+option(CONFIG_USE_SYSTEM_HEAP 	"Use free/malloc instead of port_free/port_malloc")
+option(CONFIG_USE_LOGS 			"Set SS_LOGP macro to link against ss_logp")
 option(CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND "Building with experimental support for suspend")
 option(CONFIG_EXTERNAL_CRYPTO_IMPL "Use external crypto implementations")
 option(CONFIG_EXTERNAL_KEY_LOAD "Use crypto exstension for loading keys")
-option(CONFIG_USE_UTILS "Use the extra functionality found in the collective utils folder")
-option(CONFIG_NO_DEFAULT_IMPL "build with no default implementation")
-option(CONFIG_BUILD_LIB_ONLY "build libraries only")
+option(CONFIG_USE_UTILS 		"Use the extra functionality found in the collective utils folder")
+option(CONFIG_NO_DEFAULT_IMPL 	"Build with no default implementation")
+option(CONFIG_BUILD_LIB_ONLY 	"Build libraries only")
 
 if(CONFIG_USE_SYSTEM_HEAP)
 	add_compile_definitions(CONFIG_USE_SYSTEM_HEAP)
@@ -50,23 +50,31 @@ endif()
 
 add_subdirectory(src)
 
+set(install_target_collection
+	storage
+	uicc
+	milenage
+	crypto
+)
+
 if(CONFIG_USE_UTILS)
 	add_subdirectory(utils)
+	set(install_target_collection ${install_target_collection} utils)
 endif()
 
-install(TARGETS storage uicc milenage crypto
+install(TARGETS ${install_target_collection}
 		CONFIGURATIONS Debug
 		ARCHIVE DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/Debug
 		PUBLIC_HEADER DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/include
 )
 
-install(TARGETS storage uicc milenage crypto
+install(TARGETS ${install_target_collection}
 		CONFIGURATIONS Release
 		ARCHIVE DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/Release/
 		PUBLIC_HEADER DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/include
 )
 
-install(TARGETS storage uicc milenage crypto
+install(TARGETS ${install_target_collection}
 		CONFIGURATIONS MinSizeRel
 		ARCHIVE DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/ReleaseOs/
 		PUBLIC_HEADER DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/include

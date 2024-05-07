@@ -34,7 +34,7 @@ jobs:
   cmake-build-and-test:
     strategy:
       matrix:
-        flags: ["", "-DCONFIG_EXTERNAL_KEY_LOAD=y"]
+        flags: ["", "-DCONFIG_EXTERNAL_KEY_LOAD=y", "-DCONFIG_USE_UTILS=y"]
         compiler: [gcc, clang]
 
     runs-on: ubuntu-20.04
