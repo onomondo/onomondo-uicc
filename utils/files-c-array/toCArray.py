@@ -69,6 +69,6 @@ def get_dirs_and_files(path):
     files.sort()
 
     return files, directories
-to_c_array('../files', 'ss_static_files_bin.c', 'bin')
-to_c_array('../files', 'ss_static_files_hex.c', 'hex')
+to_c_array('../../files', 'ss_static_files_bin.c', 'bin')
+to_c_array('../../files', 'ss_static_files_hex.c', 'hex')
 
