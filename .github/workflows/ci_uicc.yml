@@ -1,0 +1,80 @@
+name: CI/CD for UICC Project
+
+on:
+  push:
+    branches:
+      - "**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-c-structs:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Generate C Structs
+        run: |
+          cd utils/files-c-array
+          python3 toCArray.py
+      - name: Restore c-structs and verify their identity of restored with original files
+        run: |
+          set -e
+          git add .
+          git diff --cached --exit-code --ignore-space-at-eol
+
+  uicc-build-and-test:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 15
+    
+    strategy:
+      matrix:
+        flags: ["", "-DCONFIG_EXTERNAL_KEY_LOAD=y", "-DCONFIG_USE_UTILS=y", "-DCONFIG_BUILD_LIB_ONLY=y"]
+        compiler: [gcc, clang]
+
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4
+
+      - name: Install CMake
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.27.0
+          ninjaVersion: 1.11.1
+
+      - name: Install Embedded Toolchain
+        uses: carlosperate/arm-none-eabi-gcc-action@v1.8.1
+        if: matrix.compiler == 'gcc'
+
+      - name: Install CLANG
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+        if: matrix.compiler == 'clang'
+
+      - name: Add key loaders to tests
+        run: |
+          echo "void ss_load_key_external(const uint8_t *key_id, size_t in_len, uint8_t *key, size_t *key_len){memcpy(key, key_id, in_len);*key_len = in_len;}" >> src/softsim/main.c
+          echo "void ss_load_key_external(const uint8_t *key_id, size_t in_len, uint8_t *key, size_t *key_len){memcpy(key, key_id, in_len);*key_len = in_len;}" >> tests/ota/ota_test.c
+          echo "void ss_load_key_external(const uint8_t *key_id, size_t in_len, uint8_t *key, size_t *key_len){memcpy(key, key_id, in_len);*key_len = in_len;}" >> tests/aes/aes_test.c
+        if: matrix.flags == '-DCONFIG_EXTERNAL_KEY_LOAD=y'
+
+      - name: Configure and Build Project
+        run: |
+          cmake -S . -B build -DBUILD_TESTING=y -DCONFIG_USE_SYSTEM_HEAP=y -DCONFIG_ENABLE_SANITIZE=y ${{ matrix.flags }}
+          cmake --build build
+        env:
+          CC: ${{ matrix.compiler }}
+          CXX: ${{ matrix.compiler }}++
+
+      - name: Test Project
+        run: cd build && ctest --output-on-failure
