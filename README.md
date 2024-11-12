@@ -60,14 +60,6 @@ according with:
 For files licensed under BSD license, refer to BSD-3-Clause file in the root directory of this source tree.
 
 
-GIT Repository
---------------
-
-The canonical https access of the repository is https://github.com/onomondo/onomondo-uicc
-
-The canonical git+ssh access of the repository is `git@github.com:onomondo/onomondo-uicc.git`
-
-
 External Dependencies
 ---------------------
 
@@ -100,9 +92,8 @@ Install cmake, make and a c compiler.
 then run:
 
 ```
-$ cmake -s . -b build -dconfig_use_system_heap=y
+$ cmake -S . -B build -DCONFIG_USE_SYSTEM_HEAP=y -DCONFIG_USE_LOGS=y -DBUILD_TESTING=y
 $ cmake --build build
-$ make
 ```
 
 ### Installing run time dependencies
