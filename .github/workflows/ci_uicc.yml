@@ -3,7 +3,8 @@ name: CI/CD for UICC Project
 on:
   push:
     branches:
-      - "**"
+      - master
+  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -11,7 +12,7 @@ concurrency:
 
 jobs:
   verify-c-structs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout Project
@@ -33,7 +34,7 @@ jobs:
           git diff --cached --exit-code --ignore-space-at-eol
 
   uicc-build-and-test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     
     strategy:
