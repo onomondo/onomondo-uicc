@@ -238,14 +238,14 @@ int main(void)
 
 	SS_LOGP(SVPCD, LINFO, "connected.\n");
 
-	FD_ZERO(&fdset);
-	FD_SET(socket_fd, &fdset);
-
 	select_timeout.tv_sec = 0;
 	select_timeout.tv_usec = 500000;
 
 	while (running) {
 		select_timer = select_timeout;
+
+		FD_ZERO(&fdset);
+		FD_SET(socket_fd, &fdset);
 
 		rc = select(socket_fd + 1, &fdset, NULL, NULL, &select_timer);
 		if (rc < 0)
