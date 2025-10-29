@@ -253,7 +253,7 @@ static int select_by_sfi_binarystyle(struct ss_apdu *apdu)
 static int select_by_sfi_recordstyle(struct ss_apdu *apdu)
 {
 	if (apdu->hdr.p2 & 0xf8)
-		return select_by_sfi(apdu, apdu->hdr.p1 & apdu->hdr.p2 >> 3);
+		return select_by_sfi(apdu, apdu->hdr.p2 >> 3);
 	return 0;
 }
 
