@@ -1,9 +1,9 @@
-name: CI/CD for UICC Project
+name: CI for UICC Project
 
 on:
   push:
     branches:
-      - master
+      - "**"
   pull_request:
 
 concurrency:

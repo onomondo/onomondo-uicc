@@ -3,7 +3,7 @@ name: Extended CI for UICC Project
 on:
   push:
     branches:
-      - master
+      - "**"
   pull_request:
 
 concurrency:
@@ -12,6 +12,8 @@ concurrency:
 
 jobs:
   pysim-integration-tests:
+    # Only run in the original onomondo repository, not in forks
+    if: github.repository == 'onomondo/onomondo-uicc'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
