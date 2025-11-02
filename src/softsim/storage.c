@@ -35,8 +35,8 @@
 /* Generate a host filesystem path for a given file path. */
 static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool def, const char *division)
 {
-	char host_fs_path[PATH_MAX - 4 - 7];
-	char abs_host_fs_path[PATH_MAX];
+	char host_fs_path[SS_STORAGE_PATH_MAX - 4 - 7];
+	char abs_host_fs_path[SS_STORAGE_PATH_MAX];
 	static char *host_fs_path_ptr;
 	struct ss_file *path_cursor;
 	struct ss_file *path_last = NULL;
@@ -75,7 +75,7 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 			path_last->fid, abs_host_fs_path);
 	}
 
-	strncpy(def_path, abs_host_fs_path, PATH_MAX);
+	strncpy(def_path, abs_host_fs_path, SS_STORAGE_PATH_MAX);
 	return 0;
 }
 
@@ -116,7 +116,7 @@ int ss_storage_get_file_def(struct ss_list *path)
 	/*! Note: This function will allocate memory in file to store the file
 	 *  definition. The caller must take care of freeing. */
 
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	struct ss_file *file;
 	int rc;
 
@@ -146,7 +146,7 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 	 * (Normally this shouldn't happen because the FCP is always checked
 	 * before calling this function. */
 
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 	ss_FILE *fd;
 	char *line_buf;
@@ -200,7 +200,7 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
  *  \returns 0 on success, -EINVAL on failure. */
 int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_t write_offset, size_t write_len)
 {
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 	FILE *fd;
 	size_t i;
@@ -247,7 +247,7 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_
  *  \returns size in bytes on success, 0 on failure. */
 size_t ss_storage_get_file_len(const struct ss_list *path)
 {
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 	long file_size;
 
@@ -276,8 +276,8 @@ size_t ss_storage_get_file_len(const struct ss_list *path)
  *  \returns 0 on success, -EINVAL on failure. */
 int ss_storage_delete(const struct ss_list *path)
 {
-	char host_path_def[PATH_MAX + 1];
-	char host_path_content[PATH_MAX + 1];
+	char host_path_def[SS_STORAGE_PATH_MAX + 1];
+	char host_path_content[SS_STORAGE_PATH_MAX + 1];
 	struct ss_file *file;
 	int rc;
 
@@ -314,7 +314,7 @@ int ss_storage_delete(const struct ss_list *path)
  *  \returns 0 on success, -EINVAL on failure */
 int ss_storage_update_def(const struct ss_list *path)
 {
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 	ss_FILE *fd;
 	struct ss_file *file;
@@ -364,7 +364,7 @@ int ss_storage_create_file(const struct ss_list *path, size_t file_len)
 	/*! Note: This function must not be called with pathes that point to
 	 *  a directory! */
 
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 	ss_FILE *fd;
 	size_t i;
@@ -407,7 +407,7 @@ int ss_storage_create_dir(const struct ss_list *path)
 	/*! Note: This function must not be called with pathes that point to
 	 *  a directory! */
 
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 
 	/* Create definition file */
