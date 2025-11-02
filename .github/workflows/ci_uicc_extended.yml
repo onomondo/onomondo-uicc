@@ -1,0 +1,126 @@
+name: Extended CI for UICC Project
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pysim-integration-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        # Only test the most common configuration to avoid redundancy with ci_uicc.yml
+        flags: [""]
+        compiler: [gcc]
+
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4
+
+      - name: Install CMake
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.27.0
+          ninjaVersion: 1.11.1
+
+      - name: Install Embedded Toolchain
+        uses: carlosperate/arm-none-eabi-gcc-action@v1.8.1
+
+      - name: Configure and Build Project
+        run: |
+          cmake -S . -B build -DBUILD_TESTING=y -DCONFIG_USE_SYSTEM_HEAP=y -DCONFIG_ENABLE_SANITIZE=y ${{ matrix.flags }}
+          cmake --build build
+        env:
+          CC: ${{ matrix.compiler }}
+          CXX: ${{ matrix.compiler }}++
+
+      - name: Copy executables to src dir
+        run: |
+          cp build/src/softsim/softsim src/softsim/softsim
+
+      - name: Checkout vsmartcard
+        uses: actions/checkout@v4
+        with:
+          repository: frankmorgner/vsmartcard
+          path: vsmartcard
+
+      - name: Setup VPCD
+        run: |
+          sudo apt install libpcsclite-dev help2man
+          cd vsmartcard/virtualsmartcard
+          autoreconf --verbose --install --force
+          sudo ./configure --sysconfdir=/etc
+          sudo make
+          sudo make install
+
+      - name: Start pcscd service
+        run: |
+          sudo apt install pcscd
+          sudo systemctl start pcscd
+
+      - name: Checkout onomondo-softsim-test-suite (Private)
+        uses: actions/checkout@v4
+        with:
+          repository: onomondo/onomondo-softsim-test-suite
+          submodules: recursive
+          path: onomondo-softsim-test-suite
+          token: ${{ secrets.GH_AUTH_TOKEN }}
+
+      - name: Setup Python for pySim
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Clone pySim and Install Requirements
+        run: |
+          git clone https://gitea.osmocom.org/sim-card/pysim.git "$GITHUB_WORKSPACE/pysim"
+          pip3 install -r "$GITHUB_WORKSPACE/onomondo-softsim-test-suite/requirements.txt"
+          pip3 install -r "$GITHUB_WORKSPACE/pysim/requirements.txt"
+          # Downgrade cmd2 to version compatible with test suite's import style
+          pip3 install --force-reinstall 'cmd2<2.0.0'
+
+      - name: Remove files before restoring them
+        run: |
+          git rm -rf files/3f00 files/3f00.def || true
+          mkdir -p files
+
+      - name: Start SoftSIM
+        run: |
+          src/softsim/softsim &
+          sleep 2
+
+      - name: Restore files and verify integrity
+        run: |
+          set -e
+          ./pysim/pySim-shell.py -p0 --script ./utils/files-creation/all.pysim
+          git add files
+          git diff --cached --exit-code
+
+      - name: Run onomondo-softsim-test-suite
+        run: |
+          cd "$GITHUB_WORKSPACE/onomondo-softsim-test-suite/"
+          # Note: this only logs, expected to fail but does not report error code
+          python test_SIM_OS.py || true
+
+      - name: Stop SoftSIM
+        run: |
+          pkill -f softsim -USR1 || true
+          sleep 5
+
+      - name: Install libosmocore-utils (for Milenage testing)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libosmocore-utils
+
+      - name: Run onomondo-softsim-test-suite (standalone version)
+        run: |
+          cd "$GITHUB_WORKSPACE/onomondo-softsim-test-suite/"
+          SOFTSIM_TEST_RUNNER=execute_softsim PYTHONPATH=./pysim SOFTSIM=../src/softsim/softsim python3 -m unittest -v
