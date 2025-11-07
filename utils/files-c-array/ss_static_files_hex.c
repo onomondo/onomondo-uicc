@@ -4,8 +4,8 @@ const ss_dir_t ss_dirs_arr[] = {
 {.name = "/3f00/7ff0"}
 };
 static const char _3f00_def[] = "621b8202782183023f00a5098001f18701008801008a01058b032f060f";
-static const char _3f00_2f00[] = "61194f10a0000000871002ffffffff890709000050055553696d31ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-static const char _3f00_2f00_def[] = "621a8205422100260283022f008a01058b032f06028002004c8801f0";
+static const char _3f00_2f00[] = "61134f0ba0000000871002ffffffff50045553494d";
+static const char _3f00_2f00_def[] = "621a8205422100150183022f008a01058b032f0602800200158801f0";
 static const char _3f00_2f05[] = "ffffffffffffffffffff";
 static const char _3f00_2f05_def[] = "62178202412183022f058a01058b032f06018002000a880128";
 static const char _3f00_2f06[] = "8001019000800102a406830101950108800100a40683010a950108ffffffffffffffffffffffffff8001019000800102a40683010a950108800100a40683010a950108ffffffffffffffffffffffffff8001019000800100a40683010a950108ffffffffffffffffffffffffffffffffffffffffffffffff800101a406830101950108800102a406830101950108800100a40683010a950108ffffffffffffff800101a406830101950108800102a40683010a950108800100a40683010a950108ffffffffffffff800101a40683010a950108800102a40683010a950108800100a40683010a950108ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -103,7 +103,7 @@ static const char _3f00_a1df1d01[] = "a0000000871002ffffffff89070900007ff0ffffff
 static const char _3f00_a1df1d01_def[] = "6211820502210012108304a1df1d0180020120";
 const ss_file_t ss_files_arr[] = {
 {.name = "/3f00.def", .data = _3f00_def, .size = 58}, 
-{.name = "/3f00/2f00", .data = _3f00_2f00, .size = 152}, 
+{.name = "/3f00/2f00", .data = _3f00_2f00, .size = 42}, 
 {.name = "/3f00/2f00.def", .data = _3f00_2f00_def, .size = 56}, 
 {.name = "/3f00/2f05", .data = _3f00_2f05, .size = 20}, 
 {.name = "/3f00/2f05.def", .data = _3f00_2f05_def, .size = 50}, 
