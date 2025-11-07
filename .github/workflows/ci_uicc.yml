@@ -3,7 +3,7 @@ name: CI/CD for UICC Project
 on:
   push:
     branches:
-      - master
+      - "**"
   pull_request:
 
 concurrency:
