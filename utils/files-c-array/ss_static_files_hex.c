@@ -202,6 +202,6 @@ const ss_file_t ss_files_arr[] = {
 {.name = "/3f00/a1df1d01.def", .data = _3f00_a1df1d01_def, .size = 38}
 };
 const uint32_t ss_files_len = 98;
-const uint32_t ss_dirs_len = 3;
+const uint32_t ss_dirs_len = 2;
 const ss_file_t *ss_files = ss_files_arr;
 const ss_dir_t *ss_dirs = ss_dirs_arr;
