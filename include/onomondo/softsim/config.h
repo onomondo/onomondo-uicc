@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-/*
- * This file solely exist to print config opitons at compile time
- */
 #pragma once
+
+/* This file solely exist to print config opitons at compile time */
 
 #ifdef CONFIG_USE_SYSTEM_HEAP
 #pragma message "Using CONFIG_USE_SYSTEM_HEAP"
@@ -16,7 +15,7 @@
 #endif // CONFIG_USE_SYSTEM_HEAP
 
 #ifdef CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND
-#pragma message "Building with experimental support for suspend"
+#pragma message "Using CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND"
 #endif // CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND
 
 #if defined(CONFIG_EXTERNAL_KEY_LOAD) && defined(CONFIG_EXTERNAL_CRYPTO_IMPL)
