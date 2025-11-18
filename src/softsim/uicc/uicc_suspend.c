@@ -60,9 +60,8 @@ static int ss_uicc_suspend(struct ss_apdu *apdu)
 	/* Length of the subsequent data field is always 4 bytes, covering:
 	 * Minimum duration of the suspension proposed by the terminal (2 bytes)
 	 * Maximum duration of the suspension proposed by the terminal (2 bytes) */
-	if (apdu->lc != 4) {
+	if (apdu->lc != 4)
 		return SS_SW_ERR_CHECKING_WRONG_LENGTH;
-	}
 
 	/* Return maximum duration proposed by the terminal as default in the first 2 bytes of the response*/
 	apdu->rsp[0] = apdu->cmd[2];
@@ -80,17 +79,15 @@ static int ss_uicc_suspend(struct ss_apdu *apdu)
 static int ss_uicc_resume(struct ss_apdu *apdu)
 {
 	/* Length of the subsequent data field for RESUME is a resume token: 8 bytes */
-	if (apdu->lc != 8) {
+	if (apdu->lc != 8)
 		return SS_SW_ERR_CHECKING_WRONG_LENGTH;
-	}
 
 	/* Compare the token supplied by the terminal to our static token.
 	 * In production, a token persisted to non-volatile storage should be
 	 * validated here. Clear the suspended state only after we have verified
 	 * the token to avoid inconsistent state on token mismatch. */
-	if (memcmp(apdu->cmd, static_resume_token, sizeof(static_resume_token)) != 0) {
+	if (memcmp(apdu->cmd, static_resume_token, sizeof(static_resume_token)) != 0)
 		return SS_SW_ERR_CMD_NOT_ALLOWED_SECURITY_STATUS;
-	}
 	apdu->ctx->is_suspended = false;
 
 	/* No output expected from the resume function */
