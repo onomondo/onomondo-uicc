@@ -75,9 +75,7 @@ static int ss_uicc_suspend(struct ss_apdu *apdu)
 /* RESUME, see ETSI TS 102 221, section 11.1.22.3 */
 static int ss_uicc_resume(struct ss_apdu *apdu)
 {
-	/* Length of the subsequent data field is always 4 bytes, covering:
-	 * Minimum duration of the suspension proposed by the terminal (2 bytes)
-	 * Maximum duration of the suspension proposed by the terminal (2 bytes) */
+	/* Length of the subsequent data field for RESUME is a resume token: 8 bytes */
 	if (apdu->lc != 8) {
 		return SS_SW_ERR_CHECKING_WRONG_LENGTH;
 	}
