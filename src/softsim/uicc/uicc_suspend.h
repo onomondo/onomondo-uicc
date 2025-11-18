@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <stdbool.h>
-
-struct ss_lchan;
+struct ss_apdu;
 
 int ss_uicc_suspend_cmd(struct ss_apdu *apdu);

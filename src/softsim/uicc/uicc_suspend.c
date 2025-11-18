@@ -24,6 +24,11 @@
 #include "apdu.h"
 #include "context.h"
 
+/* Keep resume token in read-only memory so we don't allocate it on the stack
+ * or use dynamic memory. A future production implementation should use a
+ * randomly generated token stored in non-volatile memory. */
+static const uint8_t static_resume_token[8] = { 'o', 'n', 'o', 'm', 'o', 'n', 'd', 'o' };
+
 static int ss_uicc_suspend(struct ss_apdu *apdu);
 static int ss_uicc_resume(struct ss_apdu *apdu);
 
@@ -63,9 +68,8 @@ static int ss_uicc_suspend(struct ss_apdu *apdu)
 	apdu->rsp[0] = apdu->cmd[2];
 	apdu->rsp[1] = apdu->cmd[3];
 
-	/* The UICC generates a random resume token of 8 bytes and stores it with the complete status. */
-	char *secret_token = "onomondo"; /* a static token, introduce random token if desired. */
-	memcpy(&apdu->rsp[2], secret_token, 8);
+	/* Copy the static token from read-only memory into the response. */
+	memcpy(&apdu->rsp[2], static_resume_token, sizeof(static_resume_token));
 
 	apdu->rsp_len = 10;
 	apdu->ctx->is_suspended = true;
@@ -80,12 +84,14 @@ static int ss_uicc_resume(struct ss_apdu *apdu)
 		return SS_SW_ERR_CHECKING_WRONG_LENGTH;
 	}
 
-	/* The UICC compares the Resume token passed by the terminal with the token stored in the non-volatile memory. */
-	char *secret_token = "onomondo";
-	apdu->ctx->is_suspended = false;
-	if (memcmp(apdu->cmd, secret_token, 8) != 0) {
+	/* Compare the token supplied by the terminal to our static token.
+	 * In production, a token persisted to non-volatile storage should be
+	 * validated here. Clear the suspended state only after we have verified
+	 * the token to avoid inconsistent state on token mismatch. */
+	if (memcmp(apdu->cmd, static_resume_token, sizeof(static_resume_token)) != 0) {
 		return SS_SW_ERR_CMD_NOT_ALLOWED_SECURITY_STATUS;
 	}
+	apdu->ctx->is_suspended = false;
 
 	/* No output expected from the resume function */
 	return 0;
