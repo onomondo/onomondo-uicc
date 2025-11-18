@@ -29,6 +29,9 @@
  * randomly generated token stored in non-volatile memory. */
 static const uint8_t static_resume_token[8] = { 'o', 'n', 'o', 'm', 'o', 'n', 'd', 'o' };
 
+/* Ensure the resume token match the desired size (8 bytes) */
+_Static_assert(sizeof(static_resume_token) == 8, "Resume token must not exceed 8 bytes");
+
 static int ss_uicc_suspend(struct ss_apdu *apdu);
 static int ss_uicc_resume(struct ss_apdu *apdu);
 
@@ -70,7 +73,7 @@ static int ss_uicc_suspend(struct ss_apdu *apdu)
 	/* Copy the static token from read-only memory into the response. */
 	memcpy(&apdu->rsp[2], static_resume_token, sizeof(static_resume_token));
 
-	apdu->rsp_len = 10;
+	apdu->rsp_len = 10; /* 2 bytes max duration + 8 bytes token */
 	apdu->ctx->is_suspended = true;
 	return 0;
 }
