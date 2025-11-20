@@ -79,7 +79,7 @@ uint8_t ss_profile_from_string(uint16_t len, const char input_string[len], struc
 			ss_hex_string_to_bytes(&input_string[data_start], data_len, profile->kid);
 			break;
 		case SMSP_TAG:
-			if (data_len != SMSP_RECORD_SIZE)
+			if (data_len != (SMSP_RECORD_SIZE * 2))
 				return 16;
 			memcpy(&profile->SMSP, &input_string[data_start], data_len);
 			break;

@@ -41,7 +41,7 @@ struct ss_profile {
 	uint8_t _3F00_A001[A001_LEN];
 	uint8_t _3F00_A004[A004_LEN];
 	uint8_t _3F00_A003[A003_LEN];
-	uint8_t SMSP[SMSP_RECORD_SIZE];
+	uint8_t SMSP[SMSP_RECORD_SIZE * 2]; /* stored as hex characters in the profile (2 chars per byte) */
 	uint8_t k[16];
 	uint8_t kid[16];
 	uint8_t kic[16];
