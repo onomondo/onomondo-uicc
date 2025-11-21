@@ -29,4 +29,23 @@ if(TARGET utils)
 				 	${CMAKE_CURRENT_BINARY_DIR}/profile_decode_test.out
 				 	${CMAKE_CURRENT_SOURCE_DIR}/profile_decode_test.ok
 	)
+
+	#Test of profile provisioning
+	add_executable(profile_provision_test profile_provision_test.c)
+
+	target_link_libraries(profile_provision_test uicc utils storage)
+
+	add_test(NAME profile_provision_test COMMAND sh -c "$<TARGET_FILE:profile_provision_test> > ${CMAKE_CURRENT_BINARY_DIR}/profile_provision_test.out")
+
+	# Ensure the test runs from the project root so relative storage-path './files'
+	# resolves to the repository 'files' directory (where 3f00.def lives). This
+	# avoids needing embedded static files or runtime environment changes for
+	# tests that read the host filesystem.
+	set_tests_properties(profile_provision_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+	add_test(NAME profile_provision__test_compare
+		COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
+			${CMAKE_CURRENT_BINARY_DIR}/profile_provision_test.out
+			${CMAKE_CURRENT_SOURCE_DIR}/profile_provision_test.ok
+	)
 endif(TARGET utils)
