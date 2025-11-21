@@ -6,7 +6,6 @@
  * Author: Philipp Maier
  */
 
-#include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <errno.h>
@@ -17,10 +16,9 @@
 #include "access.h"
 #include "sw.h"
 #include "fs.h"
+#include "fs_chg.h"
 #include "fs_utils.h"
-#include "command.h"
 #include "uicc_file_ops.h"
-#include "uicc_ins.h"
 #include "uicc_lchan.h"
 #include "fcp.h"
 #include "sfi.h"
@@ -30,6 +28,8 @@
 #include "uicc_pin.h"
 #include "context.h"
 
+/* The reserved FID '7FFF' can be used as a FID for the ADF
+ * of the current active application on a given logical channel. */
 #define FID_CURRENT_APP 0x7fff
 
 /* Record a file change in the context file list. This data can be used to
@@ -47,15 +47,19 @@ static void record_file_change(struct ss_apdu *apdu)
 
 /* Generate the FCP string as it is returned by the card to the outside world.
  * This is essentially the FCP string that is read from the definition files
- * but with additional IEs that reflect the current card state (Pin status) */
+ * but with additional IEs that reflect the current card state (PIN status) */
 static int fcp_reencode_full(struct ss_file *selected_file, char *command_name)
 {
 	struct ber_tlv_ie *pin_stat_templ_ie;
 	struct ss_buf *pin_stat_templ;
 	int rc;
 
+	/* Get information element (IE) for tag C6, PIN Status Template */
 	pin_stat_templ_ie = ss_btlv_get_ie(selected_file->fcp_decoded, TS_102_221_IEI_FCP_PIN_STAT_TMPL);
-	if (!pin_stat_templ_ie) {
+
+	/* PIN Status Template (tag C6) should only be added for DF/ADF files, not EF files.
+	 * See ETSI TS 102.221, Section 11.1.1.3.2, Table 11.4 - "Response for an EF with FCP template" */
+	if (!pin_stat_templ_ie && selected_file->fcp_file_descr->type == SS_FCP_DF_OR_ADF) {
 		pin_stat_templ = ss_uicc_pin_gen_pst_do();
 		if (!pin_stat_templ) {
 			SS_LOGP(SFILE, LDEBUG, "%s failed, could not generate PIN status template.\n", command_name);
@@ -65,29 +69,36 @@ static int fcp_reencode_full(struct ss_file *selected_file, char *command_name)
 						   TS_102_221_IEI_FCP_PIN_STAT_TMPL, pin_stat_templ->len,
 						   pin_stat_templ->data);
 		ss_buf_free(pin_stat_templ);
-
 		/* Note: There is no need to free the IE that we have just
 		 * created. Since it is now liked into the TLV tree it will
 		 * be freed along with all other elements in the tree when the
 		 * file struct is freed. Contrary to the IE, the pin_stat_templ,
 		 * we use as input for ss_btlv_new_ie(), must be freed. */
-
-		rc = ss_fcp_reencode(selected_file);
-		if (rc < 0) {
-			SS_LOGP(SFILE, LDEBUG, "%s failed, unable to re-encode FCP data.\n", command_name);
-			return -EINVAL;
+		goto reencode;
+	} else if (pin_stat_templ_ie) {
+		/* The PIN Status Template should not be present on EF files.
+		 * If we encounter a template on a non-DF/ADF file, log it at error 
+		 * level for later investigation allow the template to be updated. */
+		if (selected_file->fcp_file_descr->type != SS_FCP_DF_OR_ADF) {
+			SS_LOGP(SFILE, LERROR,
+				"%s: PIN Status Template (C6) present on non-DF/ADF file (fid=%04x). Updating anyway.\n",
+				command_name, selected_file->fid);
 		}
-	} else {
+
+		/* No further checks performed if template already exists */
 		rc = ss_uicc_pin_update_pst_do(pin_stat_templ_ie->value);
 		if (rc < 0) {
 			SS_LOGP(SFILE, LDEBUG, "%s failed, could not update PIN status template.\n", command_name);
 			return -EINVAL;
 		}
-		rc = ss_fcp_reencode(selected_file);
-		if (rc < 0) {
-			SS_LOGP(SFILE, LDEBUG, "%s failed, unable to re-encode FCP data.\n", command_name);
-			return -EINVAL;
-		}
+		goto reencode;
+	}
+
+reencode:
+	rc = ss_fcp_reencode(selected_file);
+	if (rc < 0) {
+		SS_LOGP(SFILE, LDEBUG, "%s failed, unable to re-encode FCP data.\n", command_name);
+		return -EINVAL;
 	}
 
 	return 0;
