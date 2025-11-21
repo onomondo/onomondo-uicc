@@ -82,6 +82,11 @@ uint8_t ss_profile_from_string(uint16_t len, const char input_string[len], struc
 				return 16;
 			memcpy(&profile->SMSP, &input_string[data_start], data_len);
 			break;
+		case SMSC_TAG:
+			if (data_len != SMSC_LEN)
+				return 17;
+			memcpy(&profile->SMSC, &input_string[data_start], data_len);
+			break;
 		case PIN_1_TAG:
 			if (data_len > PIN_SIZE)
 				break;
