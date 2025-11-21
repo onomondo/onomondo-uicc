@@ -65,13 +65,25 @@ static int write_profile_to_fs(const struct ss_profile *profile)
         goto exit;
 
     /* write EF.SMSP */
-    uint8_t zeros[SMSP_RECORD_SIZE * 2] = {0};
-    if (memcmp(profile->SMSP, zeros, (SMSP_RECORD_SIZE * 2)) != 0) {
+    uint8_t zeros_smsp[SMSP_RECORD_SIZE * 2] = {0};
+    if (memcmp(profile->SMSP, zeros_smsp, (SMSP_RECORD_SIZE * 2)) != 0) {
         snprintf(path, sizeof(path), "%s%s", storage, SMSP_REL_PATH);
         f = ss_fopen(path, "r+"); /* open for update without truncation */
         wrote = ss_fwrite(profile->SMSP, 1, (SMSP_RECORD_SIZE * 2), f);
         ss_fclose(f);
         if (wrote == 0 || wrote != (SMSP_RECORD_SIZE * 2))
+            goto exit;
+    }
+
+    /* write SMSC in EF.SMSP */
+    uint8_t zeros_smsc[SMSC_LEN] = {0};
+    if (memcmp(profile->SMSC, zeros_smsc, SMSC_LEN) != 0) {
+        snprintf(path, sizeof(path), "%s%s", storage, SMSP_REL_PATH);
+        f = ss_fopen(path, "r+"); /* open for update without truncation */
+        ss_fseek(f, 74, SEEK_SET); /* Move to SMSC offset in EF.SMSP */
+        wrote = ss_fwrite(profile->SMSC, 1, SMSC_LEN, f);
+        ss_fclose(f);
+        if (wrote == 0 || wrote != SMSC_LEN)
             goto exit;
     }
 
