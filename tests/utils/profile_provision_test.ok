@@ -1,1 +1,6 @@
+TEST: Provision a SoftSIM profile with SMSP content
 Successfully provisioned and validated SMSP (6F42)
+TEST: Provision a SoftSIM profile with SMSC content
+Successfully provisioned and validated SMSC update
+TEST: Provision a SoftSIM profile with SMSP and SMSC content
+Successfully provisioned and validated both SMSP and SMSC

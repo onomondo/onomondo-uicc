@@ -17,6 +17,7 @@
 #define PIN_SIZE 16
 #define PIN_OFFSET 12
 #define PUK_OFFSET (PIN_OFFSET + PIN_SIZE)
+#define SMSC_LEN  (12 *2) /* EF.SMSP TS-Service Centre Address */
 #define SMSP_RECORD_SIZE 52
 #define A003_RECORD_SIZE (A003_LEN / 3)
 #define A004_HEADER_SIZE 12
@@ -32,6 +33,7 @@
 #define PIN_2_TAG 0x09
 #define PIN_ADM_TAG 0x0a
 #define PUK_TAG 0x0b
+#define SMSC_TAG 0x0c
 #define END_TAG 0xFF
 
 // Onomondo SoftSIM Profile Struct
@@ -42,6 +44,7 @@ struct ss_profile {
 	uint8_t _3F00_A004[A004_LEN];
 	uint8_t _3F00_A003[A003_LEN];
 	uint8_t SMSP[SMSP_RECORD_SIZE * 2]; /* stored as hex characters in the profile (2 chars per byte) */
+	uint8_t SMSC[SMSC_LEN];
 	uint8_t k[16];
 	uint8_t kid[16];
 	uint8_t kic[16];
