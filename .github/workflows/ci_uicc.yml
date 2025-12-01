@@ -53,7 +53,7 @@ jobs:
           ninjaVersion: 1.11.1
 
       - name: Install Embedded Toolchain
-        uses: carlosperate/arm-none-eabi-gcc-action@v1.11.0
+        uses: carlosperate/arm-none-eabi-gcc-action@v1.11.1
         if: matrix.compiler == 'gcc'
 
       - name: Install CLANG
