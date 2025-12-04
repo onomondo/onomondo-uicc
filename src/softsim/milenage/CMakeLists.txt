@@ -9,7 +9,7 @@ add_library(milenage
 
 target_include_directories(milenage
 	PUBLIC
-		${CMAKE_SOURCE_DIR}/include
+		${PROJECT_SOURCE_DIR}/include
 	PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../
 )
