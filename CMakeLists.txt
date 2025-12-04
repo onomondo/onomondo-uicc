@@ -78,14 +78,8 @@ else()
 endif()
 
 install(TARGETS ${install_target_collection}
-	CONFIGURATIONS Debug
-	ARCHIVE DESTINATION lib_${TARGET_CPU}/Debug
-	PUBLIC_HEADER DESTINATION lib_${TARGET_CPU}/include
-)
-
-install(TARGETS ${install_target_collection}
-	CONFIGURATIONS Release
-	ARCHIVE DESTINATION lib_${TARGET_CPU}/Release/
+	CONFIGURATIONS Debug Release
+	ARCHIVE DESTINATION lib_${TARGET_CPU}/$<CONFIG>
 	PUBLIC_HEADER DESTINATION lib_${TARGET_CPU}/include
 )
 
