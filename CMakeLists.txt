@@ -62,12 +62,6 @@ if(CONFIG_USE_UTILS)
 	set(install_target_collection ${install_target_collection} utils)
 endif()
 
-# If TARGET_CPU isn't set, default to the system processor name so the install
-# folder isn't just 'lib_'. This can be overridden with -DTARGET_CPU=...
-if(NOT TARGET_CPU OR TARGET_CPU STREQUAL "")
-	set(TARGET_CPU ${CMAKE_SYSTEM_PROCESSOR} CACHE STRING "CPU/arch used in install subdirectory")
-endif()
-
 # If this project is included as a subdirectory (not a top-level project), make
 # sure none of our subdirectories changed the parent's CMAKE_INSTALL_PREFIX.
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -78,14 +72,8 @@ else()
 endif()
 
 install(TARGETS ${install_target_collection}
-	CONFIGURATIONS Debug Release
+	CONFIGURATIONS Debug Release MinSizeRel
 	ARCHIVE DESTINATION lib_${TARGET_CPU}/$<CONFIG>
-	PUBLIC_HEADER DESTINATION lib_${TARGET_CPU}/include
-)
-
-install(TARGETS ${install_target_collection}
-	CONFIGURATIONS MinSizeRel
-	ARCHIVE DESTINATION lib_${TARGET_CPU}/ReleaseOs/
 	PUBLIC_HEADER DESTINATION lib_${TARGET_CPU}/include
 )
 
