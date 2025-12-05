@@ -23,6 +23,7 @@ set(CONFIG_SS_STORAGE_PATH_MAX "100" CACHE STRING "Maximum path length for stora
 
 add_compile_definitions(SS_STORAGE_PATH_DEFAULT="${CONFIG_SS_STORAGE_PATH_DEFAULT}")
 add_compile_definitions(SS_STORAGE_PATH_MAX=${CONFIG_SS_STORAGE_PATH_MAX})
+message(STATUS "Configured storage path: ${CONFIG_SS_STORAGE_PATH_DEFAULT}")
 
 if(CONFIG_USE_SYSTEM_HEAP)
 	add_compile_definitions(CONFIG_USE_SYSTEM_HEAP)
