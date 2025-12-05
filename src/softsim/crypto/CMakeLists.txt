@@ -13,7 +13,7 @@ add_library(crypto
 
 target_include_directories(crypto
 	PUBLIC
-		${CMAKE_SOURCE_DIR}/include
+		${PROJECT_SOURCE_DIR}/include
 	PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR}
 )

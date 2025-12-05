@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 3.13...3.19 FATAL_ERROR)
 
 project(softsim
-		VERSION 2.0.0
+		VERSION 2.0.1
 		LANGUAGES C
 )
 
@@ -17,6 +17,13 @@ option(CONFIG_EXTERNAL_KEY_LOAD "Use crypto exstension for loading keys")
 option(CONFIG_USE_UTILS 		"Use the extra functionality found in the collective utils folder")
 option(CONFIG_NO_DEFAULT_IMPL 	"Build with no default implementation")
 option(CONFIG_BUILD_LIB_ONLY 	"Build libraries only")
+
+set(CONFIG_SS_STORAGE_PATH_DEFAULT "./files" CACHE STRING "Default storage path for SoftSIM filesystem")
+set(CONFIG_SS_STORAGE_PATH_MAX "100" CACHE STRING "Maximum path length for storage operations")
+
+add_compile_definitions(SS_STORAGE_PATH_DEFAULT="${CONFIG_SS_STORAGE_PATH_DEFAULT}")
+add_compile_definitions(SS_STORAGE_PATH_MAX=${CONFIG_SS_STORAGE_PATH_MAX})
+message(STATUS "Configured storage path: ${CONFIG_SS_STORAGE_PATH_DEFAULT}")
 
 if(CONFIG_USE_SYSTEM_HEAP)
 	add_compile_definitions(CONFIG_USE_SYSTEM_HEAP)
@@ -62,22 +69,19 @@ if(CONFIG_USE_UTILS)
 	set(install_target_collection ${install_target_collection} utils)
 endif()
 
-install(TARGETS ${install_target_collection}
-		CONFIGURATIONS Debug
-		ARCHIVE DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/Debug
-		PUBLIC_HEADER DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/include
-)
+# If this project is included as a subdirectory (not a top-level project), make
+# sure none of our subdirectories changed the parent's CMAKE_INSTALL_PREFIX.
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+	set_property(CACHE CMAKE_INSTALL_PREFIX PROPERTY VALUE ${CMAKE_SOURCE_DIR})
+	message(STATUS "Default CMAKE_INSTALL_PREFIX set to project source tree: ${CMAKE_INSTALL_PREFIX}")
+else()
+	message(STATUS "CMAKE_INSTALL_PREFIX explicitly provided: ${CMAKE_INSTALL_PREFIX}")
+endif()
 
 install(TARGETS ${install_target_collection}
-		CONFIGURATIONS Release
-		ARCHIVE DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/Release/
-		PUBLIC_HEADER DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/include
-)
-
-install(TARGETS ${install_target_collection}
-		CONFIGURATIONS MinSizeRel
-		ARCHIVE DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/ReleaseOs/
-		PUBLIC_HEADER DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/include
+	CONFIGURATIONS Debug Release MinSizeRel
+	ARCHIVE DESTINATION lib_${TARGET_CPU}/$<CONFIG>
+	PUBLIC_HEADER DESTINATION lib_${TARGET_CPU}/include
 )
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)

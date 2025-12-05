@@ -21,12 +21,6 @@
 #include <onomondo/softsim/storage.h>
 #include <onomondo/softsim/fs.h>
 
-#ifdef CONFIG_ALT_FILE_SEPERATOR
-#define PATH_SEPARATOR "_"
-#else
-#define PATH_SEPARATOR "/"
-#endif
-
 #ifdef IS_WINDOWS
 // Defined due to missing header file (<unistd.h>) include in ARM DS-5 Windows build.
 #define W_OK 2
@@ -35,8 +29,8 @@
 /* Generate a host filesystem path for a given file path. */
 static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool def, const char *division)
 {
-	char host_fs_path[PATH_MAX - 4 - 7];
-	char abs_host_fs_path[PATH_MAX];
+	char host_fs_path[SS_STORAGE_PATH_MAX - 4 - 7];
+	char abs_host_fs_path[SS_STORAGE_PATH_MAX];
 	static char *host_fs_path_ptr;
 	struct ss_file *path_cursor;
 	struct ss_file *path_last = NULL;
@@ -56,26 +50,35 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 	 * so we can allow a different separator
 	 * granted that the host file system impl. rm_dir correctly */
 	SS_LIST_FOR_EACH(path, path_cursor, struct ss_file, list) {
-		rc = snprintf(host_fs_path_ptr, sizeof(host_fs_path) - (host_fs_path_ptr - host_fs_path),
-			      path_cursor->fid > 0xffff ? PATH_SEPARATOR "%08x" : PATH_SEPARATOR "%04x",
-			      // proprietary files (SEQ) identified by 0xa1xx will all have
-			      // the same FCP associated with them
-			      (path_cursor->fid & 0xff00) == 0xa100 && def ? 0xa100 : path_cursor->fid);
+		size_t remaining = sizeof(host_fs_path) - (host_fs_path_ptr - host_fs_path);
+		rc = snprintf(host_fs_path_ptr, remaining,
+				  path_cursor->fid > 0xffff ? PATH_SEPARATOR "%08x" : PATH_SEPARATOR "%04x",
+				  /* proprietary files (SEQ) identified by 0xa1xx will all have
+				   * the same FCP associated with them */
+				  (path_cursor->fid & 0xff00) == 0xa100 && def ? 0xa100 : path_cursor->fid);
+		if (rc < 0 || (size_t)rc >= remaining) {
+			SS_LOGP(SSTORAGE, LERROR, "%s: host path buffer overflow while building path -- abort\n", division);
+			return -EINVAL;
+		}
 		host_fs_path_ptr += rc;
 		path_last = path_cursor;
 	}
 
 	if (def) {
-		snprintf(abs_host_fs_path, sizeof(abs_host_fs_path), "%s%s.def", storage_path, host_fs_path);
+		rc = snprintf(abs_host_fs_path, sizeof(abs_host_fs_path), "%s%s.def", storage_path, host_fs_path);
 		SS_LOGP(SSTORAGE, LINFO, "%s: requested file definition for %04x on host file system : %s\n", division,
 			path_last->fid, abs_host_fs_path);
 	} else {
-		snprintf(abs_host_fs_path, sizeof(abs_host_fs_path), "%s%s", storage_path, host_fs_path);
+		rc = snprintf(abs_host_fs_path, sizeof(abs_host_fs_path), "%s%s", storage_path, host_fs_path);
 		SS_LOGP(SSTORAGE, LINFO, "%s: requested file content for %04x on host file system: %s\n", division,
 			path_last->fid, abs_host_fs_path);
 	}
+	if (rc < 0 || (size_t)rc >= sizeof(abs_host_fs_path)) {
+		SS_LOGP(SSTORAGE, LERROR, "%s: resulting absolute host path was truncated -- abort\n", division);
+		return -EINVAL;
+	}
 
-	strncpy(def_path, abs_host_fs_path, PATH_MAX);
+	strncpy(def_path, abs_host_fs_path, SS_STORAGE_PATH_MAX);
 	return 0;
 }
 
@@ -116,7 +119,7 @@ int ss_storage_get_file_def(struct ss_list *path)
 	/*! Note: This function will allocate memory in file to store the file
 	 *  definition. The caller must take care of freeing. */
 
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	struct ss_file *file;
 	int rc;
 
@@ -146,7 +149,7 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 	 * (Normally this shouldn't happen because the FCP is always checked
 	 * before calling this function. */
 
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 	ss_FILE *fd;
 	char *line_buf;
@@ -200,7 +203,7 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
  *  \returns 0 on success, -EINVAL on failure. */
 int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_t write_offset, size_t write_len)
 {
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 	FILE *fd;
 	size_t i;
@@ -247,7 +250,7 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_
  *  \returns size in bytes on success, 0 on failure. */
 size_t ss_storage_get_file_len(const struct ss_list *path)
 {
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 	long file_size;
 
@@ -276,8 +279,8 @@ size_t ss_storage_get_file_len(const struct ss_list *path)
  *  \returns 0 on success, -EINVAL on failure. */
 int ss_storage_delete(const struct ss_list *path)
 {
-	char host_path_def[PATH_MAX + 1];
-	char host_path_content[PATH_MAX + 1];
+	char host_path_def[SS_STORAGE_PATH_MAX + 1];
+	char host_path_content[SS_STORAGE_PATH_MAX + 1];
 	struct ss_file *file;
 	int rc;
 
@@ -314,7 +317,7 @@ int ss_storage_delete(const struct ss_list *path)
  *  \returns 0 on success, -EINVAL on failure */
 int ss_storage_update_def(const struct ss_list *path)
 {
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 	ss_FILE *fd;
 	struct ss_file *file;
@@ -364,7 +367,7 @@ int ss_storage_create_file(const struct ss_list *path, size_t file_len)
 	/*! Note: This function must not be called with pathes that point to
 	 *  a directory! */
 
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 	ss_FILE *fd;
 	size_t i;
@@ -407,7 +410,7 @@ int ss_storage_create_dir(const struct ss_list *path)
 	/*! Note: This function must not be called with pathes that point to
 	 *  a directory! */
 
-	char host_path[PATH_MAX + 1];
+	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 
 	/* Create definition file */
