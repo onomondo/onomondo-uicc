@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.1.0](https://github.com/onomondo/onomondo-uicc/compare/v2.0.1...v2.1.0) (2025-12-05)
+
+
+### Features
+
+* configurable softsim storage path ([#22](https://github.com/onomondo/onomondo-uicc/issues/22)) ([31918a5](https://github.com/onomondo/onomondo-uicc/commit/31918a547c9fc168c2959ec1cd8e6ad25b1d6dc4))
+* introduce new smsc tag ([#30](https://github.com/onomondo/onomondo-uicc/issues/30)) ([43be4c8](https://github.com/onomondo/onomondo-uicc/commit/43be4c8b7d870137078a5175c002b8ceb67c1ebd))
+* use PROJECT_SOURCE_DIR to ease CMake project integration ([#34](https://github.com/onomondo/onomondo-uicc/issues/34)) ([e3a5a0d](https://github.com/onomondo/onomondo-uicc/commit/e3a5a0d31bb829ad8a4bd7b75c51a7f34856a4c3))
+* utility function to assist profile provisioning ([#29](https://github.com/onomondo/onomondo-uicc/issues/29)) ([770ff6e](https://github.com/onomondo/onomondo-uicc/commit/770ff6ebe6b4332bca05bd83ada26b95a5189a1f))
+
+
+### Bug Fixes
+
+* EF FCP response not to include tag C6 (PIN Status Template) ([#26](https://github.com/onomondo/onomondo-uicc/issues/26)) ([57b0c82](https://github.com/onomondo/onomondo-uicc/commit/57b0c82801bcd6fc5b29c726aef42bb55d84d3df))
+
 ## [2.0.1](https://github.com/onomondo/onomondo-uicc/compare/v2.0.0...v2.0.1) (2025-12-01)
 
 
