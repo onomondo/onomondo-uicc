@@ -27,7 +27,6 @@ int ss_storage_set_path(const char *path)
 		return -1;
 
 	strncpy(storage_path, path, SS_STORAGE_PATH_MAX - 1);
-	storage_path[SS_STORAGE_PATH_MAX - 1] = '\0';
 	return 0;
 }
 
