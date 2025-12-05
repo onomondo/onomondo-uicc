@@ -3,6 +3,7 @@
 
 set(utils_collection
 	ss_profile.c
+	ss_provision.c
 )
 
 if(CONFIG_EXTERNAL_KEY_LOAD AND NOT CONFIG_NO_DEFAULT_IMPL)
