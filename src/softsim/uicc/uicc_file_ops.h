@@ -6,6 +6,8 @@
 
 #pragma once
 
+struct ss_apdu;
+
 int ss_uicc_file_ops_cmd_status(struct ss_apdu *apdu);
 int ss_uicc_file_ops_cmd_read_binary(struct ss_apdu *apdu);
 int ss_uicc_file_ops_cmd_update_binary(struct ss_apdu *apdu);
