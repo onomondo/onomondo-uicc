@@ -2,6 +2,8 @@
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
  *
  * SPDX-License-Identifier: GPL-3.0-only
+ * 
+ * Author: Onomondo ApS
  */
 
 #include <stdio.h>
@@ -14,11 +16,11 @@
 
 /* Relative paths used inside storage. These will be concatenated with the
  * configured storage path (see ss_storage_get_path()). */
-static const char *ICCID_REL_PATH = "/3f00/2fe2";
-static const char *IMSI_REL_PATH = "/3f00/7ff0/6f07";
-static const char *A001_REL_PATH = "/3f00/a001";
-static const char *A004_REL_PATH = "/3f00/a004";
-static const char *SMSP_REL_PATH = "/3f00/7ff0/6f42";
+static const char *ICCID_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "2fe2";
+static const char *IMSI_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "7ff0" PATH_SEPARATOR "6f07";
+static const char *A001_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "a001";
+static const char *A004_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "a004";
+static const char *SMSP_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "7ff0" PATH_SEPARATOR "6f42";
 
 /*! Write the decoded profile to the SoftSIM filesystem
  *  \param[in] profile Pointer to the decoded SoftSIM profile

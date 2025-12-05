@@ -21,12 +21,6 @@
 #include <onomondo/softsim/storage.h>
 #include <onomondo/softsim/fs.h>
 
-#ifdef CONFIG_ALT_FILE_SEPERATOR
-#define PATH_SEPARATOR "_"
-#else
-#define PATH_SEPARATOR "/"
-#endif
-
 #ifdef IS_WINDOWS
 // Defined due to missing header file (<unistd.h>) include in ARM DS-5 Windows build.
 #define W_OK 2
