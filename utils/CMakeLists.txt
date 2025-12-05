@@ -13,5 +13,5 @@ add_library(utils STATIC ${utils_collection})
 
 target_include_directories(utils
 	PUBLIC
-		${CMAKE_SOURCE_DIR}/include
+		${PROJECT_SOURCE_DIR}/include
 )

@@ -62,22 +62,19 @@ if(CONFIG_USE_UTILS)
 	set(install_target_collection ${install_target_collection} utils)
 endif()
 
-install(TARGETS ${install_target_collection}
-		CONFIGURATIONS Debug
-		ARCHIVE DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/Debug
-		PUBLIC_HEADER DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/include
-)
+# If this project is included as a subdirectory (not a top-level project), make
+# sure none of our subdirectories changed the parent's CMAKE_INSTALL_PREFIX.
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+	set_property(CACHE CMAKE_INSTALL_PREFIX PROPERTY VALUE ${CMAKE_SOURCE_DIR})
+	message(STATUS "Default CMAKE_INSTALL_PREFIX set to project source tree: ${CMAKE_INSTALL_PREFIX}")
+else()
+	message(STATUS "CMAKE_INSTALL_PREFIX explicitly provided: ${CMAKE_INSTALL_PREFIX}")
+endif()
 
 install(TARGETS ${install_target_collection}
-		CONFIGURATIONS Release
-		ARCHIVE DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/Release/
-		PUBLIC_HEADER DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/include
-)
-
-install(TARGETS ${install_target_collection}
-		CONFIGURATIONS MinSizeRel
-		ARCHIVE DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/ReleaseOs/
-		PUBLIC_HEADER DESTINATION ${CMAKE_SOURCE_DIR}/lib_${TARGET_CPU}/include
+	CONFIGURATIONS Debug Release MinSizeRel
+	ARCHIVE DESTINATION lib_${TARGET_CPU}/$<CONFIG>
+	PUBLIC_HEADER DESTINATION lib_${TARGET_CPU}/include
 )
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
