@@ -1,0 +1,9 @@
+Default storage path: ./files
+Default path test passed
+Set valid path test passed: /tmp/test/files
+Null path rejection test passed
+Too long path rejection test passed
+Max length path test passed (length: 98)
+Multiple path changes test passed
+Special characters in path test passed
+Empty path rejection test passed

@@ -18,6 +18,13 @@ option(CONFIG_USE_UTILS 		"Use the extra functionality found in the collective u
 option(CONFIG_NO_DEFAULT_IMPL 	"Build with no default implementation")
 option(CONFIG_BUILD_LIB_ONLY 	"Build libraries only")
 
+set(CONFIG_SS_STORAGE_PATH_DEFAULT "./files" CACHE STRING "Default storage path for SoftSIM filesystem")
+set(CONFIG_SS_STORAGE_PATH_MAX "100" CACHE STRING "Maximum path length for storage operations")
+
+add_compile_definitions(SS_STORAGE_PATH_DEFAULT="${CONFIG_SS_STORAGE_PATH_DEFAULT}")
+add_compile_definitions(SS_STORAGE_PATH_MAX=${CONFIG_SS_STORAGE_PATH_MAX})
+message(STATUS "Configured storage path: ${CONFIG_SS_STORAGE_PATH_DEFAULT}")
+
 if(CONFIG_USE_SYSTEM_HEAP)
 	add_compile_definitions(CONFIG_USE_SYSTEM_HEAP)
 endif()
