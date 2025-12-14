@@ -13,13 +13,13 @@
 >>> Card APDU request 00a4040410a0000000871002ffffffff8907090000 >>>
 <<< Card APDU response 62308202782183027ff08410a0000000871002ffffffff89070900008a01058b032f060fc60c90012083010183018183010a9000 <<<
 >>> Card APDU request 00200001 >>>
-<<< Card APDU response 6700 <<<
+<<< Card APDU response 63c3 <<<
 >>> Card APDU request 002c0001 >>>
-<<< Card APDU response 6700 <<<
+<<< Card APDU response 63ca <<<
 >>> Card APDU request 00200081 >>>
-<<< Card APDU response 6700 <<<
+<<< Card APDU response 63c3 <<<
 >>> Card APDU request 002c0081 >>>
-<<< Card APDU response 6700 <<<
+<<< Card APDU response 63ca <<<
 >>> Card APDU request 00a40804022f0e00 >>>
 <<< Card APDU response 6a82 <<<
 >>> Card APDU request 00a40804047fff6f0500 >>>
@@ -49,7 +49,7 @@
 >>> Card APDU request 00a40804047fff6f7b00 >>>
 <<< Card APDU response 62178202412183026f7b8a01058b036f06048002000c8801689000 <<<
 >>> Card APDU request 80f2010c >>>
-<<< Card APDU response 6700 <<<
+<<< Card APDU response 9000 <<<
 >>> Card APDU request 00a40804047fff6fe800 >>>
 <<< Card APDU response 6a82 <<<
 >>> Card APDU request 80f2000032 >>>
