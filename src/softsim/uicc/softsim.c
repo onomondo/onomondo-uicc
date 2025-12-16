@@ -233,7 +233,7 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 			 * up the data in a second try. */
 			apdu->lchan->last_apdu_keep = true;
 			apdu->le = 0;
-			SS_LOGP(SLCHAN, LERROR, "incorrect response length requested (%u), expecting %lu\n",
+			SS_LOGP(SLCHAN, LERROR, "incorrect response length requested (%u), expecting %zu\n",
 				apdu->hdr.p3, last_apdu->rsp_len);
 		} else {
 			memcpy(apdu->rsp, last_apdu->rsp, last_apdu->rsp_len);
@@ -326,7 +326,7 @@ out:
 			SS_LOGP(SLCHAN, LDEBUG, "Returning rsp_len = %zu bytes after le = 0\n", apdu->rsp_len);
 		} else if (apdu->le != apdu->rsp_len) {
 			SS_LOGP(SLCHAN, LERROR,
-				"invalid response data, le (%u) != rsp_len (%lu), changing SW=%04x to SW=%04x (wrong length)\n",
+				"invalid response data, le (%u) != rsp_len (%zu), changing SW=%04x to SW=%04x (wrong length)\n",
 				apdu->le, apdu->rsp_len, apdu->sw, SS_SW_ERR_CHECKING_WRONG_LENGTH);
 			apdu->sw = SS_SW_ERR_CHECKING_WRONG_LENGTH;
 			apdu->rsp_len = 0;
@@ -338,7 +338,7 @@ out:
 		apdu->sw = 0x9100 | ctx->proactive.data_len;
 
 	if (apdu->rsp_len) {
-		SS_LOGP(SLCHAN, LDEBUG, "Tx R-APDU SW=%04x %s (%lu bytes)\n", apdu->sw,
+		SS_LOGP(SLCHAN, LDEBUG, "Tx R-APDU SW=%04x %s (%zu bytes)\n", apdu->sw,
 			ss_hexdump(apdu->rsp, apdu->rsp_len), apdu->rsp_len);
 	} else {
 		SS_LOGP(SLCHAN, LDEBUG, "Tx R-APDU SW=%04x\n", apdu->sw);
@@ -428,7 +428,7 @@ size_t ss_transact(struct ss_context *ctx, uint8_t *response_buf, size_t respons
 	 * of the request is not yet known and the APDUs come in a concatenated
 	 * list without delimiters or length information. */
 	if (_request_len > sizeof(apdu->cmd) + sizeof(apdu->hdr)) {
-		SS_LOGP(SIFACE, LINFO, "request exceeds maximum length %lu > %lu, will truncate.\n", _request_len,
+		SS_LOGP(SIFACE, LINFO, "request exceeds maximum length %zu > %zu, will truncate.\n", _request_len,
 			sizeof(apdu->cmd) + sizeof(apdu->hdr));
 		_request_len = sizeof(apdu->cmd) + sizeof(apdu->hdr);
 	}

@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include <onomondo/softsim/file.h>
 #include <onomondo/softsim/log.h>
@@ -341,7 +342,7 @@ static int parse_cmd_hdr_ciphtxt(struct command_parameters *param, size_t cmd_pa
 	param->pcntr = cmd_packet[5];
 
 	SS_LOGP(SREMOTECMD, LDEBUG, "command parameters (decrypted cleartext):\n");
-	SS_LOGP(SREMOTECMD, LDEBUG, "  CNTR: %lu/%010lx\n", param->cntr, param->cntr);
+	SS_LOGP(SREMOTECMD, LDEBUG, "  CNTR: %" PRIu64 "/%010" PRIx64 "\n", param->cntr, param->cntr);
 	SS_LOGP(SREMOTECMD, LDEBUG, "  PCNTR: %u/%02x\n", param->pcntr, param->pcntr);
 
 	return 6;
@@ -546,7 +547,7 @@ static int get_cntr_from_tar(uint64_t *cntr, size_t *record_no, struct command_p
 			*cntr = ss_uint64_from_array(record->cntr, CNTR_LEN);
 			*record_no = i + 1;
 			SS_LOGP(SREMOTECMD, LINFO,
-				"CNTR selection result: record %zu, TAR %s, TAR mask %s, CNTR %lu/%010lx\n", *record_no,
+				"CNTR selection result: record %zu, TAR %s, TAR mask %s, CNTR %" PRIu64 "/%010" PRIx64 "\n", *record_no,
 				ss_hexdump(record->tar, sizeof(record->tar)),
 				ss_hexdump(record->tar_mask, sizeof(record->tar_mask)), *cntr, *cntr);
 			ss_buf_free(cntr_buf);
@@ -607,7 +608,7 @@ static int update_cntr(uint64_t cntr, size_t record_no)
 	record = (struct cntr_record *)cntr_buf->data;
 	ss_array_from_uint64(record->cntr, CNTR_LEN, cntr);
 
-	SS_LOGP(SREMOTECMD, LINFO, "CNTR update: record %zu, CNTR %lu/%010lx\n", record_no, cntr, cntr);
+	SS_LOGP(SREMOTECMD, LINFO, "CNTR update: record %zu, CNTR %" PRIu64 "/%010" PRIx64 "\n", record_no, cntr, cntr);
 
 	rc = ss_fs_write_file_record(&cntr_path, record_no, cntr_buf->data, cntr_buf->len);
 exit:
@@ -665,7 +666,7 @@ static size_t process_commands(uint8_t *tar, size_t commands_len, uint8_t *comma
 		written_length = ss_transact(ctx, &outbuf[3], outbuf_len - 3, commands, &this_command_length);
 		outbuf[1] = outbuf[1 + written_length];
 		outbuf[2] = outbuf[2 + written_length];
-		SS_LOGP(SREMOTECMD, LDEBUG, "Command %d produced %ld bytes of output: %s\n", outbuf[0], written_length,
+		SS_LOGP(SREMOTECMD, LDEBUG, "Command %d produced %zu bytes of output: %s\n", outbuf[0], written_length,
 			ss_hexdump(&outbuf[1], written_length));
 
 		/* Align to the beginning of the next command. */
@@ -681,7 +682,7 @@ static size_t process_commands(uint8_t *tar, size_t commands_len, uint8_t *comma
 	}
 	if (commands_len != 0) {
 		SS_LOGP(SREMOTECMD, LERROR,
-			"%lu bytes left after last remote command; can not express error to remote (and might be OK after unsuccessful command).\n",
+			"%zu bytes left after last remote command; can not express error to remote (and might be OK after unsuccessful command).\n",
 			commands_len);
 	}
 
@@ -1005,7 +1006,7 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 			cntr = 0xffffffffff;
 		else
 			cntr = param.cntr;
-		SS_LOGP(SREMOTECMD, LDEBUG, "No counter checks performed, counter set to: %lu\n", cntr);
+		SS_LOGP(SREMOTECMD, LDEBUG, "No counter checks performed, counter set to: %" PRIu64 "\n", cntr);
 		break;
 	case CNTR_CHECK_GREATER:
 		/* Detect blocked counter */
@@ -1019,14 +1020,14 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 		 * counter value */
 		if (param.cntr <= cntr) {
 			SS_LOGP(SREMOTECMD, LDEBUG,
-				"Received counter value %lu not greater than stored counter value %lu\n", param.cntr,
+				"Received counter value %" PRIu64 " not greater than stored counter value %" PRIu64 "\n", param.cntr,
 				cntr);
 			ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 			goto clear_out;
 		}
 		cntr = param.cntr;
 		SS_LOGP(SREMOTECMD, LDEBUG,
-			"Received counter value %lu greater than stored counter value, counter incremented to: %lu\n",
+			"Received counter value %" PRIu64 " greater than stored counter value, counter incremented to: %" PRIu64 "\n",
 			param.cntr, cntr);
 		break;
 	case CNTR_CHECK_STRICT:
@@ -1041,14 +1042,14 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 		 * stored counter value */
 		if (param.cntr != cntr + 1) {
 			SS_LOGP(SREMOTECMD, LDEBUG,
-				"Received counter value %lu not greater by one than stored counter value %lu\n",
+				"Received counter value %" PRIu64 " not greater by one than stored counter value %" PRIu64 "\n",
 				param.cntr, cntr);
 			ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 			goto clear_out;
 		}
 		cntr = param.cntr;
 		SS_LOGP(SREMOTECMD, LDEBUG,
-			"Received counter value %lu greater by one than stored counter value, counter incremented to: %lu\n",
+			"Received counter value %" PRIu64 " greater by one than stored counter value, counter incremented to: %" PRIu64 "\n",
 			param.cntr, cntr);
 		break;
 	default:
@@ -1102,7 +1103,7 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 		/* The response fits in the GET RESPONSE buffer of the UICC,
 		 * the MS will take care of the SMS sending. */
 		memcpy(response, response_message->data, response_message->len);
-		SS_LOGP(SREMOTECMD, LERROR, "------------ setresponse len %ld\n", response_message->len);
+		SS_LOGP(SREMOTECMD, LERROR, "------------ setresponse len %zu\n", response_message->len);
 		*response_len = response_message->len;
 		ss_buf_free(response_message);
 	} else {
