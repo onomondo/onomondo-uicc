@@ -61,7 +61,7 @@ size_t ss_fs_utils_find_free_record(const struct ss_list *path)
 	for (i = 0; i < file->fcp_file_descr->number_of_records; i++) {
 		record = ss_fs_read_file_record(path, i + 1);
 		if (!record) {
-			SS_LOGP(SFS, LERROR, "cannot read record %lu in internal file: %s\n", i + 1,
+			SS_LOGP(SFS, LERROR, "cannot read record %zu in internal file: %s\n", i + 1,
 				ss_fs_utils_dump_path(path));
 			return 0;
 		}
@@ -111,7 +111,7 @@ size_t ss_fs_utils_find_record(const struct ss_list *path, const uint8_t *templa
 	for (i = 0; i < file->fcp_file_descr->number_of_records; i++) {
 		record = ss_fs_read_file_record(path, i + 1);
 		if (!record) {
-			SS_LOGP(SFS, LERROR, "cannot read record %lu in internal file: %s\n", i + 1,
+			SS_LOGP(SFS, LERROR, "cannot read record %zu in internal file: %s\n", i + 1,
 				ss_fs_utils_dump_path(path));
 			return 0;
 		}
