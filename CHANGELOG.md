@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/onomondo/onomondo-uicc/compare/v2.1.0...v2.2.0) (2026-02-10)
+
+
+### Features
+
+* add storage_compact.c ([#39](https://github.com/onomondo/onomondo-uicc/issues/39)) ([4d4b900](https://github.com/onomondo/onomondo-uicc/commit/4d4b9000b1976d4a01ade941a9b03e88976627ee))
+
 ## [2.1.0](https://github.com/onomondo/onomondo-uicc/compare/v2.0.1...v2.1.0) (2025-12-05)
 
 
