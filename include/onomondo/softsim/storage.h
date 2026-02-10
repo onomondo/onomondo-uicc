@@ -41,11 +41,47 @@ int ss_storage_set_path(const char *path);
  *  \returns Pointer to the current storage path. */
 const char *ss_storage_get_path(void);
 
+/*! Get file definition for file (tip of the path).
+ *  \param[inout] path to the file for which the definition should be read.
+ *  \returns 0 on success, -EINVAL on failure */
 int ss_storage_get_file_def(struct ss_list *path);
+
+/*! Get content from file (tip of the path).
+ *  \param[in] path path to the file to be read.
+ *  \param[in] read_offset offset to start reading the file at.
+ *  \param[in] read_len length of data to read.
+ *  \returns buffer with content data on success, NULL on failure. */
 struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offset, size_t read_len);
+
+/*! Get the total size in bytes of a file.
+ *  \param[in] path path to the file that gets selected.
+ *  \returns size in bytes on success, 0 on failure. */
 size_t ss_storage_get_file_len(const struct ss_list *path);
+
+/*! Write data to a file (tip of the path).
+ *  \param[in] path path to the file to be written.
+ *  \param[in] write_offset offset to start writing the file at.
+ *  \param[in] write_len length of data to be written.
+ *  \returns 0 on success, -EINVAL on failure. */
 int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_t write_offset, size_t write_len);
+
+/*! Delete file or directory in the file system.
+ *  \param[in] path path to the file or directory to delete.
+ *  \returns 0 on success, -EINVAL on failure. */
 int ss_storage_delete(const struct ss_list *path);
+
+/*! Update definition file in the file system.
+ *  \param[in] path path to the file to update.
+ *  \returns 0 on success, -EINVAL on failure */
 int ss_storage_update_def(const struct ss_list *path);
+
+/*! Create a file in the file system.
+ *  \param[in] path path to the file that gets selected.
+ *  \param[in] file_len length of the file to create (filled with 0xff).
+ *  \returns 0 success, -EINVAL on failure */
 int ss_storage_create_file(const struct ss_list *path, size_t file_len);
+
+/*! Create a directory in the file system.
+ *  \param[in] path path to the directory to create.
+ *  \returns 0 on success, -EINVAL on failure */
 int ss_storage_create_dir(const struct ss_list *path);
