@@ -30,6 +30,12 @@ set higher than necessary. */
 #define PATH_SEPARATOR "/"
 #endif
 
+#ifdef CONFIG_COMPACT_STORAGE
+#define FCP_MAX_LEN 200
+#else
+#define FCP_MAX_LEN 1024
+#endif
+
 extern char storage_path[SS_STORAGE_PATH_MAX];
 
 /*! Set the SoftSIM filesystem storage path.

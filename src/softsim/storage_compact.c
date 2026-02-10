@@ -85,7 +85,7 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 static int read_file_def(char *host_path, struct ss_file *file)
 {
 	ss_FILE fd;
-	char line_buf[200]; /* maximum fcp length */
+	char line_buf[FCP_MAX_LEN];
 	char *rc;
 
 	fd = ss_fopen(host_path, "r");
