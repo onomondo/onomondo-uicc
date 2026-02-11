@@ -53,7 +53,7 @@ int ss_df_name_update(struct ss_list *path)
 	}
 
 	if (fcp_df_name_ie->value->len > 16) {
-		SS_LOGP(SDFNAME, LERROR, "cannot register too long DF_NAME %s, len=%lu > 16\n",
+		SS_LOGP(SDFNAME, LERROR, "cannot register too long DF_NAME %s, len=%zu > 16\n",
 			ss_hexdump(fcp_df_name_ie->value->data, fcp_df_name_ie->value->len),
 			fcp_df_name_ie->value->len);
 		return -EINVAL;
@@ -113,7 +113,7 @@ int ss_df_name_update(struct ss_list *path)
 		goto leave;
 	}
 
-	SS_LOGP(SDFNAME, LDEBUG, "registered DF_NAME=%s for FID=%02x%02x in file %s on record number %lu\n",
+	SS_LOGP(SDFNAME, LDEBUG, "registered DF_NAME=%s for FID=%02x%02x in file %s on record number %zu\n",
 		ss_hexdump(fcp_df_name_ie->value->data, fcp_df_name_ie->value->len), fcp_fid_ie->value->data[0],
 		fcp_fid_ie->value->data[1], ss_fs_utils_dump_path(&path_copy), free_record);
 	rc = 0;
@@ -183,7 +183,7 @@ int ss_df_name_resolve(struct ss_list *path, const uint8_t *df_name, size_t df_n
 	record = ss_fs_read_file_record(&path_copy, record_number);
 	if (!record) {
 		SS_LOGP(SDFNAME, LERROR,
-			"unable to resolve DF_NAME=%s to FID - lookup file %s is not readable at record number %lu\n",
+			"unable to resolve DF_NAME=%s to FID - lookup file %s is not readable at record number %zu\n",
 			ss_hexdump(df_name, df_name_len), ss_fs_utils_dump_path(&path_copy), record_number);
 		rc = -EINVAL;
 		goto leave;
