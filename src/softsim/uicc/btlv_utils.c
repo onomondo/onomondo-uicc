@@ -95,8 +95,9 @@ static void dump_ie(const struct ber_tlv_ie *ie, uint8_t indent, enum log_subsys
 		delimiter = ' ';
 	}
 
-	SS_LOGP(subsys, level, "%s%s(tag=0x%02x(0x%02x), cls=%x, constr=%s, len=%zu)%c %s\n", indent_str, title_str,
-		ie->tag_encoded, ie->tag, ie->cls, ie->constr ? "true" : "false", value_len, delimiter, value_str);
+	SS_LOGP(subsys, level, "%s%s(tag=0x%02x(0x%02x), cls=%x, constr=%s, len=%u)%c %s\n", indent_str, title_str,
+		ie->tag_encoded, ie->tag, ie->cls, ie->constr ? "true" : "false", (unsigned int)value_len, delimiter,
+		value_str);
 }
 
 /*! Dump decoded BER-TLV data.
