@@ -11,7 +11,6 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <onomondo/softsim/log.h>
 #include <onomondo/softsim/list.h>
@@ -34,7 +33,7 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 {
 	char host_fs_path[SS_STORAGE_PATH_MAX];
 	char abs_host_fs_path[SS_STORAGE_PATH_MAX + 1];
-	static char *host_fs_path_ptr;
+	char *host_fs_path_ptr;
 	struct ss_file *path_cursor;
 	struct ss_file *path_last = NULL;
 	int rc;
@@ -100,6 +99,10 @@ static int read_file_def(char *host_path, struct ss_file *file)
 	ss_fclose(fd);
 	if (!rc) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to read definition file: %s\n", host_path);
+		return -EINVAL;
+	}
+	if (rc >= sizeof(line_buf)) {
+		SS_LOGP(SSTORAGE, LERROR, "definition file too large (truncated), aborting: %s\n", host_path);
 		return -EINVAL;
 	}
 
@@ -188,7 +191,6 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_
 	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 	ss_FILE fd;
-	size_t i = 0;
 	size_t fwrite_rc;
 
 	rc = gen_abs_host_path(host_path, path, false, "write");
@@ -214,8 +216,8 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_
 	fwrite_rc = ss_fwrite(data, 1, write_len, fd);
 
 	if (fwrite_rc != write_len) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to write (write_offset=%zu+%zu) data to content file: %s\n",
-			write_offset, i, host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to write (write_offset=%zu, write_len=%zu) data to content file: %s\n",
+			write_offset, write_len, host_path);
 		ss_fclose(fd);
 		return -EINVAL;
 	}
@@ -369,7 +371,7 @@ int ss_storage_create_file(const struct ss_list *path, size_t file_len)
 
 int ss_storage_create_dir(const struct ss_list *path)
 {
-	/*! Note: This function must not be called with pathes that point to a directory! */
+	/*! Note: Creates a directory entry at the given path. The path's parent directory must already exist. */
 	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 
