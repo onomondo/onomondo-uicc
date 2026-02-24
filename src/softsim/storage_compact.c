@@ -150,6 +150,11 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 	}
 
 	line_buf = SS_ALLOC_N(read_len);
+	if (!line_buf) {
+		SS_LOGP(SSTORAGE, LERROR, "unable to allocate read buffer (read_len=%zu) for file: %s\n",
+			read_len, host_path);
+		return NULL;
+	}
 	memset(line_buf, 0, read_len);
 
 	fd = ss_fopen(host_path, "r");
@@ -183,6 +188,11 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 
 	result = ss_buf_alloc_and_cpy(line_buf, fgets_rc);
 	SS_FREE(line_buf);
+	if (!result) {
+		SS_LOGP(SSTORAGE, LERROR, "unable to allocate result buffer (len=%zu) for file: %s\n",
+			fgets_rc, host_path);
+		return NULL;
+	}
 	return result;
 }
 
