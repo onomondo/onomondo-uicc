@@ -5,6 +5,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -246,7 +247,7 @@ static void test_get_file_def_failure_missing_file(void)
 	setup_tmp_root(tmp_root, sizeof(tmp_root));
 	create_parent_dirs(tmp_root);
 	test_path_init(&tp, fids, 2);
-	assert(ss_storage_get_file_def(&tp.list) == -22);
+	assert(ss_storage_get_file_def(&tp.list) == -EINVAL);
 	teardown_tmp_root(tmp_root);
 	printf("test_get_file_def_failure_missing_file passed\n");
 }
@@ -295,7 +296,7 @@ static void test_create_file_read_write_len_delete(void)
 	assert(ss_storage_delete(&tp.list) == 0);
 	assert(!path_exists(content_path));
 	assert(!path_exists(def_path));
-	assert(ss_storage_delete(&tp.list) == -22);
+	assert(ss_storage_delete(&tp.list) == -EINVAL);
 
 	test_path_free_fci(&tp);
 	teardown_tmp_root(tmp_root);
@@ -314,7 +315,7 @@ static void test_update_def_and_get_def_roundtrip(void)
 	create_parent_dirs(tmp_root);
 	test_path_init(&tp, fids, 3);
 
-	assert(ss_storage_update_def(&tp.list) == -22);
+	assert(ss_storage_update_def(&tp.list) == -EINVAL);
 
 	test_path_set_fci(&tp, fci_data, sizeof(fci_data));
 	assert(ss_storage_update_def(&tp.list) == 0);
@@ -507,14 +508,14 @@ static void test_empty_path_failures(void)
 	uint8_t data[] = { 0x01 };
 
 	ss_list_init(&empty);
-	assert(ss_storage_get_file_def(&empty) == -22);
+	assert(ss_storage_get_file_def(&empty) == -EINVAL);
 	assert(ss_storage_read_file(&empty, 0, 1) == NULL);
-	assert(ss_storage_write_file(&empty, data, 0, 1) == -22);
+	assert(ss_storage_write_file(&empty, data, 0, 1) == -EINVAL);
 	assert(ss_storage_get_file_len(&empty) == 0);
-	assert(ss_storage_delete(&empty) == -22);
-	assert(ss_storage_update_def(&empty) == -22);
-	assert(ss_storage_create_file(&empty, 1) == -22);
-	assert(ss_storage_create_dir(&empty) == -22);
+	assert(ss_storage_delete(&empty) == -EINVAL);
+	assert(ss_storage_update_def(&empty) == -EINVAL);
+	assert(ss_storage_create_file(&empty, 1) == -EINVAL);
+	assert(ss_storage_create_dir(&empty) == -EINVAL);
 	printf("test_empty_path_failures passed\n");
 }
 
