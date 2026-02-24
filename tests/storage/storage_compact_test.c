@@ -168,8 +168,12 @@ static void build_host_path(char *out, size_t out_len, const uint32_t *fids, siz
 
 	snprintf(out, out_len, "%s", ss_storage_get_path());
 	for (i = 0; i < n; i++) {
+		uint32_t fid = fids[i];
+		/* Mirror gen_abs_host_path normalization: 0xa1xx -> 0xa100 for .def paths */
+		if (def && (fid & 0xff00) == 0xa100)
+			fid = 0xa100;
 		used = strlen(out);
-		snprintf(out + used, out_len - used, fids[i] > 0xffff ? "/%08x" : "/%04x", fids[i]);
+		snprintf(out + used, out_len - used, fid > 0xffff ? "/%08x" : "/%04x", fid);
 	}
 	if (def) {
 		used = strlen(out);
@@ -197,15 +201,12 @@ static void create_parent_dirs(const char *tmp_root)
 {
 	char p1[SS_STORAGE_PATH_MAX + 1];
 	char p2[SS_STORAGE_PATH_MAX + 1];
-	char p3[SS_STORAGE_PATH_MAX + 1];
 
 	snprintf(p1, sizeof(p1), "%s/3f00", tmp_root);
 	snprintf(p2, sizeof(p2), "%s/3f00/7f10", tmp_root);
-	snprintf(p3, sizeof(p3), "%s/3f00/7f10/5f3a", tmp_root);
 
 	assert(mkdir(p1, 0700) == 0);
 	assert(mkdir(p2, 0700) == 0);
-	assert(mkdir(p3, 0700) == 0);
 }
 
 static void test_get_file_def_success(void)
@@ -361,6 +362,145 @@ static void test_create_dir_and_delete(void)
 	printf("test_create_dir_and_delete passed\n");
 }
 
+static void test_a1xx_seq_normalization(void)
+{
+	/* 0xa1xx SEQ files: .def stored under 0xa100 (shared FCP), content under actual FID */
+	char tmp_root[SS_STORAGE_PATH_MAX + 1];
+	char def_path_a100[SS_STORAGE_PATH_MAX + 1];
+	char content_path_a101[SS_STORAGE_PATH_MAX + 1];
+	char content_path_a100[SS_STORAGE_PATH_MAX + 1];
+	char def_check[SS_STORAGE_PATH_MAX + 1];
+	char def_check_a101[SS_STORAGE_PATH_MAX + 1];
+	char p[SS_STORAGE_PATH_MAX + 1];
+	uint32_t fids_a101[] = { 0x3f00, 0xa101 };
+	uint32_t fids_a100[] = { 0x3f00, 0xa100 };
+	uint8_t fci_data[] = { 0x62, 0x02, 0x82, 0x01 };
+	struct test_path tp;
+
+	setup_tmp_root(tmp_root, sizeof(tmp_root));
+	/* Only need 3f00 as parent */
+	snprintf(p, sizeof(p), "%s/3f00", tmp_root);
+	assert(mkdir(p, 0700) == 0);
+
+	/* Both a101 and a100 share the same .def path */
+	build_host_path(def_check, sizeof(def_check), fids_a101, 2, true);
+	build_host_path(def_check_a101, sizeof(def_check_a101), fids_a100, 2, true);
+	assert(strcmp(def_check, def_check_a101) == 0);
+
+	build_host_path(def_path_a100, sizeof(def_path_a100), fids_a100, 2, true);
+	build_host_path(content_path_a101, sizeof(content_path_a101), fids_a101, 2, false);
+	build_host_path(content_path_a100, sizeof(content_path_a100), fids_a100, 2, false);
+
+	/* Content paths for a100 and a101 must differ */
+	assert(strcmp(content_path_a101, content_path_a100) != 0);
+
+	test_path_init(&tp, fids_a101, 2);
+	test_path_set_fci(&tp, fci_data, sizeof(fci_data));
+	assert(ss_storage_create_file(&tp.list, 4) == 0);
+
+	/* .def is stored at the a100 (normalized) path */
+	assert(path_exists(def_path_a100));
+	/* content is stored at the actual a101 path */
+	assert(path_exists(content_path_a101));
+	/* no content file at a100 path */
+	assert(!path_exists(content_path_a100));
+
+	/* Read back the FCP via a101 path — must find the a100.def */
+	test_path_free_fci(&tp);
+	assert(ss_storage_get_file_def(&tp.list) == 0);
+	assert(tp.elems[1].fci != NULL);
+	assert(tp.elems[1].fci->len == sizeof(fci_data));
+	assert(memcmp(tp.elems[1].fci->data, fci_data, sizeof(fci_data)) == 0);
+
+	test_path_free_fci(&tp);
+	assert(ss_storage_delete(&tp.list) == 0);
+	assert(!path_exists(def_path_a100));
+	assert(!path_exists(content_path_a101));
+
+	teardown_tmp_root(tmp_root);
+	printf("test_a1xx_seq_normalization passed\n");
+}
+
+static void test_write_at_offset_zero(void)
+{
+	/* Verify write/read at offset 0 works and does not corrupt the rest of the file */
+	char tmp_root[SS_STORAGE_PATH_MAX + 1];
+	uint32_t fids[] = { 0x3f00, 0x7f10, 0x6f40 };
+	uint8_t fci_data[] = { 0x62, 0x02, 0x82, 0x01 };
+	uint8_t write_data[] = { 0xAA, 0xBB };
+	struct test_path tp;
+	struct ss_buf *buf;
+	size_t i;
+
+	setup_tmp_root(tmp_root, sizeof(tmp_root));
+	create_parent_dirs(tmp_root);
+	test_path_init(&tp, fids, 3);
+	test_path_set_fci(&tp, fci_data, sizeof(fci_data));
+
+	assert(ss_storage_create_file(&tp.list, 6) == 0);
+
+	/* Write at offset 0 */
+	assert(ss_storage_write_file(&tp.list, write_data, 0, sizeof(write_data)) == 0);
+
+	/* Verify the written bytes */
+	buf = ss_storage_read_file(&tp.list, 0, sizeof(write_data));
+	assert(buf != NULL);
+	assert(buf->len == sizeof(write_data));
+	assert(memcmp(buf->data, write_data, sizeof(write_data)) == 0);
+	ss_buf_free(buf);
+
+	/* Verify the remainder is still 0xff */
+	buf = ss_storage_read_file(&tp.list, 2, 4);
+	assert(buf != NULL);
+	assert(buf->len == 4);
+	for (i = 0; i < buf->len; i++)
+		assert(buf->data[i] == 0xff);
+	ss_buf_free(buf);
+
+	/* Total length unchanged */
+	assert(ss_storage_get_file_len(&tp.list) == 6);
+
+	test_path_free_fci(&tp);
+	assert(ss_storage_delete(&tp.list) == 0);
+	teardown_tmp_root(tmp_root);
+	printf("test_write_at_offset_zero passed\n");
+}
+
+static void test_update_def_overwrite(void)
+{
+	/* Update def twice: second call must overwrite with new content */
+	char tmp_root[SS_STORAGE_PATH_MAX + 1];
+	uint32_t fids[] = { 0x3f00, 0x7f10, 0x6f50 };
+	uint8_t fci_v1[] = { 0x62, 0x02, 0x81, 0x01 };
+	uint8_t fci_v2[] = { 0x62, 0x04, 0x81, 0x02, 0x82, 0x00 };
+	struct test_path tp;
+
+	setup_tmp_root(tmp_root, sizeof(tmp_root));
+	create_parent_dirs(tmp_root);
+	test_path_init(&tp, fids, 3);
+
+	/* First write */
+	test_path_set_fci(&tp, fci_v1, sizeof(fci_v1));
+	assert(ss_storage_update_def(&tp.list) == 0);
+	test_path_free_fci(&tp);
+	assert(ss_storage_get_file_def(&tp.list) == 0);
+	assert(tp.elems[2].fci->len == sizeof(fci_v1));
+	assert(memcmp(tp.elems[2].fci->data, fci_v1, sizeof(fci_v1)) == 0);
+	test_path_free_fci(&tp);
+
+	/* Overwrite with v2 */
+	test_path_set_fci(&tp, fci_v2, sizeof(fci_v2));
+	assert(ss_storage_update_def(&tp.list) == 0);
+	test_path_free_fci(&tp);
+	assert(ss_storage_get_file_def(&tp.list) == 0);
+	assert(tp.elems[2].fci->len == sizeof(fci_v2));
+	assert(memcmp(tp.elems[2].fci->data, fci_v2, sizeof(fci_v2)) == 0);
+
+	test_path_free_fci(&tp);
+	teardown_tmp_root(tmp_root);
+	printf("test_update_def_overwrite passed\n");
+}
+
 static void test_empty_path_failures(void)
 {
 	struct ss_list empty;
@@ -385,6 +525,9 @@ int main(void)
 	test_create_file_read_write_len_delete();
 	test_update_def_and_get_def_roundtrip();
 	test_create_dir_and_delete();
+	test_a1xx_seq_normalization();
+	test_write_at_offset_zero();
+	test_update_def_overwrite();
 	test_empty_path_failures();
 	return 0;
 }
