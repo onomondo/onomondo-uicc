@@ -45,38 +45,40 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 	memset(host_fs_path, 0, sizeof(host_fs_path));
 	host_fs_path_ptr = host_fs_path;
 
-#ifdef CONFIG_ALT_FILE_SEPERATOR
 	SS_LIST_FOR_EACH(path, path_cursor, struct ss_file, list) {
-		rc = snprintf(host_fs_path_ptr, sizeof(host_fs_path) - (host_fs_path_ptr - host_fs_path),
-			      path_cursor->fid > 0xffff ? "_%08x" : "_%04x",
+		size_t remaining = sizeof(host_fs_path) - (host_fs_path_ptr - host_fs_path);
+		rc = snprintf(host_fs_path_ptr, remaining,
+			      path_cursor->fid > 0xffff ? PATH_SEPARATOR "%08x" : PATH_SEPARATOR "%04x",
 			      /* Proprietary files (SEQ) identified by 0xa1xx got the same FCP association. */
 			      (path_cursor->fid & 0xff00) == 0xa100 && def ? 0xa100 : path_cursor->fid);
+		if (rc < 0 || (size_t)rc >= remaining) {
+			SS_LOGP(SSTORAGE, LERROR, "%s: host path buffer overflow while building path -- abort\n", division);
+			return -EINVAL;
+		}
 		host_fs_path_ptr += rc;
 		path_last = path_cursor;
 	}
-#else
-	SS_LIST_FOR_EACH(path, path_cursor, struct ss_file, list) {
-		rc = snprintf(host_fs_path_ptr, sizeof(host_fs_path) - (host_fs_path_ptr - host_fs_path),
-			      path_cursor->fid > 0xffff ? "/%08x" : "/%04x",
-			      /* Proprietary files (SEQ) identified by 0xa1xx got the same FCP association. */
-			      (path_cursor->fid & 0xff00) == 0xa100 && def ? 0xa100 : path_cursor->fid);
-		host_fs_path_ptr += rc;
-		path_last = path_cursor;
-	}
-#endif
 	if (def) {
-		snprintf(abs_host_fs_path, sizeof(abs_host_fs_path), "%s%s.def", storage_path, host_fs_path);
+		rc = snprintf(abs_host_fs_path, sizeof(abs_host_fs_path), "%s%s.def", storage_path, host_fs_path);
 
 		SS_LOGP(SSTORAGE, LINFO, "%s: requested file definition for %04x on host file system : %s\n", division,
 			path_last->fid, abs_host_fs_path);
 
 	} else {
-		snprintf(abs_host_fs_path, sizeof(abs_host_fs_path), "%s%s", storage_path, host_fs_path);
+		rc = snprintf(abs_host_fs_path, sizeof(abs_host_fs_path), "%s%s", storage_path, host_fs_path);
 		SS_LOGP(SSTORAGE, LINFO, "%s: requested file content for %04x on host file system: %s\n", division,
 			path_last->fid, abs_host_fs_path);
 	}
+	if (rc < 0 || (size_t)rc >= sizeof(abs_host_fs_path)) {
+		SS_LOGP(SSTORAGE, LERROR, "%s: resulting absolute host path was truncated -- abort\n", division);
+		return -EINVAL;
+	}
+	if ((size_t)rc >= SS_STORAGE_PATH_MAX) {
+		SS_LOGP(SSTORAGE, LERROR, "%s: destination path buffer too small -- abort\n", division);
+		return -EINVAL;
+	}
 
-	strncpy(def_path, abs_host_fs_path, SS_STORAGE_PATH_MAX);
+	memcpy(def_path, abs_host_fs_path, (size_t)rc + 1);
 
 	return 0;
 }
@@ -85,8 +87,8 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 static int read_file_def(char *host_path, struct ss_file *file)
 {
 	ss_FILE fd;
-	char line_buf[FCP_MAX_LEN];
-	char *rc;
+	uint8_t line_buf[FCP_MAX_LEN];
+	size_t rc;
 
 	fd = ss_fopen(host_path, "r");
 	if (!fd) {
@@ -133,8 +135,8 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 	 *  contents. The caller must take care of freeing. */
 	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
-	ss_FILE *fd;
-	char *line_buf;
+	ss_FILE fd;
+	uint8_t *line_buf;
 	size_t fgets_rc;
 	struct ss_buf *result;
 
@@ -185,7 +187,7 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_
 {
 	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
-	FILE *fd;
+	ss_FILE fd;
 	size_t i = 0;
 	size_t fwrite_rc;
 
@@ -226,13 +228,7 @@ size_t ss_storage_get_file_len(const struct ss_list *path)
 {
 	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
-	FILE *fd;
 	long file_size;
-
-	/* TODO: Check if the path really points to a file. If the path points
-	 * to a directory, print an error and return a size of 0. (Normally this
-	 * shouldn't happen because the FCP is always checked before calling
-	 * this function.) */
 
 	rc = gen_abs_host_path(host_path, path, false, "file-len");
 	if (rc < 0) {
@@ -240,27 +236,11 @@ size_t ss_storage_get_file_len(const struct ss_list *path)
 		return 0;
 	}
 
-	fd = ss_fopen(host_path, "r");
-	if (!fd) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to open content file: %s\n", host_path);
-		return 0;
-	}
-
-	rc = ss_fseek(fd, 0, SEEK_END);
-	if (rc != 0) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to seek requested data in content file: %s\n", host_path);
-		ss_fclose(fd);
-		return 0;
-	}
-
-	file_size = ss_ftell(fd);
+	file_size = ss_file_size(host_path);
 	if (file_size < 0) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to tell the size of the file: %s\n", host_path);
-		ss_fclose(fd);
 		return 0;
 	}
-
-	ss_fclose(fd);
 
 	return file_size;
 }
@@ -287,16 +267,19 @@ int ss_storage_delete(const struct ss_list *path)
 		return -EINVAL;
 	}
 
-	rc = ss_remove(host_path_def);
+	rc = ss_delete_file(host_path_def);
 	if (rc < 0) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to remove definition file: %s\n", host_path_def);
 		return -EINVAL;
 	}
 
-	rc = ss_rmdir(host_path_content);
+	rc = ss_delete_file(host_path_content);
 	if (rc < 0) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to remove content file: %s\n", host_path_content);
-		return -EINVAL;
+		rc = ss_delete_dir(host_path_content);
+		if (rc < 0) {
+			SS_LOGP(SSTORAGE, LERROR, "unable to remove content file: %s\n", host_path_content);
+			return -EINVAL;
+		}
 	}
 
 	return 0;
@@ -306,7 +289,7 @@ int ss_storage_update_def(const struct ss_list *path)
 {
 	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
-	FILE *fd;
+	ss_FILE fd;
 	struct ss_file *file;
 	size_t fwrite_rc;
 
@@ -334,7 +317,7 @@ int ss_storage_update_def(const struct ss_list *path)
 
 	fwrite_rc = ss_fwrite(file->fci->data, file->fci->len, 1, fd);
 
-	if (fwrite_rc != file->fci->len) {
+	if (fwrite_rc != 1) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to write file definition: %s\n", host_path);
 		ss_storage_delete(path);
 		ss_fclose(fd);
@@ -349,7 +332,7 @@ int ss_storage_create_file(const struct ss_list *path, size_t file_len)
 	/*! Note: This function must not be called with pathes that point to a directory! */
 	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
-	ss_FILE *fd;
+	ss_FILE fd;
 	size_t i;
 
 	/* Create definition file */
@@ -405,7 +388,7 @@ int ss_storage_create_dir(const struct ss_list *path)
 
 	if (ss_access(host_path, W_OK) == 0)
 		return 0;
-	rc = ss_mkdir(host_path, 0700);
+	rc = ss_create_dir(host_path, 0700);
 	if (rc < 0) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to create directory: %s\n", host_path);
 		ss_storage_delete(path);
