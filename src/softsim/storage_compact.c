@@ -151,8 +151,8 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 
 	line_buf = SS_ALLOC_N(read_len);
 	if (!line_buf) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to allocate read buffer (read_len=%zu) for file: %s\n",
-			read_len, host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to allocate read buffer (read_len=%u) for file: %s\n",
+			(unsigned int)read_len, host_path);
 		return NULL;
 	}
 	memset(line_buf, 0, read_len);
@@ -166,8 +166,8 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 
 	rc = ss_fseek(fd, read_offset, SEEK_SET);
 	if (rc != 0) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to seek (read_offset=%zu) requested data in content file: %s\n",
-			read_offset, host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to seek (read_offset=%u) requested data in content file: %s\n",
+			(unsigned int)read_offset, host_path);
 		SS_FREE(line_buf);
 		ss_fclose(fd);
 		return NULL;
@@ -176,9 +176,9 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 	fgets_rc = ss_fread(line_buf, 1, read_len, fd);
 	if (fgets_rc != read_len) {
 		SS_LOGP(SSTORAGE, LERROR,
-			"unable to load content (read_offset=%zu, read_len=%zu) from file: "
+			"unable to load content (read_offset=%u, read_len=%u) from file: "
 			"%s\n",
-			read_offset, read_len, host_path);
+			(unsigned int)read_offset, (unsigned int)read_len, host_path);
 		SS_FREE(line_buf);
 		ss_fclose(fd);
 		return NULL;
@@ -189,8 +189,8 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 	result = ss_buf_alloc_and_cpy(line_buf, fgets_rc);
 	SS_FREE(line_buf);
 	if (!result) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to allocate result buffer (len=%zu) for file: %s\n",
-			fgets_rc, host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to allocate result buffer (len=%u) for file: %s\n",
+			(unsigned int)fgets_rc, host_path);
 		return NULL;
 	}
 	return result;
@@ -217,7 +217,7 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_
 
 	rc = ss_fseek(fd, write_offset, SEEK_SET);
 	if (rc != 0) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to seek (write_offset=%zu) data to content file: %s\n", write_offset,
+		SS_LOGP(SSTORAGE, LERROR, "unable to seek (write_offset=%u) data to content file: %s\n", (unsigned int)write_offset,
 			host_path);
 		ss_fclose(fd);
 		return -EINVAL;
@@ -226,8 +226,8 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_
 	fwrite_rc = ss_fwrite(data, 1, write_len, fd);
 
 	if (fwrite_rc != write_len) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to write (write_offset=%zu, write_len=%zu) data to content file: %s\n",
-			write_offset, write_len, host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to write (write_offset=%u, write_len=%u) data to content file: %s\n",
+			(unsigned int)write_offset, (unsigned int)write_len, host_path);
 		ss_fclose(fd);
 		return -EINVAL;
 	}
