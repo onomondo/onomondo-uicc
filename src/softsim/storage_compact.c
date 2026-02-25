@@ -91,14 +91,14 @@ static int read_file_def(char *host_path, struct ss_file *file)
 
 	fd = ss_fopen(host_path, "r");
 	if (!fd) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to open definition file: %s\n", host_path);
+		SS_LOGP(SSTORAGE, LDEBUG, "unable to open definition file: %s\n", host_path);
 		return -EINVAL;
 	}
 
 	rc = ss_fread(line_buf, 1, sizeof(line_buf), fd);
 	ss_fclose(fd);
 	if (!rc) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to read definition file: %s\n", host_path);
+		SS_LOGP(SSTORAGE, LDEBUG, "unable to read definition file: %s\n", host_path);
 		return -EINVAL;
 	}
 	if (rc >= sizeof(line_buf)) {
