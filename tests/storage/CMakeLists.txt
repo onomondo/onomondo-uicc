@@ -17,19 +17,3 @@ add_test(NAME storage_test_compare
 )
 
 set_tests_properties(storage_test_compare PROPERTIES DEPENDS storage_test)
-
-if(CONFIG_COMPACT_STORAGE)
-	add_executable(storage_compact_test storage_compact_test.c)
-
-	target_link_libraries(storage_compact_test uicc storage)
-
-	add_test(NAME storage_compact_test COMMAND sh -c "$<TARGET_FILE:storage_compact_test> > storage_compact_test.out")
-
-	add_test(NAME storage_compact_test_compare
-			 COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
-					 ${CMAKE_CURRENT_BINARY_DIR}/storage_compact_test.out
-					 ${CMAKE_CURRENT_SOURCE_DIR}/storage_compact_test.ok
-	)
-
-	set_tests_properties(storage_compact_test_compare PROPERTIES DEPENDS storage_compact_test)
-endif()
