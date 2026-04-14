@@ -1,4 +1,10 @@
 // Test: Concatenated SMS-PP RX with concat IE (0x00) and CPI IE (0x70) in UDH
+#include <stdint.h>
+#include <stddef.h>
+#include <stdio.h>
+
+// Forward declaration for ready_ctx
+static void ready_ctx(struct ss_context *ctx);
 void ss_uicc_sms_rx_concat_cpi_test(void)
 {
 	struct ss_context ctx;
