@@ -1,3 +1,46 @@
+// Test: Concatenated SMS-PP RX with concat IE (0x00) and CPI IE (0x70) in UDH
+void ss_uicc_sms_rx_concat_cpi_test(void)
+{
+	struct ss_context ctx;
+	ready_ctx(&ctx);
+
+	// Simulate two-part concatenated SMS-PP with UDH: [concat IE][CPI IE]
+	// Part 1: UDH = 0x00 03 01 02 01 70 01 AA (concat, CPI)
+	uint8_t sms_tpdu_part1[] = {
+		0x40, 0x08, 0x81, 0x55, 0x66, 0x77, 0x88, 0x7f, 0xf6,
+		0x00, 0x11, 0x29, 0x12, 0x00, 0x00, 0x04, 0x3d, // SCTS etc
+		0x08,						// TP-UDL (8 bytes)
+		0x07,						// UDHL (7 bytes UDH follows)
+		0x00, 0x03, 0x01, 0x02, 0x01, // Concat IE: 0x00 03 01 02 01 (msg_id=1, parts=2, part=1)
+		0x70, 0x01, 0xAA,	      // CPI IE: 0x70 01 AA
+		0xDE, 0xAD, 0xBE	      // User data (truncated)
+	};
+	// Part 2: UDH = 0x00 03 01 02 02 70 01 AA (concat, CPI)
+	uint8_t sms_tpdu_part2[] = {
+		0x40, 0x08, 0x81, 0x55, 0x66, 0x77, 0x88, 0x7f, 0xf6, 0x00, 0x11, 0x29, 0x12, 0x00, 0x00, 0x04, 0x3d,
+		0x08,			      // TP-UDL
+		0x07,			      // UDHL
+		0x00, 0x03, 0x01, 0x02, 0x02, // Concat IE: part=2
+		0x70, 0x01, 0xAA,	      // CPI IE
+		0xEF, 0xBE, 0xAD	      // User data (truncated)
+	};
+
+	size_t response_len = 256;
+	uint8_t response[256];
+	int rc;
+
+	printf("\n[concat_cpi_test] Sending part 1 (should not crash, no response)\n");
+	struct ss_buf buf1 = { .data = sms_tpdu_part1, .len = sizeof(sms_tpdu_part1) };
+	response_len = sizeof(response);
+	rc = ss_uicc_sms_rx(&ctx, &buf1, &response_len, response);
+	printf(" rc=%d, response_len=%zu\n", rc, response_len);
+
+	printf("[concat_cpi_test] Sending part 2 (should trigger CPI handler)\n");
+	struct ss_buf buf2 = { .data = sms_tpdu_part2, .len = sizeof(sms_tpdu_part2) };
+	response_len = sizeof(response);
+	rc = ss_uicc_sms_rx(&ctx, &buf2, &response_len, response);
+	printf(" rc=%d, response_len=%zu\n", rc, response_len);
+}
 /*
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
  *
@@ -312,5 +355,6 @@ int main(int argc, char **argv)
 	ss_sms_hdr_encode_test_sms_submit();
 	ss_uicc_sms_tx_test_single();
 	ss_uicc_sms_tx_test_multi();
+	ss_uicc_sms_rx_concat_cpi_test();
 	return 0;
 }

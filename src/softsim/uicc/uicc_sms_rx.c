@@ -189,27 +189,19 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
  *
  * The response arguments behave like those of @ref ss_uicc_sms_rx.
  * */
-static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *ud_hdr, size_t ud_hdr_len,
-		     uint8_t *tp_ud, size_t tp_ud_len, size_t *response_len, uint8_t response[*response_len])
+static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, struct ss_list *ud_hdr_dec, uint8_t *tp_ud,
+		     size_t tp_ud_len, size_t *response_len, uint8_t response[*response_len])
 {
-	int rc;
-
+	int rc = -1;
 	assert(sm_hdr->tp_mti == SMS_MTI_DELIVER);
 
-	/* IEIa -- first information element identifier; typically 0x70 = CPI
-	 *
-	 * Left at 0 if UDHI is unset; that case can be treated like any unknown
-	 * IEIOa */
-	uint8_t ieia = 0;
-
-	if (ud_hdr_len >= 2) {
-		ieia = ud_hdr[0];
-		/* Ignoring both IEIDa (data for IE a) and any further IEs, as
-		 * none of them are used in the currently only implemented case */
+	// Look for CPI IE (0x70) in the decoded UDH list
+	struct tlv8_ie *cpi_ie = NULL;
+	if (ud_hdr_dec) {
+		cpi_ie = ss_tlv8_get_ie(ud_hdr_dec, IEI_CPI);
 	}
 
-	switch (ieia) {
-	case IEI_CPI:;
+	if (cpi_ie) {
 		struct ss_buf *sms_response = NULL;
 		rc = ss_uicc_remote_cmd_receive(tp_ud_len, tp_ud, response_len, response, &sms_response,
 						ctx->fs_chg_filelist);
@@ -222,27 +214,17 @@ static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *
 			response_hdr.u.sms_submit.tp_da.extension = true;
 			memcpy(&response_hdr.u.sms_submit.tp_da, &sm_hdr->u.sms_deliver.tp_oa,
 			       sizeof(struct ss_sms_addr));
-			/* TP-Protocol-Identifier: unsure */
 			response_hdr.u.sms_submit.tp_pid = 127;
-			/* data coding scheme: 8-bit data */
 			response_hdr.u.sms_submit.tp_dcs = 246;
-			/* UDHI gets set automatically when encode_sm gets its hands on it */
 
-			ss_uicc_sms_tx(ctx, &response_hdr,
-				       /* The response is a single blob with both UDH and UD, which makes
-                * sense there as that's part of what gets integrity protected, but as
-				        * sms_tx needs to fragment it, we're dissecting the message for it */
-				       &sms_response->data[1], sms_response->data[0],
+			ss_uicc_sms_tx(ctx, &response_hdr, &sms_response->data[1], sms_response->data[0],
 				       &sms_response->data[1 + sms_response->data[0]],
-				       sms_response->len - 1 - sms_response->data[0],
-				       /* Couldn't do anything else than debug logging */
-				       NULL);
+				       sms_response->len - 1 - sms_response->data[0], NULL);
 			SS_LOGP(SSMS, LDEBUG, "Enqueued SMS in response to command\n");
 			ss_buf_free(sms_response);
 		}
-		break;
-	default:
-		SS_LOGP(SSMS, LDEBUG, "received sms TP-UD with unknown IEIa=%02x:%s\n", ieia,
+	} else {
+		SS_LOGP(SSMS, LDEBUG, "received sms TP-UD with no CPI IE (0x70) in UDH: %s\n",
 			ss_hexdump(tp_ud, tp_ud_len));
 		rc = -1;
 	}
@@ -313,11 +295,20 @@ int ss_uicc_sms_rx(struct ss_context *ctx, struct ss_buf *sms_tpdu, size_t *resp
 				if (concat_sm_desc_ie) {
 					concat_sm_buf = concat_sm(state, tp_ud, tp_ud_len, concat_sm_desc_ie);
 					if (concat_sm_buf) {
-						rc = handle_sm(ctx, &sm_hdr, ud_hdr, ud_hdr_len, concat_sm_buf->data,
+						// For reassembled message, decode UDH from the first part
+						struct ss_list *concat_ud_hdr_dec = NULL;
+						if (ud_hdr && ud_hdr_len > 0)
+							concat_ud_hdr_dec = ss_tlv8_decode(ud_hdr, ud_hdr_len);
+						rc = handle_sm(ctx, &sm_hdr, concat_ud_hdr_dec, concat_sm_buf->data,
 							       concat_sm_buf->len, response_len, response);
+						if (concat_ud_hdr_dec)
+							ss_tlv8_free(concat_ud_hdr_dec);
 						ss_buf_free(concat_sm_buf);
 						if (rc < 0)
 							*response_len = 0;
+					} else {
+						// Partial concatenated message: ensure no response is returned
+						*response_len = 0;
 					}
 				}
 
@@ -333,7 +324,12 @@ int ss_uicc_sms_rx(struct ss_context *ctx, struct ss_buf *sms_tpdu, size_t *resp
 		/* Normal SM received, forward directly */
 		if (!concat_sm_desc_ie) {
 			SS_LOGP(SSMS, LDEBUG, "received sms TP-UD: %s\n", ss_hexdump(tp_ud, tp_ud_len));
-			rc = handle_sm(ctx, &sm_hdr, ud_hdr, ud_hdr_len, tp_ud, tp_ud_len, response_len, response);
+			struct ss_list *ud_hdr_dec_for_direct = NULL;
+			if (ud_hdr && ud_hdr_len > 0)
+				ud_hdr_dec_for_direct = ss_tlv8_decode(ud_hdr, ud_hdr_len);
+			rc = handle_sm(ctx, &sm_hdr, ud_hdr_dec_for_direct, tp_ud, tp_ud_len, response_len, response);
+			if (ud_hdr_dec_for_direct)
+				ss_tlv8_free(ud_hdr_dec_for_direct);
 			if (rc < 0)
 				*response_len = 0;
 		}
