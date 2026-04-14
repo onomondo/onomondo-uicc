@@ -2,9 +2,22 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
+#include "src/softsim/uicc/context.h"
+#include "src/softsim/uicc/sms.h"
+#include "src/softsim/uicc/uicc_sms_rx.h"
 
-// Forward declaration for ready_ctx
-static void ready_ctx(struct ss_context *ctx);
+/* Clear a context, clear its TX state, and set all the bits required for proactive SMS */
+static void ready_ctx(struct ss_context *ctx)
+{
+	memset(ctx, 0, sizeof(*ctx));
+	ss_uicc_sms_tx_clear(ctx);
+	/* Simulate context that set all the relevant bits */
+	ctx->proactive.term_profile[0] = 0xff;
+	ctx->proactive.term_profile[1] = 0xff;
+	ctx->proactive.term_profile[3] = 0xff;
+	ctx->proactive.term_profile[4] = 0xff;
+	ctx->proactive.term_profile[5] = 0xff;
+}
 void ss_uicc_sms_rx_concat_cpi_test(void)
 {
 	struct ss_context ctx;
