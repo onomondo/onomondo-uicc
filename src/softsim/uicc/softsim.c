@@ -411,7 +411,9 @@ size_t ss_transact(struct ss_context *ctx, uint8_t *response_buf, size_t respons
 
 	/* A valid APDU must have a length of at least 5 bytes, any shorter
 	 * APDU counts as invalid and must not be processed any further. */
-	if (_request_len < 5) {
+	/* Allow 4-byte Case 1 APDUs (header only: CLA INS P1 P2)
+	 * The parser ss_apdu_parse_exhaustive supports this format */
+	if (_request_len < 4) {
 		SS_LOGP(SIFACE, LERROR, "ignoring short APDU: %s\n", ss_hexdump(request_buf, _request_len));
 		response_buf[response_len++] = SS_SW_ERR_CHECKING_WRONG_LENGTH >> 8;
 		response_buf[response_len++] = SS_SW_ERR_CHECKING_WRONG_LENGTH & 0xff;
@@ -496,7 +498,9 @@ size_t ss_application_apdu_transact(struct ss_context *ctx, uint8_t *response_bu
 	size_t _request_len = *request_len;
 	uint16_t le = 0;
 
-	if (_request_len < 5) {
+	/* Allow 4-byte Case 1 APDUs (header only: CLA INS P1 P2)
+	 * The parser ss_apdu_parse_exhaustive supports this format */
+	if (_request_len < 4) {
 		SS_LOGP(SIFACE, LERROR, "ignoring short APDU: %s\n", ss_hexdump(request_buf, _request_len));
 		response_buf[response_len++] = SS_SW_ERR_CHECKING_WRONG_LENGTH >> 8;
 		response_buf[response_len++] = SS_SW_ERR_CHECKING_WRONG_LENGTH & 0xff;

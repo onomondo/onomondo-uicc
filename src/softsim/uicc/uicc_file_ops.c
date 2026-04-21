@@ -133,11 +133,15 @@ int ss_uicc_file_ops_cmd_status(struct ss_apdu *apdu)
 			return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
 		}
 
-		if (apdu->le != current_df->fci->len) {
-			apdu->le = 0;
+		/* Per TS 102 221, Le=0 (Case 2 short), Le=256 (0x00), or Le=65535
+		 * (extended) means "return all available data". Also accept Le=0
+		 * for Case 1 APDUs (no Le byte) as some modems like nRF91 use this. */
+		if (apdu->le != 0 && apdu->le != 256 && apdu->le != 65535 &&
+		    apdu->le != current_df->fci->len) {
 			SS_LOGP(SFILE, LDEBUG,
 				"Terminal requested status expecting length %u, returning actual FCI length %u\n",
 				apdu->le, (unsigned)current_df->fci->len);
+			apdu->le = 0;
 			return 0x6c00 | (current_df->fci->len);
 		}
 
