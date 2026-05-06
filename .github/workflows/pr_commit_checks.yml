@@ -1,0 +1,42 @@
+name: PR Commit Checks
+
+on:
+  pull_request:
+
+jobs:
+  pr-commit-checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check single commit
+        env:
+          COMMITS: ${{ github.event.pull_request.commits }}
+        run: |
+          if [ "$COMMITS" -ne 1 ]; then
+            echo "Error: PR must contain exactly 1 commit, found $COMMITS."
+            exit 1
+          fi
+
+      - name: Checkout PR
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        if: always()
+        with:
+          fetch-depth: 0
+
+      - name: Check Signed-off-by
+        if: always()
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          missing=$(git log "$BASE_SHA".."$HEAD_SHA" --format="%H %s" | while read sha msg; do
+            if ! git log -1 --format="%B" "$sha" | grep -qiE "^Signed-off-by: .+ <.+>$"; then
+              echo "  $sha $msg"
+            fi
+          done)
+          if [ -n "$missing" ]; then
+            echo "Error: the following commit(s) are missing a Signed-off-by trailer:"
+            echo "$missing"
+            exit 1
+          fi
