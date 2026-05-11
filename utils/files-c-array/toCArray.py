@@ -14,8 +14,6 @@ def to_c_array(path='files', out_path='ss_static_files.c', mode='bin'):
     s += 'const ss_dir_t ss_dirs_arr[] = {\n'
     ds = []
     for d in directories:
-        if d == '':
-            continue
         ds.append( f'{{.name = "{d}"}}')
     s += ', \n'.join(ds) + '\n};\n'
 
@@ -60,7 +58,8 @@ def get_dirs_and_files(path):
 
     for root, d_names, f_names in os.walk(path):
         current_dir = root.split('files')[-1]
-        directories.append(current_dir)
+        if current_dir:
+            directories.append(current_dir)
         for file in f_names:
             files.append(current_dir+'/'+file)
 
