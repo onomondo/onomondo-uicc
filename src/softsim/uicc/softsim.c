@@ -227,8 +227,7 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 		/* When more data than available is requested, tell the correct
 		 * length of the available data */
 		if (apdu->hdr.p3 > last_apdu->rsp_len) {
-			assert(last_apdu->rsp_len <= 0xff);
-			apdu->sw = 0x6c00 | last_apdu->rsp_len;
+			apdu->sw = 0x6c00 | (last_apdu->rsp_len & 0xff);
 			/* We must keep the last APDU so that the terminal has a chance to pick
 			 * up the data in a second try. */
 			apdu->lchan->last_apdu_keep = true;
@@ -335,8 +334,7 @@ out:
 		/* if the response is successful, and we have response data, signal
 		 * the length via SW=61xx */
 		if (apdu->sw == SS_SW_NORMAL_ENDING && apdu->rsp_len) {
-			assert(apdu->rsp_len <= 0xff);
-			apdu->sw = 0x6100 | apdu->rsp_len;
+			apdu->sw = 0x6100 | (apdu->rsp_len & 0xff);
 		}
 	} else {
 		if (apdu->le == 0) {
@@ -550,7 +548,7 @@ size_t ss_application_apdu_transact(struct ss_context *ctx, uint8_t *response_bu
 
 		if (apdu->lc == 0) {
 			/* no command data present (case 2), we can return a response */
-			if (le == apdu->rsp_len) {
+			if ((le == 0 ? 256 : le) == apdu->rsp_len) {
 				memcpy(response_buf, apdu->rsp, apdu->rsp_len);
 				response_len = apdu->rsp_len;
 				break;
