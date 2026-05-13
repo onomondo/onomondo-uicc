@@ -264,8 +264,25 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 				apdu->lc = 0;
 				break;
 			case SS_COMMAND_CASE_3:
+				if (apdu->lc < apdu->hdr.p3) {
+					/* Abort here, the handler would treat
+					 * p3 as Lc and then peek into
+					 * uninitialized memory */
+					SS_LOGP(SLCHAN, LERROR, "Insufficient data for Case 3/4 command\n");
+					apdu->sw = SS_SW_ERR_CHECKING_WRONG_LENGTH;
+					apdu->lc = 0;
+					goto out;
+				}
+				/* if processed length is reported by the apdu it was parsed exhaustively and that should take precedence */
+				if (!apdu->processed_bytes) {
+					apdu->lc = apdu->hdr.p3;
+					processed_length = 4 + 1 + apdu->lc;
+				}
+				/* Case 3 has no Le; clear any stale value set by exhaustive parsing
+				 * when a 5-byte APDU with p3=0x00 was mistakenly classified as Case 2 */
+				apdu->le = 0;
+				break;
 			case SS_COMMAND_CASE_4:
-
 				if (apdu->lc < apdu->hdr.p3) {
 					/* Abort here, the handler would treat
 					 * p3 as Lc and then peek into
