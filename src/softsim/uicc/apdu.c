@@ -14,7 +14,6 @@
 #include "uicc_lchan.h"
 
 #define P3 4
-#define HEADER_SIZE 4
 
 /*! Create a new APDU struct for use with the SoftSIM API.
  *  \returns pointer to allocated APDU struct, NULL on allocation failure. */
@@ -70,7 +69,7 @@ void ss_apdu_toss(struct ss_apdu *apdu)
  *  \param[in] len bytes in buffer */
 void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 {
-	assert(len >= HEADER_SIZE);
+	assert(len >= APDU_HEADER_SIZE);
 	// resulting apdu is collected in the end
 	uint16_t le = 0, lc = 0, processed_bytes = 0;
 	uint8_t *data_start = NULL;
@@ -79,20 +78,20 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 
 	/* First 4 bytes are directly inserted to the header.
 	 * This function will handle extended cases as well so p3 isn't directly used */
-	memcpy(&(apdu->hdr), buffer, HEADER_SIZE);
+	memcpy(&(apdu->hdr), buffer, APDU_HEADER_SIZE);
 	apdu->hdr.p3 = 0;
-	processed_bytes = HEADER_SIZE;
+	processed_bytes = APDU_HEADER_SIZE;
 
 	/* Case 1 Command: Header only.
 	 * A C-APDU of {CLA INS P1 P2} is passed from the terminal to the UICC.
 	 * https://www.etsi.org/deliver/etsi_ts/102200_102299/102221/13.02.00_60/ts_102221v130200p.pdf */
-	if (len == HEADER_SIZE) {
+	if (len == APDU_HEADER_SIZE) {
 		SS_LOGP(SAPDU, LDEBUG, "APDU is CASE 1 - header only\n");
-		apdu->processed_bytes = HEADER_SIZE;
+		apdu->processed_bytes = APDU_HEADER_SIZE;
 		return;
 	}
 
-	if (len == HEADER_SIZE + 1) {
+	if (len == APDU_HEADER_SIZE + 1) {
 		// Case 2 Command: Header + Le
 		// [ CLA, INS, P1, P2, LE ]
 		le = buffer[P3];
@@ -107,7 +106,7 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 	if (buffer[P3] == 0) {
 		// Case 2 Command: Header + Le (extended case)
 		// [ CLA, INS, P1, P2, 0, LE1, LE2 ]
-		if (len == HEADER_SIZE + 3) {
+		if (len == APDU_HEADER_SIZE + 3) {
 			// parse next two bytes as length
 			le = buffer[P3 + 1] << 8 | buffer[P3 + 2];
 			le = le == 0 ? 65535 : le;
@@ -119,9 +118,9 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 
 		// [ CLA, INS, P1, P2, 0, LC1, LC2 [REST] ]
 		lc = buffer[P3 + 1] << 8 | buffer[P3 + 2];
-		data_start = buffer + HEADER_SIZE + 3;
+		data_start = buffer + APDU_HEADER_SIZE + 3;
 
-		if (len == HEADER_SIZE + 3 + lc) {
+		if (len == APDU_HEADER_SIZE + 3 + lc) {
 			// [ CLA, INS, P1, P2, 0, LC1, LC2 DATA[LC] ]
 			le = 0;
 			processed_bytes = len;
@@ -134,7 +133,7 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 		 * It __should__ always be same format - but we can't be sure that the call respects
 		 * this at all times */
 		uint8_t le_bytes = 0;
-		le_bytes = len - (HEADER_SIZE + 3 + lc);
+		le_bytes = len - (APDU_HEADER_SIZE + 3 + lc);
 
 		switch (le_bytes) {
 		case 1:
@@ -159,10 +158,10 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 	}
 
 	lc = buffer[P3];
-	data_start = buffer + HEADER_SIZE + 1;
+	data_start = buffer + APDU_HEADER_SIZE + 1;
 
 	// Case 3 Command: HEADER + LC + DATA
-	if (len == HEADER_SIZE + 1 + lc) {
+	if (len == APDU_HEADER_SIZE + 1 + lc) {
 		// [ CLA, INS, P1, P2, LC DATA[LC] ]
 		le = 0;
 		SS_LOGP(SAPDU, LDEBUG, "Case 3 -  lc %d\n", lc);
@@ -175,10 +174,10 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 	le = le == 0 ? 65535 : le;
 	SS_LOGP(SAPDU, LDEBUG, "Case 4:  lc %d, le %d \n", lc, le);
 	apdu->hdr.p3 = lc;
-	processed_bytes = HEADER_SIZE + 1 + lc + 1;
+	processed_bytes = APDU_HEADER_SIZE + 1 + lc + 1;
 out:
 	// lc is externally supplied so we can't trust it at all
-	if (lc > len - HEADER_SIZE) {
+	if (lc > len - APDU_HEADER_SIZE) {
 		SS_LOGP(SAPDU, LERROR,
 			"APDU malformed. LC is larger than the remaining buffer. Len: %zu, lc: %d, apdu: %s\n", len, lc,
 			ss_hexdump(buffer, len));
