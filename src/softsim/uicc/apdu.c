@@ -184,6 +184,12 @@ out:
 		lc = 0;
 		apdu->hdr.p3 = 0;
 	}
+	if (lc > sizeof(apdu->cmd)) {
+		SS_LOGP(SAPDU, LERROR,
+			"APDU malformed. LC exceeds internal buffer. lc: %d\n", lc);
+		lc = 0;
+		apdu->hdr.p3 = 0;
+	}
 	apdu->lc = lc;
 	apdu->le = le;
 	apdu->processed_bytes = processed_bytes;
