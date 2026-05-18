@@ -252,13 +252,13 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 				apdu->sw = SS_SW_ERR_CHECKING_INS_INVALID;
 				goto out;
 			case SS_COMMAND_CASE_1:
-				processed_length = 4;
+				processed_length = APDU_HEADER_SIZE;
 				apdu->lc = 0;
 				break;
 			case SS_COMMAND_CASE_2:
 				/* if processed length is reported by the apdu it was parsed exhaustively and that should take presendence */
 				if (!apdu->le && !apdu->processed_bytes) {
-					processed_length = 4 + 1;
+					processed_length = APDU_HEADER_SIZE + 1;
 					apdu->le = apdu->hdr.p3;
 				}
 				apdu->lc = 0;
@@ -278,7 +278,7 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 				/* if processed length is reported by the apdu it was parsed exhaustively and that should take precedence */
 				if (!apdu->processed_bytes) {
 					apdu->lc = apdu->hdr.p3;
-					processed_length = 4 + 1 + apdu->lc;
+					processed_length = APDU_HEADER_SIZE + 1 + apdu->lc;
 				}
 				break;
 			}

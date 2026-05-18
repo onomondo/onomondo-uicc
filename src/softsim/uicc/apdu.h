@@ -10,6 +10,9 @@
 #include <stdlib.h>
 struct ss_context;
 
+/*! Size of the APDU core header: CLA, INS, P1, P2 (excludes P3/Lc byte) */
+#define APDU_HEADER_SIZE 4
+
 /*! APDU header */
 struct ss_apdu_hdr {
 	uint8_t cla;
