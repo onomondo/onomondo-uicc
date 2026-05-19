@@ -57,8 +57,8 @@ static int decode_addr(struct ss_sms_addr *addr_dec, const uint8_t *addr, size_t
 	addr++;
 
 	/* Decode header */
-	addr_dec->extension = (*addr && 0x80);
-	addr_dec->type_of_number = *addr >> 4 & 0x07;
+	addr_dec->extension = (*addr & 0x80) != 0;
+	addr_dec->type_of_number = (*addr >> 4) & 0x07;
 	addr_dec->numbering_plan = *addr & 0x0F;
 	addr++;
 
