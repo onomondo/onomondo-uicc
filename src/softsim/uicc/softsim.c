@@ -227,7 +227,9 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 		/* When more data than available is requested, tell the correct
 		 * length of the available data */
 		if (apdu->hdr.p3 > last_apdu->rsp_len) {
-			apdu->sw = 0x6c00 | (last_apdu->rsp_len & 0xff);
+			/* SW=6Cxx can only encode up to 255 bytes - cap if needed */
+			size_t len = last_apdu->rsp_len > 0xff ? 0xff : last_apdu->rsp_len;
+			apdu->sw = 0x6c00 | len;
 			/* We must keep the last APDU so that the terminal has a chance to pick
 			 * up the data in a second try. */
 			apdu->lchan->last_apdu_keep = true;
@@ -334,7 +336,9 @@ out:
 		/* if the response is successful, and we have response data, signal
 		 * the length via SW=61xx */
 		if (apdu->sw == SS_SW_NORMAL_ENDING && apdu->rsp_len) {
-			apdu->sw = 0x6100 | (apdu->rsp_len & 0xff);
+			/* SW=61xx can only encode up to 255 bytes - cap if needed */
+			size_t len = apdu->rsp_len > 0xff ? 0xff : apdu->rsp_len;
+			apdu->sw = 0x6100 | len;
 		}
 	} else {
 		if (apdu->le == 0) {
