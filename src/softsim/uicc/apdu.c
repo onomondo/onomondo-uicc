@@ -171,7 +171,7 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 
 	// Case 4 Command: HEADER + LC + DATA + LE
 	le = buffer[len - 1];
-	le = le == 0 ? 65535 : le;
+	le = le == 0 ? 256 : le;
 	SS_LOGP(SAPDU, LDEBUG, "Case 4:  lc %d, le %d \n", lc, le);
 	apdu->hdr.p3 = lc;
 	processed_bytes = APDU_HEADER_SIZE + 1 + lc + 1;

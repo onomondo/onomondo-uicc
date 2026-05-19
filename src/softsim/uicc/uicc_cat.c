@@ -112,13 +112,8 @@ int ss_uicc_cat_cmd_envelope(struct ss_apdu *apdu)
 	unsigned int i;
 	struct ber_tlv_ie *cat_template;
 
-	SS_LOGP(SPROACT, LDEBUG, "Data fed into BTLV: %s\n", ss_hexdump(apdu->cmd, apdu->hdr.p3));
-	size_t data_len = apdu->hdr.p3; /* The announced length */
-	/* Let's not read outside initialized data */
-	if (apdu->lc < data_len) {
-		SS_LOGP(SPROACT, LERROR, "Data length anounced in P3 exceeds available data\n");
-		return SS_SW_ERR_WRONG_PARAM_INCORRECT_DATA;
-	}
+	size_t data_len = apdu->lc;
+	SS_LOGP(SPROACT, LDEBUG, "Data fed into BTLV: %s\n", ss_hexdump(apdu->cmd, data_len));
 	envelope = ss_btlv_decode(apdu->cmd, data_len, ss_proactive_get_cat_descr());
 	if (!envelope) {
 		SS_LOGP(SPROACT, LERROR, "failed to decode BER-TLV encoded envelope\n");
