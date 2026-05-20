@@ -343,10 +343,10 @@ out:
 	} else {
 		if (apdu->le == 0) {
 			SS_LOGP(SLCHAN, LDEBUG, "Returning rsp_len = %zu bytes after le = 0\n", apdu->rsp_len);
-		} else if (apdu->le != apdu->rsp_len) {
+		} else if (apdu->rsp_len > apdu->le) {
 			SS_LOGP(SLCHAN, LERROR,
-				"invalid response data, le (%u) != rsp_len (%lu), changing SW=%04x to SW=%04x (wrong length)\n",
-				apdu->le, apdu->rsp_len, apdu->sw, SS_SW_ERR_CHECKING_WRONG_LENGTH);
+				"invalid response data, rsp_len (%lu) > le (%u), changing SW=%04x to SW=%04x (wrong length)\n",
+				apdu->rsp_len, apdu->le, apdu->sw, SS_SW_ERR_CHECKING_WRONG_LENGTH);
 			apdu->sw = SS_SW_ERR_CHECKING_WRONG_LENGTH;
 			apdu->rsp_len = 0;
 		}
