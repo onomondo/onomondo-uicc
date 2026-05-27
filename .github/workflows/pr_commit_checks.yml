@@ -5,10 +5,10 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
   pr-commit-checks:
+    if: ${{ github.event.pull_request.user.login != 'renovate[bot]' && github.event.pull_request.user.login != 'github-actions[bot]' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
 
