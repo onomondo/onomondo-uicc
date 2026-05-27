@@ -12,6 +12,8 @@
 
 void ss_load_key_external(const uint8_t *key_id, size_t in_len, uint8_t *key, size_t *key_len)
 {
+	if (in_len > *key_len)
+		in_len = *key_len;
 	memcpy(key, key_id, in_len);
 	*key_len = in_len;
 }
