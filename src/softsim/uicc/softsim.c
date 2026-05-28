@@ -194,6 +194,19 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 	 * error cases. */
 	ss_fs_utils_path_clone(&backup_path, &apdu->lchan->fs_path);
 
+	/* Card ATR advertises no extended-length APDU support,
+	 * reject with SW=6700 ("wrong length"). */
+	if (apdu->le > 256 || apdu->lc > 256) {
+		SS_LOGP(SLCHAN, LERROR,
+			"extended-length APDU rejected: lc=%u, le=%u (card advertises no extended-length support)\n",
+			apdu->lc, apdu->le);
+		apdu->sw = SS_SW_ERR_CHECKING_WRONG_LENGTH;
+		apdu->lc = 0;
+		apdu->le = 0;
+		apdu->rsp_len = 0;
+		goto out;
+	}
+
 	if (((apdu->hdr.cla & 0x70) == 0x00) && apdu->hdr.ins == TS_102_221_INS_GET_RESPONSE) {
 		/* The GET RESPONSE command is of command case 2 (see also command.h) */
 		processed_length = 5;
