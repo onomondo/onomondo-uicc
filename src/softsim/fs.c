@@ -56,7 +56,7 @@ size_t ss_fwrite(const void *prt, size_t size, size_t count, ss_FILE f)
 	return fwrite(prt, size, count, (FILE *)f);
 }
 
-int ss_file_size(char *path)
+int ss_file_size(const char *path)
 {
 	int rc;
 	FILE *f;
