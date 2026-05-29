@@ -150,7 +150,7 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param, size_t cmd_pac
 		SS_LOGP(SREMOTECMD, LERROR, "Received comand packet too short\n");
 		/* Is there any better guidance? This is only based on general ISO 7816
 		 * ENVELOPE descriptions. */
-		return SS_SW_ERR_CHECKING_WRONG_LENGTH;
+		return -SS_SW_ERR_CHECKING_WRONG_LENGTH;
 	}
 
 	SS_LOGP(SREMOTECMD, LDEBUG, "command packet header data (cleartext): %s\n", ss_hexdump(cmd_packet, 10));
