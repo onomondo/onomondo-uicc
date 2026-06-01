@@ -247,12 +247,12 @@ struct ss_buf *ss_fs_read_file_record(const struct ss_list *path, size_t record_
 	 * has to maintain this state and then call this function with the
 	 * absolue record number. */
 	if (record_no == 0) {
-		SS_LOGP(SFS, LINFO, "non existing record (%lu) referenced in file (%04x)\n", record_no, file->fid);
+		SS_LOGP(SFS, LINFO, "non existing record (%zu) referenced in file (%04x)\n", record_no, file->fid);
 		return NULL;
 	}
 
 	if (record_no > file->fcp_file_descr->number_of_records + 1) {
-		SS_LOGP(SFS, LINFO, "non existing record (%lu) referenced in file (%04x)\n", record_no, file->fid);
+		SS_LOGP(SFS, LINFO, "non existing record (%zu) referenced in file (%04x)\n", record_no, file->fid);
 		return NULL;
 	}
 
@@ -282,12 +282,12 @@ int ss_fs_write_file_record(const struct ss_list *path, size_t record_no, const 
 
 	/* See also note in ss_fs_get_file_record() */
 	if (record_no == 0) {
-		SS_LOGP(SFS, LINFO, "non existing record (%lu) referenced in file (%04x)\n", record_no, file->fid);
+		SS_LOGP(SFS, LINFO, "non existing record (%zu) referenced in file (%04x)\n", record_no, file->fid);
 		return -EINVAL;
 	}
 
 	if (record_no > file->fcp_file_descr->number_of_records + 1) {
-		SS_LOGP(SFS, LINFO, "non existing record (%lu) referenced in file (%04x), file has %u records\n",
+		SS_LOGP(SFS, LINFO, "non existing record (%zu) referenced in file (%04x), file has %u records\n",
 			record_no, file->fid, file->fcp_file_descr->number_of_records);
 		return -EINVAL;
 	}
@@ -299,7 +299,7 @@ int ss_fs_write_file_record(const struct ss_list *path, size_t record_no, const 
 	}
 
 	if (file->fcp_file_descr->record_len != len) {
-		SS_LOGP(SFS, LINFO, "cannot write record with improper length (%u != %lu) to file (%04x)\n",
+		SS_LOGP(SFS, LINFO, "cannot write record with improper length (%u != %zu) to file (%04x)\n",
 			file->fcp_file_descr->record_len, len, file->fid);
 		return -EINVAL;
 	}
