@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.2.0](https://github.com/onomondo/onomondo-uicc/compare/v2.1.0...v2.2.0) (2026-06-02)
+
+
+### Features
+
+* add storage_compact.c ([#39](https://github.com/onomondo/onomondo-uicc/issues/39)) ([4d4b900](https://github.com/onomondo/onomondo-uicc/commit/4d4b9000b1976d4a01ade941a9b03e88976627ee))
+
+
+### Bug Fixes
+
+* allow APDU responses shorter than requested Le ([#59](https://github.com/onomondo/onomondo-uicc/issues/59)) ([0dfa2cc](https://github.com/onomondo/onomondo-uicc/commit/0dfa2cc8229b6c068b57a30f0e30864b072ce950))
+* clamp in_len to key buffer size in ss_load_key_external ([#63](https://github.com/onomondo/onomondo-uicc/issues/63)) ([41c1ac7](https://github.com/onomondo/onomondo-uicc/commit/41c1ac7a384181cb29b90f2e61fd7b81cc820c1b))
+* ENVELOPE returns SW=6A81 and prevent abort on 256-byte returns ([#53](https://github.com/onomondo/onomondo-uicc/issues/53)) ([a051df3](https://github.com/onomondo/onomondo-uicc/commit/a051df38e7788061ee5b9c18f1eb5e529e412edb))
+* get proper value for ss_dirs_len ([#20](https://github.com/onomondo/onomondo-uicc/issues/20)) ([dc77cf8](https://github.com/onomondo/onomondo-uicc/commit/dc77cf8c64caead22588a0fe6f7943b775553b00))
+* storage compact matching nrf-softsim ([#43](https://github.com/onomondo/onomondo-uicc/issues/43)) ([e6ebde1](https://github.com/onomondo/onomondo-uicc/commit/e6ebde1e6fe4d10e95d1e6f0098efb62475dc524))
+* support Case 1 APDUs and STATUS Le handling for nRF91 modem ([#36](https://github.com/onomondo/onomondo-uicc/issues/36)) ([d9809ed](https://github.com/onomondo/onomondo-uicc/commit/d9809edb4dfb20697f0fd3498b31169dbfddbeca))
+* VERIFY PIN returns SW=6700 via ss_application_apdu_transact ([#52](https://github.com/onomondo/onomondo-uicc/issues/52)) ([058fa9c](https://github.com/onomondo/onomondo-uicc/commit/058fa9cc2d68b26a4354ee46fc24f41e61f3174d))
+
 ## [2.1.0](https://github.com/onomondo/onomondo-uicc/compare/v2.0.1...v2.1.0) (2025-12-05)
 
 
