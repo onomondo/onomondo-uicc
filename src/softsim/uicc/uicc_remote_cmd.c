@@ -363,7 +363,7 @@ static int parse_cmd_hdr_ciphtxt(struct command_parameters *param, size_t cmd_pa
  *   choice. */
 static void setup_ctx_from_tar(struct ss_context *ctx, uint8_t *tar)
 {
-	/* Values from TS 101 221 Annex D. When extending, take care not to use any
+	/* Values from TS 101 220 Annex D. When extending, take care not to use any
 	 * TARs that imply extended data format unless that is implemented and
 	 * signalled to the decoder. */
 
