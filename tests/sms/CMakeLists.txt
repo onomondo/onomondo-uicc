@@ -6,6 +6,6 @@ add_executable(sms_test sms_test.c)
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-target_link_libraries(sms_test uicc)
+target_link_libraries(sms_test uicc milenage crypto storage $<$<TARGET_EXISTS:utils>:utils>)
 
 add_test(NAME sms_test COMMAND sh -c "$<TARGET_FILE:sms_test> > sms_test.out")

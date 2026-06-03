@@ -66,7 +66,7 @@ int handle_sms_pp_dwnld(struct ss_apdu *apdu, struct ss_buf *cat_template)
 
 leave:
 	ss_ctlv_free(ctlv_data);
-	return 0;
+	return rc;
 }
 
 const struct ss_cat_envelope_command cat_envelope_commands[] = {
