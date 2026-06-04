@@ -191,8 +191,7 @@ out:
 	apdu->lc = lc;
 	apdu->le = le;
 	apdu->processed_bytes = processed_bytes;
-	// copy data field if present
-	if (lc && data_start) {
+	if (lc && data_start && lc <= sizeof(apdu->cmd)) {
 		memcpy(apdu->cmd, data_start, lc);
 	}
 }
