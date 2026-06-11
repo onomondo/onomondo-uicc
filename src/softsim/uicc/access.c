@@ -24,20 +24,17 @@
 #define ACCESSBYTE_MASK_HIGHBITS 0x78
 
 enum arr_ref_type {
-	ARR_REF_NONE,	    /**< The FCP contained no access rule reference */
+	ARR_REF_NONE, /**< The FCP contained no access rule reference */
 	ARR_REF_IDENTIFIED, /**< A file ID and record number have been identified */
-	ARR_REF_UNMATCHING, /**< The file ID was identified, but no data was */
-			    /*   available for the given SE ID. (Currently,
-			     *   this is the case for all SE ID references, as
-			     *   the SE ID is not passed into \ref
-			     *   arr_from_fcp). */
+	ARR_REF_UNMATCHING, /**< The file ID was identified, but no data was available for the given SE ID. (Currently,
+						 *   this is the case for all SE ID references, as
+						 *   the SE ID is not passed into \ref arr_from_fcp). */
 };
 
 struct arr_ref {
 	enum arr_ref_type type;
 	uint16_t file_id;
-	uint8_t record_number; /**< Record number inside the file; only valid */
-			       /*   for type ARR_REF_IDENTIFIED */
+	uint8_t record_number; /**< Record number inside the file; only valid for type ARR_REF_IDENTIFIED */
 };
 
 const uint8_t FCP_TAG_REFERENCED_FORMAT = 0x8b;

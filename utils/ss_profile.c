@@ -24,7 +24,7 @@ uint8_t ss_profile_from_string(uint16_t len, const char input_string[len], struc
 
 	/* Structure (a003): */
 	static const char a003_default[] = "0003000a000131323334ffffffff31323334353637380003000a008131323334ffffff"
-						"ff313233343536373801030000000a31323334ffffffff3132333435363738";
+					   "ff313233343536373801030000000a31323334ffffffff3132333435363738";
 	memcpy(profile->_3F00_A003, a003_default, sizeof(a003_default) - 1);
 
 	size_t pos = 0, data_end = 0, data_start = 0, next_pos = 0;

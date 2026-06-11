@@ -22,18 +22,14 @@ void ss_binary_from_hexstr_test(void)
 	rc = ss_binary_from_hexstr(output, sizeof(output), testvec_1);
 	printf("input: %s, output: %s\n", testvec_1, ss_hexdump(output, rc));
 
-	rc = ss_binary_from_hexstr(output_short, sizeof(output_short),
-				   testvec_1);
-	printf("input: %s, output (short): %s\n", testvec_1,
-	       ss_hexdump(output_short, rc));
+	rc = ss_binary_from_hexstr(output_short, sizeof(output_short), testvec_1);
+	printf("input: %s, output (short): %s\n", testvec_1, ss_hexdump(output_short, rc));
 
 	rc = ss_binary_from_hexstr(output, sizeof(output), testvec_2);
 	printf("input: %s, output: %s\n", testvec_2, ss_hexdump(output, rc));
 
-	rc = ss_binary_from_hexstr(output_short, sizeof(output_short),
-				   testvec_2);
-	printf("input: %s, output (short): %s\n", testvec_2,
-	       ss_hexdump(output_short, rc));
+	rc = ss_binary_from_hexstr(output_short, sizeof(output_short), testvec_2);
+	printf("input: %s, output (short): %s\n", testvec_2, ss_hexdump(output_short, rc));
 
 	rc = ss_binary_from_hexstr(output, sizeof(output), testvec_3);
 	printf("input: %s, output: %s\n", testvec_3, ss_hexdump(output, rc));

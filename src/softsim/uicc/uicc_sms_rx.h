@@ -28,5 +28,5 @@ struct ss_buf;
 struct ss_context;
 
 void ss_uicc_sms_rx_clear(struct ss_context *ctx);
-int ss_uicc_sms_rx(struct ss_context *ctx, struct ss_buf *sms_tpdu,
-		   size_t *response_len, uint8_t response[*response_len]);
+int ss_uicc_sms_rx(struct ss_context *ctx, struct ss_buf *sms_tpdu, size_t *response_len,
+		   uint8_t response[*response_len]);

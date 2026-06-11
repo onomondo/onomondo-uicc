@@ -547,8 +547,9 @@ static int get_cntr_from_tar(uint64_t *cntr, size_t *record_no, struct command_p
 			*cntr = ss_uint64_from_array(record->cntr, CNTR_LEN);
 			*record_no = i + 1;
 			SS_LOGP(SREMOTECMD, LINFO,
-				"CNTR selection result: record %zu, TAR %s, TAR mask %s, CNTR %" PRIu64 "/%010" PRIx64 "\n", *record_no,
-				ss_hexdump(record->tar, sizeof(record->tar)),
+				"CNTR selection result: record %zu, TAR %s, TAR mask %s, CNTR %" PRIu64 "/%010" PRIx64
+				"\n",
+				*record_no, ss_hexdump(record->tar, sizeof(record->tar)),
 				ss_hexdump(record->tar_mask, sizeof(record->tar_mask)), *cntr, *cntr);
 			ss_buf_free(cntr_buf);
 			break;
@@ -831,9 +832,9 @@ static void build_message(uint8_t *outbuf, size_t *outbuf_len, uint8_t *plaintex
 	*outbuf_len = 16 + param->out_integrity_len + plaintext_len + pcnt;
 
 	/* User Data Header */
-	outbuf[0] = 0x02;    /* UDHL */
+	outbuf[0] = 0x02; /* UDHL */
 	outbuf[1] = IEI_RPI; /* IEIa: Response Packet Identifier */
-	outbuf[2] = 0;	     /* IEIDLa, length of IEa data */
+	outbuf[2] = 0; /* IEIDLa, length of IEa data */
 	/* Length of Response Packet */
 	outbuf[3] = (*outbuf_len - 5) >> 8;
 	outbuf[4] = (*outbuf_len - 5);
@@ -1020,14 +1021,16 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 		 * counter value */
 		if (param.cntr <= cntr) {
 			SS_LOGP(SREMOTECMD, LDEBUG,
-				"Received counter value %" PRIu64 " not greater than stored counter value %" PRIu64 "\n", param.cntr,
-				cntr);
+				"Received counter value %" PRIu64 " not greater than stored counter value %" PRIu64
+				"\n",
+				param.cntr, cntr);
 			ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 			goto clear_out;
 		}
 		cntr = param.cntr;
 		SS_LOGP(SREMOTECMD, LDEBUG,
-			"Received counter value %" PRIu64 " greater than stored counter value, counter incremented to: %" PRIu64 "\n",
+			"Received counter value %" PRIu64
+			" greater than stored counter value, counter incremented to: %" PRIu64 "\n",
 			param.cntr, cntr);
 		break;
 	case CNTR_CHECK_STRICT:
@@ -1042,14 +1045,16 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 		 * stored counter value */
 		if (param.cntr != cntr + 1) {
 			SS_LOGP(SREMOTECMD, LDEBUG,
-				"Received counter value %" PRIu64 " not greater by one than stored counter value %" PRIu64 "\n",
+				"Received counter value %" PRIu64
+				" not greater by one than stored counter value %" PRIu64 "\n",
 				param.cntr, cntr);
 			ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 			goto clear_out;
 		}
 		cntr = param.cntr;
 		SS_LOGP(SREMOTECMD, LDEBUG,
-			"Received counter value %" PRIu64 " greater by one than stored counter value, counter incremented to: %" PRIu64 "\n",
+			"Received counter value %" PRIu64
+			" greater by one than stored counter value, counter incremented to: %" PRIu64 "\n",
 			param.cntr, cntr);
 		break;
 	default:
