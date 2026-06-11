@@ -3,13 +3,8 @@
   "extends": [
     "config:best-practices"
   ],
-  "ignorePresets": [
-    ":semanticPrefixFixDepsChoreOthers"
-  ],
   "timezone": "Europe/Copenhagen",
   "dependencyDashboard": true,
-  "semanticCommitType": "deps",
-  "semanticCommitScope": "",
   "rebaseWhen": "never",
   "lockFileMaintenance": {
     "enabled": true,
