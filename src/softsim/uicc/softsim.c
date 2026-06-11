@@ -133,8 +133,28 @@ size_t ss_atr(struct ss_context *ctx, uint8_t *atr_buf, size_t atr_buf_len)
 	uint8_t tck = 0;
 	size_t i;
 
-	uint8_t atr[] = { 0x3B, 0x9F, 0x01, 0x80, 0x1F, 0x87, 0x80, 0x31, 0xE0, 0x73, 0xFE,
-			  0x21, 0x00, 0x67, 0x4A, 0x4C, 0x75, 0x30, 0x34, 0x05, 0x4B };
+	/* ATR returned by ss_atr(). Bytes decoded per ISO/IEC 7816-4 §8.1.1.2.
+	 * Card capabilities byte 3 bit 7 = 0 declares "no extended Lc/Le
+	 * support" — kept consistent with the the fixed 256-byte apdu->cmd / apdu->rsp buffers. */
+	// clang-format off
+	uint8_t atr[] = {
+		0x3B,                                  /* TS  — direct convention */
+		0x9F,                                  /* T0  — TA1/TD1 follow, 15 historical bytes */
+		0x01,                                  /* TA1 — Fi/Di defaults */
+		0x80,                                  /* TD1 — TD2 follows, T=0 */
+		0x1F,                                  /* TD2 — TA3 follows, T=15 (global params) */
+		0x87,                                  /* TA3 */
+		/* --- 15 historical bytes (compact-TLV after 0x80 indicator) --- */
+		0x80,                                  /* compact-TLV category indicator */
+		0x31, 0xE0,                            /* tag=3 len=1 card service data: 0xE0 */
+		0x73,                                  /* tag=7 len=3 card capabilities */
+		0xFE,                                  /*   byte 1: selection methods */
+		0x21,                                  /*   byte 2: data coding */
+		0x00,                                  /*   byte 3: SW functions — bit 7=0 → no extended Lc/Le */
+		0x67,                                  /* tag=6 len=7 status indicator */
+		0x4A, 0x4C, 0x75, 0x30, 0x34, 0x05, 0x4B,
+	};
+	// clang-format on
 
 	for (i = 1; i < sizeof(atr); i++) {
 		tck ^= atr[i];
@@ -193,6 +213,19 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 	/* We do not ask of commands that they keep the path where it was in their
 	 * error cases. */
 	ss_fs_utils_path_clone(&backup_path, &apdu->lchan->fs_path);
+
+	/* Card ATR advertises no extended-length APDU support,
+	 * reject with SW=6700 ("wrong length"). */
+	if (apdu->le > 256 || apdu->lc > 256) {
+		SS_LOGP(SLCHAN, LERROR,
+			"extended-length APDU rejected: lc=%u, le=%u (card advertises no extended-length support)\n",
+			apdu->lc, apdu->le);
+		apdu->sw = SS_SW_ERR_CHECKING_WRONG_LENGTH;
+		apdu->lc = 0;
+		apdu->le = 0;
+		apdu->rsp_len = 0;
+		goto out;
+	}
 
 	if (((apdu->hdr.cla & 0x70) == 0x00) && apdu->hdr.ins == TS_102_221_INS_GET_RESPONSE) {
 		/* The GET RESPONSE command is of command case 2 (see also command.h) */

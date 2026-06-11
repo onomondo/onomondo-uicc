@@ -63,7 +63,11 @@ void ss_apdu_toss(struct ss_apdu *apdu)
 	}
 }
 
-/** This enables support for extended APDU cases.
+/** Parse an APDU's wire format into apdu->hdr, apdu->lc, apdu->le, and apdu->cmd.
+ *  Decodes all seven ISO 7816-4 cases (Case 1, 2/3/4 short, 2/3/4 extended).
+ *  The card does not honor extended-length APDUs (ATR card-capabilities byte 3
+ *  bit 7 = 0); extended-form decoding exists so apdu_transact() can reject them
+ *  with accurate SW=6700 and a precise log message.
  *  \param[in] apdu struct allocated by caller.
  *  \param[in] buffer with apdu request.
  *  \param[in] len bytes in buffer */
