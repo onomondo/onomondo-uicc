@@ -315,7 +315,7 @@ int ss_uicc_file_ops_cmd_read_binary(struct ss_apdu *apdu)
 
 	if (!ss_access_check_command(apdu, SS_ACCESS_INTENTION_EF_READ)) {
 		apdu->le = 0;
-		return SS_SW_ERR_CMD_NOT_ALLOWED_NO_INFO;
+		return SS_SW_ERR_CMD_NOT_ALLOWED_SECURITY_STATUS;
 	}
 
 	/* FIXME #60: check invalidated / terminated */
@@ -378,7 +378,7 @@ int ss_uicc_file_ops_cmd_update_binary(struct ss_apdu *apdu)
 
 	if (!ss_access_check_command(apdu, SS_ACCESS_INTENTION_EF_UPDATE_ERASE)) {
 		apdu->le = 0;
-		return SS_SW_ERR_CMD_NOT_ALLOWED_NO_INFO;
+		return SS_SW_ERR_CMD_NOT_ALLOWED_SECURITY_STATUS;
 	}
 
 	/* FIXME #60: check invalidated / terminated */
@@ -490,7 +490,7 @@ int ss_uicc_file_ops_cmd_read_record(struct ss_apdu *apdu)
 
 	if (!ss_access_check_command(apdu, SS_ACCESS_INTENTION_EF_READ)) {
 		apdu->le = 0;
-		return SS_SW_ERR_CMD_NOT_ALLOWED_NO_INFO;
+		return SS_SW_ERR_CMD_NOT_ALLOWED_SECURITY_STATUS;
 	}
 
 	/* FIXME #60: check invalidated / terminated */
@@ -548,7 +548,7 @@ int ss_uicc_file_ops_cmd_update_record(struct ss_apdu *apdu)
 
 	if (!ss_access_check_command(apdu, SS_ACCESS_INTENTION_EF_UPDATE_ERASE)) {
 		apdu->le = 0;
-		return SS_SW_ERR_CMD_NOT_ALLOWED_NO_INFO;
+		return SS_SW_ERR_CMD_NOT_ALLOWED_SECURITY_STATUS;
 	}
 
 	/* FIXME #60: check invalidated / terminated */
@@ -630,6 +630,13 @@ int ss_uicc_file_ops_cmd_search_record(struct ss_apdu *apdu)
 	rc = verify_file_struct(apdu, selected_file, true);
 	if (rc != 0)
 		return rc;
+
+	/* SEARCH RECORD reads record contents, so it is subject to the same
+	 * READ access condition as READ RECORD. */
+	if (!ss_access_check_command(apdu, SS_ACCESS_INTENTION_EF_READ)) {
+		apdu->le = 0;
+		return SS_SW_ERR_CMD_NOT_ALLOWED_SECURITY_STATUS;
+	}
 
 	n_records = selected_file->fcp_file_descr->number_of_records;
 	SS_LOGP(SFILE, LDEBUG, "number of records: %u\n", n_records);
