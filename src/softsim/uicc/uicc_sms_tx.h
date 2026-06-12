@@ -9,7 +9,7 @@
 #include "sms.h"
 
 struct ss_context;
-typedef void (*sms_result_cb)(struct ss_context * ctx, int rc);
+typedef void (*sms_result_cb)(struct ss_context *ctx, int rc);
 
 struct ss_uicc_sms_tx_sm {
 	struct ss_list list;
@@ -31,9 +31,6 @@ struct ss_uicc_sms_tx_state {
 };
 
 void ss_uicc_sms_tx_clear(struct ss_context *ctx);
-int ss_uicc_sms_tx(struct ss_context *ctx,
-		   struct ss_sm_hdr *sm_hdr,
-		   uint8_t *ud_hdr, size_t ud_hdr_len,
-		   uint8_t *tp_ud, size_t tp_ud_len,
-		   sms_result_cb sms_result_cb);
+int ss_uicc_sms_tx(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *ud_hdr, size_t ud_hdr_len, uint8_t *tp_ud,
+		   size_t tp_ud_len, sms_result_cb sms_result_cb);
 void ss_uicc_sms_tx_poll(struct ss_context *ctx);

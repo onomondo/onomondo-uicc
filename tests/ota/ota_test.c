@@ -33,11 +33,10 @@ static void calc_and_print_pcnt(enum enc_algorithm algorithm, size_t data_len, u
 
 	pcnt = ss_utils_ota_calc_pcnt(algorithm, data_len);
 
-	printf("algorithm=%s data_len=%zu, pcnt=%u, pcnt_expected=%u\n",
-	       algorithm_str, data_len, ss_utils_ota_calc_pcnt(algorithm, data_len), pcnt_expected);
+	printf("algorithm=%s data_len=%zu, pcnt=%u, pcnt_expected=%u\n", algorithm_str, data_len,
+	       ss_utils_ota_calc_pcnt(algorithm, data_len), pcnt_expected);
 
 	assert(pcnt == pcnt_expected);
-
 }
 
 static void ss_utils_ota_calc_pcnt_test(void)
@@ -88,57 +87,51 @@ static void ss_utils_ota_calc_cc_test(void)
 	int rc;
 	uint8_t cc[OTA_INTEGRITY_LEN];
 
-	uint8_t key[OTA_KEY_LEN] =
-	    { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22 };
+	uint8_t key[OTA_KEY_LEN] = { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22 };
 
 	uint8_t data1[16] = {
-		0x00, 0x28, 0x15, 0x1e, 0x19, 0x32, 0x32, 0xb0,
-		0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x01, 0x06,
+		0x00, 0x28, 0x15, 0x1e, 0x19, 0x32, 0x32, 0xb0, 0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x01, 0x06,
 	};
 
 	uint8_t data2_A[16] = {
-		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
-		0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67,
+		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67,
 	};
 
 	uint8_t data2_B[17] = {
-		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
-		0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67,
-		0xAA,
+		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45, 0x67, 0xAA,
 	};
 
 	uint8_t data2_C[15] = {
-		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
-		0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45,
+		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45,
 	};
 
-	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), TRIPLE_DES_CBC2,
-				  data1, sizeof(data1), data2_A, sizeof(data2_A));
+	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), TRIPLE_DES_CBC2, data1, sizeof(data1), data2_A,
+				  sizeof(data2_A));
 	printf("3DES-CMAC data1=%s, data2=%s, rc=%d, checksum=%s\n", ss_hexdump(data1, sizeof(data1)),
 	       ss_hexdump(data2_A, sizeof(data2_A)), rc, ss_hexdump(cc, sizeof(cc)));
 
-	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), TRIPLE_DES_CBC2,
-				  data1, sizeof(data1), data2_B, sizeof(data2_B));
+	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), TRIPLE_DES_CBC2, data1, sizeof(data1), data2_B,
+				  sizeof(data2_B));
 	printf("3DES-CMAC data1=%s, data2=%s, rc=%d, checksum=%s\n", ss_hexdump(data1, sizeof(data1)),
 	       ss_hexdump(data2_B, sizeof(data2_B)), rc, ss_hexdump(cc, sizeof(cc)));
 
-	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), TRIPLE_DES_CBC2,
-				  data1, sizeof(data1), data2_C, sizeof(data2_C));
+	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), TRIPLE_DES_CBC2, data1, sizeof(data1), data2_C,
+				  sizeof(data2_C));
 	printf("3DES-CMAC data1=%s, data2=%s, rc=%d, checksum=%s\n", ss_hexdump(data1, sizeof(data1)),
 	       ss_hexdump(data2_C, sizeof(data2_C)), rc, ss_hexdump(cc, sizeof(cc)));
 
-	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), AES_CMAC,
-				  data1, sizeof(data1), data2_A, sizeof(data2_A));
+	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), AES_CMAC, data1, sizeof(data1), data2_A,
+				  sizeof(data2_A));
 	printf("AES-CMAC data1=%s, data2=%s, rc=%d, checksum=%s\n", ss_hexdump(data1, sizeof(data1)),
 	       ss_hexdump(data2_A, sizeof(data2_A)), rc, ss_hexdump(cc, sizeof(cc)));
 
-	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), AES_CMAC,
-				  data1, sizeof(data1), data2_B, sizeof(data2_B));
+	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), AES_CMAC, data1, sizeof(data1), data2_B,
+				  sizeof(data2_B));
 	printf("AES-CMAC data1=%s, data2=%s, rc=%d, checksum=%s\n", ss_hexdump(data1, sizeof(data1)),
 	       ss_hexdump(data2_B, sizeof(data2_B)), rc, ss_hexdump(cc, sizeof(cc)));
 
-	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), AES_CMAC,
-				  data1, sizeof(data1), data2_C, sizeof(data2_C));
+	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), AES_CMAC, data1, sizeof(data1), data2_C,
+				  sizeof(data2_C));
 	printf("AES-CMAC data1=%s, data2=%s, rc=%d, checksum=%s\n", ss_hexdump(data1, sizeof(data1)),
 	       ss_hexdump(data2_C, sizeof(data2_C)), rc, ss_hexdump(cc, sizeof(cc)));
 }

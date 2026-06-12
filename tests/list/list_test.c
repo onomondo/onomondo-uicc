@@ -27,8 +27,7 @@ static void add_iterate_and_remove_test(void)
 	struct list_test *cursor;
 	struct list_test *precursor;
 
-	printf
-	    ("TEST: Initialize a list, add some elements, iterate the list\n");
+	printf("TEST: Initialize a list, add some elements, iterate the list\n");
 
 	a.user_data = 11;
 	b.user_data = 22;
@@ -65,8 +64,7 @@ static void add_iterate_and_remove_test(void)
 
 	/* Prove that the list is emty, we should see no output */
 	SS_LIST_FOR_EACH(&list, cursor, struct list_test, list) {
-		printf(" user_data=%d (this shouldn't be here!)\n",
-		       cursor->user_data);
+		printf(" user_data=%d (this shouldn't be here!)\n", cursor->user_data);
 	}
 }
 

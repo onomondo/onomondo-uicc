@@ -36,8 +36,8 @@ struct ss_apdu {
 	uint16_t le; /*< length (expected response) */
 	uint8_t cmd[256]; /*< command body */
 	uint8_t rsp[256]; /*< response body */
-	size_t rsp_len;	  /*< actual length of of rsp */
-	uint16_t sw;	  /*< status word */
+	size_t rsp_len; /*< actual length of of rsp */
+	uint16_t sw; /*< status word */
 	uint16_t processed_bytes;
 };
 

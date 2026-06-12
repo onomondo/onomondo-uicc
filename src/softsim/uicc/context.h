@@ -12,7 +12,6 @@
 
 /* Context for one softsim instance. */
 struct ss_context {
-
 	/* context holding the state for the (one and only) logical channel */
 	struct ss_lchan lchan;
 

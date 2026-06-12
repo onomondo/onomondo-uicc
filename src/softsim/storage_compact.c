@@ -51,7 +51,8 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 			      /* Proprietary files (SEQ) identified by 0xa1xx got the same FCP association. */
 			      (path_cursor->fid & 0xff00) == 0xa100 && def ? 0xa100 : path_cursor->fid);
 		if (rc < 0 || (size_t)rc >= remaining) {
-			SS_LOGP(SSTORAGE, LERROR, "%s: host path buffer overflow while building path -- abort\n", division);
+			SS_LOGP(SSTORAGE, LERROR, "%s: host path buffer overflow while building path -- abort\n",
+				division);
 			return -EINVAL;
 		}
 		host_fs_path_ptr += rc;
@@ -217,8 +218,8 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_
 
 	rc = ss_fseek(fd, write_offset, SEEK_SET);
 	if (rc != 0) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to seek (write_offset=%u) data to content file: %s\n", (unsigned int)write_offset,
-			host_path);
+		SS_LOGP(SSTORAGE, LERROR, "unable to seek (write_offset=%u) data to content file: %s\n",
+			(unsigned int)write_offset, host_path);
 		ss_fclose(fd);
 		return -EINVAL;
 	}

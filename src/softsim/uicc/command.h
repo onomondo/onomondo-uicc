@@ -13,11 +13,11 @@ struct ss_apdu;
 
 /*! Classification of command body according to ISO/IEC 7816-3 Secton 12.1 */
 enum ss_command_case {
-  SS_COMMAND_CASE_UNDEF = 0, /* TBD remove this when all is properly initialized  */
-  SS_COMMAND_CASE_1, /**< just header */
-  SS_COMMAND_CASE_2, /**< header, Le */
-  SS_COMMAND_CASE_3, /**< header, Lc, data */
-  SS_COMMAND_CASE_4, /**< header, Lc, data, Le */
+	SS_COMMAND_CASE_UNDEF = 0, /* TBD remove this when all is properly initialized  */
+	SS_COMMAND_CASE_1, /**< just header */
+	SS_COMMAND_CASE_2, /**< header, Le */
+	SS_COMMAND_CASE_3, /**< header, Lc, data */
+	SS_COMMAND_CASE_4, /**< header, Lc, data, Le */
 	/* It may turn out that some commands occur in multiple cases; these would
 	 * need a special case, and would require an "indeterminate" variant, in
 	 * which the handler will be required to indicate the consumed length. */
