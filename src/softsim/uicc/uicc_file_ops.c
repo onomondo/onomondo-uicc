@@ -508,6 +508,11 @@ int ss_uicc_file_ops_cmd_read_record(struct ss_apdu *apdu)
 		return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
 	}
 
+	if (record_number > selected_file->fcp_file_descr->number_of_records) {
+		apdu->le = 0;
+		return SS_SW_ERR_WRONG_PARAM_RECORD_NOT_FOUND;
+	}
+
 	if (apdu->le != selected_file->fcp_file_descr->record_len) {
 		/* return actual length */
 		apdu->le = 0;
@@ -557,6 +562,10 @@ int ss_uicc_file_ops_cmd_update_record(struct ss_apdu *apdu)
 	rc = calc_record_number(&record_number_new, &record_number, apdu, selected_file);
 	if (rc != 0)
 		return rc;
+
+	if (record_number > selected_file->fcp_file_descr->number_of_records) {
+		return SS_SW_ERR_WRONG_PARAM_RECORD_NOT_FOUND;
+	}
 
 	if (apdu->lc != selected_file->fcp_file_descr->record_len) {
 		return SS_SW_ERR_CMD_NOT_ALLOWED_INCOMP_FILE_STRUCT;

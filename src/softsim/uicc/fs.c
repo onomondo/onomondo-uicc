@@ -251,7 +251,7 @@ struct ss_buf *ss_fs_read_file_record(const struct ss_list *path, size_t record_
 		return NULL;
 	}
 
-	if (record_no > file->fcp_file_descr->number_of_records + 1) {
+	if (record_no > file->fcp_file_descr->number_of_records) {
 		SS_LOGP(SFS, LINFO, "non existing record (%zu) referenced in file (%04x)\n", record_no, file->fid);
 		return NULL;
 	}
@@ -286,7 +286,7 @@ int ss_fs_write_file_record(const struct ss_list *path, size_t record_no, const 
 		return -EINVAL;
 	}
 
-	if (record_no > file->fcp_file_descr->number_of_records + 1) {
+	if (record_no > file->fcp_file_descr->number_of_records) {
 		SS_LOGP(SFS, LINFO, "non existing record (%zu) referenced in file (%04x), file has %u records\n",
 			record_no, file->fid, file->fcp_file_descr->number_of_records);
 		return -EINVAL;
