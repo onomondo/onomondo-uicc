@@ -70,29 +70,28 @@ static inline void ss_list_push(struct ss_list *list, struct ss_list *elem)
  *  \param[in] struct_type type description of the element struct.
  *  \param[in] struct_member name of the list begin member inside the element struct.
  *  \returns pointer to list element. */
-#define SS_LIST_GET_NEXT(list, struct_type, struct_member) (void*)((list)->next - offsetof(struct_type, struct_member))
+#define SS_LIST_GET_NEXT(list, struct_type, struct_member) (void *)((list)->next - offsetof(struct_type, struct_member))
 
 /*! Get the struct for the current list element (helper macro for SS_LIST_FOR_EACH).
  *  \param[in] list pointer to the begin of the list.
  *  \param[in] struct_type type description of the element struct.
  *  \param[in] struct_member name of the list begin member inside the element struct.
  *  \returns pointer to list element. */
-#define SS_LIST_GET(list, struct_type, struct_member) (void*)(list - offsetof(struct_type, struct_member))
+#define SS_LIST_GET(list, struct_type, struct_member) (void *)(list - offsetof(struct_type, struct_member))
 
 /* iterate over all structs managed by the list */
-#define SS_LIST_FOR_EACH(list_begin, struct_cursor, struct_type, struct_member) \
+#define SS_LIST_FOR_EACH(list_begin, struct_cursor, struct_type, struct_member)        \
 	for (struct_cursor = SS_LIST_GET_NEXT(list_begin, struct_type, struct_member); \
-	     struct_cursor != SS_LIST_GET(list_begin, struct_type, struct_member); \
+	     struct_cursor != SS_LIST_GET(list_begin, struct_type, struct_member);     \
 	     struct_cursor = SS_LIST_GET_NEXT(&(struct_cursor)->struct_member, struct_type, struct_member))
 
 /* iterate over all structs managed by the list, but keep a precursor in case
  * the cursor gets freed during the iteration. */
-#define SS_LIST_FOR_EACH_SAVE(list_begin, struct_cursor, struct_precursor, struct_type, struct_member) \
-	for (struct_cursor = SS_LIST_GET_NEXT(list_begin, struct_type, struct_member), \
-	     struct_precursor = SS_LIST_GET_NEXT((list_begin)->next, struct_type, struct_member); \
-	     struct_cursor != SS_LIST_GET(list_begin, struct_type, struct_member); \
-	     struct_cursor = struct_precursor, \
-	     struct_precursor = SS_LIST_GET_NEXT(&(struct_precursor)->struct_member, struct_type, struct_member))
+#define SS_LIST_FOR_EACH_SAVE(list_begin, struct_cursor, struct_precursor, struct_type, struct_member)               \
+	for (struct_cursor = SS_LIST_GET_NEXT(list_begin, struct_type, struct_member),                               \
+	    struct_precursor = SS_LIST_GET_NEXT((list_begin)->next, struct_type, struct_member);                     \
+	     struct_cursor != SS_LIST_GET(list_begin, struct_type, struct_member); struct_cursor = struct_precursor, \
+	    struct_precursor = SS_LIST_GET_NEXT(&(struct_precursor)->struct_member, struct_type, struct_member))
 
 /*! Remove an element from the list by unlinking it from the list.
  *  \param[inout] elem pointer to the list member of the element to remove. */

@@ -24,7 +24,7 @@ void test_storage_path_set_valid(void)
 	const char *new_path = "/tmp/test/files";
 	int rc = ss_storage_set_path(new_path);
 	assert(rc == 0);
-	
+
 	const char *path = ss_storage_get_path();
 	assert(strcmp(path, new_path) == 0);
 	printf("Set valid path test passed: %s\n", path);
@@ -42,7 +42,7 @@ void test_storage_path_set_too_long(void)
 	char long_path[SS_STORAGE_PATH_MAX + 10];
 	memset(long_path, 'a', sizeof(long_path) - 1);
 	long_path[sizeof(long_path) - 1] = '\0';
-	
+
 	int rc = ss_storage_set_path(long_path);
 	assert(rc == -1);
 	printf("Too long path rejection test passed\n");
@@ -53,10 +53,10 @@ void test_storage_path_set_max_length(void)
 	char max_path[SS_STORAGE_PATH_MAX];
 	memset(max_path, 'b', SS_STORAGE_PATH_MAX - 2);
 	max_path[SS_STORAGE_PATH_MAX - 2] = '\0';
-	
+
 	int rc = ss_storage_set_path(max_path);
 	assert(rc == 0);
-	
+
 	const char *path = ss_storage_get_path();
 	assert(strcmp(path, max_path) == 0);
 	printf("Max length path test passed (length: %zu)\n", strlen(path));
@@ -67,16 +67,16 @@ void test_storage_path_multiple_sets(void)
 	const char *path1 = "/tmp/path1";
 	const char *path2 = "/tmp/path2";
 	const char *path3 = "/tmp/path3";
-	
+
 	ss_storage_set_path(path1);
 	assert(strcmp(ss_storage_get_path(), path1) == 0);
-	
+
 	ss_storage_set_path(path2);
 	assert(strcmp(ss_storage_get_path(), path2) == 0);
-	
+
 	ss_storage_set_path(path3);
 	assert(strcmp(ss_storage_get_path(), path3) == 0);
-	
+
 	printf("Multiple path changes test passed\n");
 }
 

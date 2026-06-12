@@ -249,7 +249,7 @@ static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_c
 			goto out_err;
 		}
 		/* put together response data */
-		apdu->rsp[0] = 4;     /* length of SRES */
+		apdu->rsp[0] = 4; /* length of SRES */
 		apdu->rsp[1 + 4] = 8; /* length of Kc */
 		apdu->rsp_len = 1 + 4 + 1 + 8;
 		break;

@@ -15,7 +15,6 @@ struct ss_apdu;
 
 /*! Logical channel through which we communicate with an external application */
 struct ss_lchan {
-
 	/* Number of the lchan */
 	uint8_t nr;
 
