@@ -1,0 +1,27 @@
+name: Check Codebase Formatting
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format-18
+
+      - name: Run clang-format check
+        run: |
+          FILES=$(find src tests utils include \( -name "*.c" -o -name "*.h" \) \
+            | grep -v "gscriptor/" \
+            | grep -v "files/" \
+            | grep -v "crypto/" \
+            | grep -v "milenage/" \
+            | grep -v "utils/files-c-array/")
+          clang-format-18 --dry-run -Werror $FILES
