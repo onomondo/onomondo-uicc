@@ -17,7 +17,7 @@
 #define PIN_SIZE 16
 #define PIN_OFFSET 12
 #define PUK_OFFSET (PIN_OFFSET + PIN_SIZE)
-#define SMSC_LEN  (12 *2) /* EF.SMSP TS-Service Centre Address */
+#define SMSC_LEN (12 * 2) /* EF.SMSP TS-Service Centre Address */
 #define SMSP_RECORD_SIZE 52
 #define A003_RECORD_SIZE (A003_LEN / 3)
 #define A004_HEADER_SIZE 12

@@ -201,7 +201,7 @@ size_t ss_btlv_encode(uint8_t *enc, size_t len, struct ss_list *list)
 	 * enough memory for the result */
 	if (len < bytes_needed) {
 		SS_LOGP(SBTLV, LDEBUG,
-			"cannot encode BER-TLV string, buffer to small (bytes needed: %lu, bytes available: %lu\n",
+			"cannot encode BER-TLV string, buffer to small (bytes needed: %zu, bytes available: %zu\n",
 			bytes_needed, len);
 		return 0;
 	}

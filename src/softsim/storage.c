@@ -52,12 +52,13 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 	SS_LIST_FOR_EACH(path, path_cursor, struct ss_file, list) {
 		size_t remaining = sizeof(host_fs_path) - (host_fs_path_ptr - host_fs_path);
 		rc = snprintf(host_fs_path_ptr, remaining,
-				  path_cursor->fid > 0xffff ? PATH_SEPARATOR "%08x" : PATH_SEPARATOR "%04x",
-				  /* proprietary files (SEQ) identified by 0xa1xx will all have
+			      path_cursor->fid > 0xffff ? PATH_SEPARATOR "%08x" : PATH_SEPARATOR "%04x",
+			      /* proprietary files (SEQ) identified by 0xa1xx will all have
 				   * the same FCP associated with them */
-				  (path_cursor->fid & 0xff00) == 0xa100 && def ? 0xa100 : path_cursor->fid);
+			      (path_cursor->fid & 0xff00) == 0xa100 && def ? 0xa100 : path_cursor->fid);
 		if (rc < 0 || (size_t)rc >= remaining) {
-			SS_LOGP(SSTORAGE, LERROR, "%s: host path buffer overflow while building path -- abort\n", division);
+			SS_LOGP(SSTORAGE, LERROR, "%s: host path buffer overflow while building path -- abort\n",
+				division);
 			return -EINVAL;
 		}
 		host_fs_path_ptr += rc;
@@ -164,7 +165,7 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 
 	rc = ss_fseek(fd, read_offset * 2, SEEK_SET);
 	if (rc != 0) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to seek (read_offset=%lu) requested data in content file: %s\n",
+		SS_LOGP(SSTORAGE, LERROR, "unable to seek (read_offset=%zu) requested data in content file: %s\n",
 			read_offset, host_path);
 		SS_FREE(line_buf);
 		ss_fclose(fd);
@@ -173,7 +174,7 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 
 	fgets_rc = ss_fread(line_buf, 2, read_len, fd);
 	if (fgets_rc != read_len) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to load content (read_offset=%lu, read_len=%lu) from file: %s\n",
+		SS_LOGP(SSTORAGE, LERROR, "unable to load content (read_offset=%zu, read_len=%zu) from file: %s\n",
 			read_offset, read_len, host_path);
 		SS_FREE(line_buf);
 		ss_fclose(fd);
@@ -209,7 +210,7 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_
 
 	rc = ss_fseek(fd, write_offset * 2, SEEK_SET);
 	if (rc != 0) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to seek (write_offset=%lu) data to content file: %s\n", write_offset,
+		SS_LOGP(SSTORAGE, LERROR, "unable to seek (write_offset=%zu) data to content file: %s\n", write_offset,
 			host_path);
 		ss_fclose(fd);
 		return -EINVAL;
@@ -221,7 +222,7 @@ int ss_storage_write_file(const struct ss_list *path, const uint8_t *data, size_
 		snprintf(hex, sizeof(hex), "%02x", data[i]);
 		fwrite_rc = ss_fwrite(hex, sizeof(hex) - 1, 1, fd);
 		if (fwrite_rc != 1) {
-			SS_LOGP(SSTORAGE, LERROR, "unable to write (write_offset=%lu+%lu) data to content file: %s\n",
+			SS_LOGP(SSTORAGE, LERROR, "unable to write (write_offset=%zu+%zu) data to content file: %s\n",
 				write_offset, i, host_path);
 			ss_fclose(fd);
 			return -EINVAL;
@@ -405,4 +406,3 @@ int ss_storage_create_dir(const struct ss_list *path)
 
 	return 0;
 }
-

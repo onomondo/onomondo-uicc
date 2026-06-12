@@ -56,13 +56,10 @@ enum ss_fcp_iei {
 
 const struct ber_tlv_desc *ss_fcp_get_descr(void);
 struct ss_list *ss_fcp_decode(const struct ss_buf *fcp);
-int ss_fcp_dec_file_descr(struct ss_fcp_file_descr *fd,
-			  const struct ss_buf *fd_encoded);
+int ss_fcp_dec_file_descr(struct ss_fcp_file_descr *fd, const struct ss_buf *fd_encoded);
 struct ss_buf *ss_fcp_gen_file_descr(const struct ss_fcp_file_descr *fd);
-struct ss_buf *ss_fcp_gen(const struct ss_fcp_file_descr *fd, uint32_t fid,
-			  size_t file_size);
+struct ss_buf *ss_fcp_gen(const struct ss_fcp_file_descr *fd, uint32_t fid, size_t file_size);
 struct ss_buf *ss_fcp_get_df_name(const struct ss_list *fcp_decoded_envelope);
-void ss_fcp_dump_file_descr(const struct ss_fcp_file_descr *fd, uint8_t indent,
-			    enum log_subsys log_subsys,
+void ss_fcp_dump_file_descr(const struct ss_fcp_file_descr *fd, uint8_t indent, enum log_subsys log_subsys,
 			    enum log_level log_level);
 int ss_fcp_reencode(struct ss_file *file);

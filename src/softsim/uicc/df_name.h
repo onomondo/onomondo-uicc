@@ -9,5 +9,4 @@
 struct ss_list;
 
 int ss_df_name_update(struct ss_list *path);
-int ss_df_name_resolve(struct ss_list *path, const uint8_t *df_name,
-		       size_t df_name_len);
+int ss_df_name_resolve(struct ss_list *path, const uint8_t *df_name, size_t df_name_len);
