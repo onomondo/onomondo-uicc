@@ -305,6 +305,13 @@ static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_c
 			memcpy(&apdu->rsp[2], mres.auts, sizeof(mres.auts));
 			apdu->rsp_len = 2 + sizeof(mres.auts);
 			return 0;
+		case -3:
+			/* AUTN MAC verification failed: TS 31.102 7.1.2 /
+			 * TS 102 221 -> SW 9862 "authentication error,
+			 * incorrect MAC". */
+			SS_LOGP(SAUTH, LERROR, "authentication failed: incorrect MAC\n");
+			apdu->sw = SS_SW_APP_ERR_AUTH_ERR_APP_SPECIFIC;
+			return 0;
 		default:
 			SS_LOGP(SAUTH, LERROR, "authentication failed\n");
 			break;

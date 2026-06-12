@@ -120,6 +120,26 @@ int milenage_usim_check(const struct milenage_key_data *kd,
 		rx_sqn[i] = autn[i] ^ ak[i];
 	wpa_hexdump(MSG_DEBUG, "Milenage: SQN", rx_sqn, 6);
 
+	/* Verify the network authentication code (MAC) BEFORE checking SQN
+	 * freshness. Per 3GPP TS 33.102 §6.3.3 the USIM verifies the MAC first;
+	 * a forged AUTN with a wrong MAC must be rejected as an authentication
+	 * error (-3) and never answered with a resynchronisation token. */
+	amf = autn + 6;
+	wpa_hexdump(MSG_DEBUG, "Milenage: AMF", amf, 2);
+	if (milenage_f1(opc, kd->k, _rand, rx_sqn, amf, mac_a, NULL))
+		goto out;
+
+	wpa_hexdump(MSG_DEBUG, "Milenage: MAC_A", mac_a, 8);
+
+	if (os_memcmp_const(mac_a, autn + 8, 8) != 0) {
+		wpa_printf(MSG_DEBUG, "Milenage: MAC mismatch");
+		wpa_hexdump(MSG_DEBUG, "Milenage: Received MAC_A",
+			    autn + 8, 8);
+		ret = -3;
+		goto out;
+	}
+
+	/* MAC is valid; now check SQN freshness. */
 	/* Determine IND and SEQ from SQN */
 	rx_sqn64 = load_u48be(rx_sqn);
 	ind = rx_sqn64 & MILENAGE_IND_MASK;
@@ -142,20 +162,6 @@ int milenage_usim_check(const struct milenage_key_data *kd,
 
 	/* C.2.2 successful case: SEQ > SEQ_MS(i) */
 	sd->seq[ind] = rx_seq;
-
-	amf = autn + 6;
-	wpa_hexdump(MSG_DEBUG, "Milenage: AMF", amf, 2);
-	if (milenage_f1(opc, kd->k, _rand, rx_sqn, amf, mac_a, NULL))
-		goto out;
-
-	wpa_hexdump(MSG_DEBUG, "Milenage: MAC_A", mac_a, 8);
-
-	if (os_memcmp_const(mac_a, autn + 8, 8) != 0) {
-		wpa_printf(MSG_DEBUG, "Milenage: MAC mismatch");
-		wpa_hexdump(MSG_DEBUG, "Milenage: Received MAC_A",
-			    autn + 8, 8);
-		goto out;
-	}
 
 	ret = 0;
 
