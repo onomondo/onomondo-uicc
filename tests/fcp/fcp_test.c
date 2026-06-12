@@ -46,13 +46,11 @@ struct ss_buf *get_fd_from_hexstr(char *hexstr)
 void ss_fcp_get_file_descr_test(void)
 {
 	char fcp_mf[] =
-	    "622d8202782183023f00a509800171830400018d088a01058c04261a0000c60f90017083010183018183010a83010b";
-	char fcp_ef_iccid[] =
-	    "621f8202412183022fe2a506d00120d201058a01058b032f06028002000a880110";
+		"622d8202782183023f00a509800171830400018d088a01058c04261a0000c60f90017083010183018183010a83010b";
+	char fcp_ef_iccid[] = "621f8202412183022fe2a506d00120d201058a01058b032f06028002000a880110";
 	char fcp_adf_usim[] =
-	    "6238820278218410a0000000871002ffffffff8907090000a509800171830400018d088a01058c0100c60f90017083010183018183010a83010b";
-	char fcp_ef_dir[] =
-	    "622282054221002b0883022f00a506d00120d2010b8a01058b032f0604800201588801f0";
+		"6238820278218410a0000000871002ffffffff8907090000a509800171830400018d088a01058c0100c60f90017083010183018183010a83010b";
+	char fcp_ef_dir[] = "622282054221002b0883022f00a506d00120d2010b8a01058b032f0604800201588801f0";
 	struct ss_fcp_file_descr fd;
 	struct ss_buf *encoded_fd_buf;
 	int rc;
@@ -122,8 +120,7 @@ void ss_fcp_gen_test(void)
 	fd.record_len = 8;
 	fd.number_of_records = 5;
 	fcp = ss_fcp_gen(&fd, 0x1aaaa, 0);
-	printf("generated FCP for a record oriented file: %s\n",
-	       ss_hexdump(fcp->data, fcp->len));
+	printf("generated FCP for a record oriented file: %s\n", ss_hexdump(fcp->data, fcp->len));
 	ss_buf_free(fcp);
 
 	/* transparent file */
@@ -132,8 +129,7 @@ void ss_fcp_gen_test(void)
 	fd.structure = SS_FCP_TRANSPARENT;
 
 	fcp = ss_fcp_gen(&fd, 0x1cccc, 255);
-	printf("generated FCP for a transparent file: %s\n",
-	       ss_hexdump(fcp->data, fcp->len));
+	printf("generated FCP for a transparent file: %s\n", ss_hexdump(fcp->data, fcp->len));
 	ss_buf_free(fcp);
 }
 

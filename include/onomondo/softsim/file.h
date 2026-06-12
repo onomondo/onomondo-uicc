@@ -31,7 +31,7 @@ struct ss_fcp_file_descr;
 struct ss_file {
 	struct ss_list list;
 	uint32_t fid;
-	struct ss_buf *aid;	/* also called 'DF name' */
+	struct ss_buf *aid; /* also called 'DF name' */
 	struct ss_buf *fci; /* The full file control information (FCI) in encoded form.
 	                     *
 	                     * This is the full data sent in response to SELECT

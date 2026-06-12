@@ -16,7 +16,6 @@
 char *ss_hexdump(const uint8_t *data, size_t len);
 size_t ss_binary_from_hexstr(uint8_t *binary, size_t binary_len, const char *hexstr);
 
-
 struct ss_buf {
 	uint8_t *data;
 	size_t len;
@@ -40,7 +39,7 @@ static inline struct ss_buf *ss_buf_alloc(size_t len)
 	struct ss_buf *sb = SS_ALLOC_N(sizeof(*sb) + len);
 	assert(sb);
 
-	sb->data = (uint8_t *) sb + sizeof(*sb);
+	sb->data = (uint8_t *)sb + sizeof(*sb);
 	sb->len = len;
 
 	return sb;
