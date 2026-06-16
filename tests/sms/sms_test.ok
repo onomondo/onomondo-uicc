@@ -15,6 +15,13 @@ receive SMS-DELIVER tpu
  tp_udl=61
  user data: 02700000381506012525b0001080766f57f0f89bbdbc09af97b8b7ef7edc6c8bd2a35a571470374975003bfd77ac39531cc482714e7547a3f85cc5dc10
 
+receive SMS-DELIVER tpu (TP-OA extension bit clear)
+ rc=17
+ tp_oa.extension=0
+ tp_oa.type_of_number=2
+ tp_oa.numbering_plan=1
+ tp_oa.digits=55667788
+
 receive SMS-STATUS-REPORT tpu
  rc=23
  tp_mti=02
