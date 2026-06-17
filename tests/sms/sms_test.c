@@ -64,6 +64,37 @@ void ss_sms_hdr_decode_sms_deliver_test(void)
 	printf("\n");
 }
 
+/* Regression vector for the TP-Address extension-bit decode. Identical to the
+ * SMS-DELIVER above except the Type-of-Address octet is 0x21 (extension bit
+ * clear, TON=2, NPI=1) instead of 0x81. With the correct bitwise extraction
+ * (*addr & 0x80) this yields extension=0; the historical logical-AND bug
+ * (*addr && 0x80) would wrongly yield extension=1 for this (and any nonzero)
+ * octet. 3GPP TS 23.040 §9.1.2.5. The 0x81 cases above keep the extension=1
+ * side covered, so the pair pins both outcomes. */
+void ss_sms_hdr_decode_sms_deliver_test_ext_clear(void)
+{
+	uint8_t sms_tpdu[] = { 0x40, 0x08, 0x21, 0x55, 0x66, 0x77, 0x88, 0x7f, 0xf6, 0x00, 0x11, 0x29, 0x12,
+			       0x00, 0x00, 0x04, 0x3d, 0x02, 0x70, 0x00, 0x00, 0x38, 0x15, 0x06, 0x01, 0x25,
+			       0x25, 0xb0, 0x00, 0x10, 0x80, 0x76, 0x6f, 0x57, 0xf0, 0xf8, 0x9b, 0xbd, 0xbc,
+			       0x09, 0xaf, 0x97, 0xb8, 0xb7, 0xef, 0x7e, 0xdc, 0x6c, 0x8b, 0xd2, 0xa3, 0x5a,
+			       0x57, 0x14, 0x70, 0x37, 0x49, 0x75, 0x00, 0x3b, 0xfd, 0x77, 0xac, 0x39, 0x53,
+			       0x1c, 0xc4, 0x82, 0x71, 0x4e, 0x75, 0x47, 0xa3, 0xf8, 0x5c, 0xc5, 0xdc, 0x10 };
+	struct ss_sm_hdr sm_hdr;
+	int rc;
+
+	printf("receive SMS-DELIVER tpu (TP-OA extension bit clear)\n");
+
+	rc = ss_sms_hdr_decode(&sm_hdr, sms_tpdu, sizeof(sms_tpdu));
+
+	printf(" rc=%i\n", rc);
+	printf(" tp_oa.extension=%u\n", sm_hdr.u.sms_deliver.tp_oa.extension);
+	printf(" tp_oa.type_of_number=%u\n", sm_hdr.u.sms_deliver.tp_oa.type_of_number);
+	printf(" tp_oa.numbering_plan=%u\n", sm_hdr.u.sms_deliver.tp_oa.numbering_plan);
+	printf(" tp_oa.digits=%s\n", sm_hdr.u.sms_deliver.tp_oa.digits);
+
+	printf("\n");
+}
+
 void ss_sms_hdr_decode_sms_status_report(void)
 {
 	uint8_t sms_tpdu[] = { 0x02, 0x23, 0x08, 0x81, 0x55, 0x66, 0x77, 0x88, 0x00, 0x11, 0x29, 0x12,
@@ -279,6 +310,7 @@ void ss_uicc_sms_tx_test_multi(void)
 int main(int argc, char **argv)
 {
 	ss_sms_hdr_decode_sms_deliver_test();
+	ss_sms_hdr_decode_sms_deliver_test_ext_clear();
 	ss_sms_hdr_decode_sms_status_report();
 	ss_sms_hdr_decode_sms_submit_report();
 	ss_sms_hdr_encode_test_sms_deliver_report();
