@@ -63,7 +63,9 @@ void ss_apdu_toss(struct ss_apdu *apdu)
 	}
 }
 
-/** This enables support for extended APDU cases.
+/** Parse an APDU's wire format into apdu->hdr, apdu->lc, apdu->le, and apdu->cmd.
+ *  Handles the four ISO/IEC 7816-4 command cases in their short and extended
+ *  length forms (Case 1; Case 2/3/4 short; Case 2/3/4 extended).
  *  \param[in] apdu struct allocated by caller.
  *  \param[in] buffer with apdu request.
  *  \param[in] len bytes in buffer */

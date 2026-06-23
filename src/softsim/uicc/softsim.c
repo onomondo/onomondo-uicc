@@ -133,8 +133,30 @@ size_t ss_atr(struct ss_context *ctx, uint8_t *atr_buf, size_t atr_buf_len)
 	uint8_t tck = 0;
 	size_t i;
 
-	uint8_t atr[] = { 0x3B, 0x9F, 0x01, 0x80, 0x1F, 0x87, 0x80, 0x31, 0xE0, 0x73, 0xFE,
-			  0x21, 0x00, 0x67, 0x4A, 0x4C, 0x75, 0x30, 0x34, 0x05, 0x4B };
+	/* ATR returned by ss_atr(). Interface bytes (TS, T0, TA/TD) per ISO/IEC
+	 * 7816-3 §8; historical bytes (compact-TLV) per ISO/IEC 7816-4 §8.1.1 and
+	 * ETSI TS 102 221 §6.3.1. Card-capabilities byte 3 bit b7 = 0 declares "no
+	 * extended Lc/Le support" — kept consistent with the fixed 256-byte
+	 * apdu->cmd / apdu->rsp buffers. */
+	// clang-format off
+	uint8_t atr[] = {
+		0x3B,                                  /* TS  — direct convention */
+		0x9F,                                  /* T0  — TA1 & TD1 present; 15 historical bytes */
+		0x01,                                  /* TA1 — Fi=372, Di=1 (default speed) */
+		0x80,                                  /* TD1 — TD2 present; protocol T=0 */
+		0x1F,                                  /* TD2 — TA3 present; T=15 (global interface params) */
+		0x87,                                  /* TA3 — clock-stop + class A/B/C (5V/3V/1.8V), per 7816-3 §8.3 */
+		/* --- 15 historical bytes: compact-TLV after 0x80 category indicator --- */
+		0x80,                                  /* category indicator: compact-TLV */
+		0x31, 0xE0,                            /* tag 3 len 1 — card service data: 0xE0 */
+		0x73,                                  /* tag 7 len 3 — card capabilities */
+		0xFE,                                  /*   byte 1: selection methods */
+		0x21,                                  /*   byte 2: data coding */
+		0x00,                                  /*   byte 3: chaining / length fields / lchans — b7=0 ⇒ no extended Lc/Le */
+		0x67,                                  /* tag 6 len 7 — pre-issuing data */
+		0x4A, 0x4C, 0x75, 0x30, 0x34, 0x05, 0x4B,
+	};
+	// clang-format on
 
 	for (i = 1; i < sizeof(atr); i++) {
 		tck ^= atr[i];
