@@ -252,7 +252,10 @@ static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_c
 		apdu->rsp[0] = 4; /* length of SRES */
 		apdu->rsp[1 + 4] = 8; /* length of Kc */
 		apdu->rsp_len = 1 + 4 + 1 + 8;
-		break;
+		/* GSM context success: deliver SRES/Kc with SW=9000. A break here
+		 * would fall through to out_err and return -1, which the dispatcher
+		 * maps to SW=6F00. */
+		return 0;
 	case USIM_AUTH_CTX_3G:
 		if (rand_len != 128 / 8) {
 			SS_LOGP(SAUTH, LERROR, "unexpected RAND len -- authentication failed\n");
