@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.2.1](https://github.com/onomondo/onomondo-uicc/compare/v2.2.0...v2.2.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* correct address extension bit decoding for SMS ([#57](https://github.com/onomondo/onomondo-uicc/issues/57)) ([3cce311](https://github.com/onomondo/onomondo-uicc/commit/3cce31157e67d0490d2d01a131dd9e331c28c1aa))
+* propagate SMS-RX error from SMS-PP ENVELOPE handler ([#74](https://github.com/onomondo/onomondo-uicc/issues/74)) ([6c66125](https://github.com/onomondo/onomondo-uicc/commit/6c66125808e3b9017d8e9480c3918f63bdab90f2))
+* return negative SW from parse_cmd_hdr_clrtxt on packet-too-short ([#73](https://github.com/onomondo/onomondo-uicc/issues/73)) ([28b9da5](https://github.com/onomondo/onomondo-uicc/commit/28b9da5d1c2d6f7c77bc92a2320aceee159fee50))
+* return success from GSM-context AUTHENTICATE ([#82](https://github.com/onomondo/onomondo-uicc/issues/82)) ([7da767e](https://github.com/onomondo/onomondo-uicc/commit/7da767ed3b6570ca6bbd9aef06646f5b94456f4e))
+
 ## [2.2.0](https://github.com/onomondo/onomondo-uicc/compare/v2.1.0...v2.2.0) (2026-06-02)
 
 
