@@ -26,7 +26,7 @@
 	key = modified_key;                                                  \
 	key_len = modified_key_len;
 
-#define MEMZERO_EXTERNAL_KEY() ss_memzero(modified_key, sizeof(modified_key));
+#define MEMZERO_EXTERNAL_KEY() ss_memzero(modified_key, sizeof(modified_key))
 
 #ifndef CONFIG_EXTERNAL_CRYPTO_IMPL
 
@@ -64,7 +64,7 @@ void ss_utils_aes_decrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key
 	aes_decrypt_deinit(aes_ctx);
 
 #ifdef CONFIG_EXTERNAL_KEY_LOAD
-	MEMZERO_EXTERNAL_KEY()
+	MEMZERO_EXTERNAL_KEY();
 #endif // CONFIG_EXTERNAL_KEY_LOAD
 }
 
@@ -99,7 +99,7 @@ void ss_utils_aes_encrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key
 	aes_encrypt_deinit(aes_ctx);
 
 #ifdef CONFIG_EXTERNAL_KEY_LOAD
-	MEMZERO_EXTERNAL_KEY()
+	MEMZERO_EXTERNAL_KEY();
 #endif // CONFIG_EXTERNAL_KEY_LOAD
 }
 #endif // CONFIG_EXTERNAL_CRYPTO_IMPL
