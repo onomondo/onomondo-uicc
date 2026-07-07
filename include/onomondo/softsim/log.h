@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#if defined(NDEBUG) && !defined(CONFIG_USE_LOGS)
+#ifndef CONFIG_USE_LOGS
 #define SS_LOGP(subsys, level, fmt, args...)
 #else
 /*! macro to print a log line.
