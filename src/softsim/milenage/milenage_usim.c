@@ -141,6 +141,8 @@ int milenage_usim_check(const struct milenage_key_data *kd,
 	}
 
 	/* C.2.2 successful case: SEQ > SEQ_MS(i) */
+	wpa_printf(MSG_DEBUG, "Milenage: ind %d", ind);
+	sd->dirty_ind = ind;
 	sd->seq[ind] = rx_seq;
 
 	amf = autn + 6;
