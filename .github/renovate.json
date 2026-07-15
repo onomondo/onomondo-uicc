@@ -10,9 +10,6 @@
     "enabled": true,
     "minimumReleaseAge": null
   },
-  "git-submodules": {
-    "enabled": true
-  },
   "customManagers": [
     {
       "description": "A generic custom manager for updating any yaml fields ending by 'version:' (case insensitive)",
@@ -28,16 +25,15 @@
   ],
   "packageRules": [
     {
-      "description": "GitHub actions should wait 7 days; github-tags lacks releaseTimestamp, so treat timestamp-less releases as stable to avoid stalling stability-days forever.",
+      "description": "GitHub actions should wait 14 days; github-tags lacks releaseTimestamp, so treat timestamp-less releases as stable to avoid stalling stability-days forever.",
       "matchManagers": [
         "github-actions"
       ],
-      "groupName": "github-actions",
-      "minimumReleaseAge": "7 days",
+      "minimumReleaseAge": "14 days",
       "minimumReleaseAgeBehaviour": "timestamp-optional"
     },
     {
-      "description": "Digest updates re-pin an already-released tag; the tag itself has been out for 7 days, so don't gate the pin on a nonexistent release age.",
+      "description": "Digest updates re-pin an already-released tag; the tag itself has been out for 14 days, so don't gate the pin on a nonexistent release age.",
       "matchManagers": [
         "github-actions"
       ],
