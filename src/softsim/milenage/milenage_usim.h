@@ -22,6 +22,7 @@
  * Appendix C.3
  * */
 #define MILENAGE_IND_LEN	5
+#define NO_IND_UPDATE (-1)
 
 struct milenage_key_data {
 	u8 k[16];			/* Secret key K */
@@ -33,6 +34,7 @@ struct milenage_key_data {
 struct milenage_seq_data {
 	uint64_t seq[(1 << MILENAGE_IND_LEN)];	/* array of SEQ_MS indexed by IND */
 	uint64_t delta;			/* limit "delta" as per 33.102. Typically configured to 2**28 */
+	int8_t dirty_ind; /* IND of the SEQ_MS updated, -1 no file to be updated */
 };
 
 struct milenage_result {

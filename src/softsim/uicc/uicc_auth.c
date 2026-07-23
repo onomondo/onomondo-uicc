@@ -148,6 +148,7 @@ static int get_seq_data(struct milenage_seq_data *seq_data)
 			SS_LOGP(SAUTH, LDEBUG, "seq data file (%s) loaded\n", ss_fs_utils_dump_path(&seq_data_path));
 		} else {
 			seq_data->delta = ss_uint64_load_from_be(seq_data_raw->data);
+			seq_data->dirty_ind = NO_IND_UPDATE;
 
 			SS_LOGP(SAUTH, LDEBUG, "delta data file (%s) loaded\n", ss_fs_utils_dump_path(&seq_data_path));
 		}
@@ -166,34 +167,32 @@ static int update_seq_data(struct milenage_seq_data *seq_data)
 	uint8_t write_buffer[sizeof(seq_data->delta)]; // 8 bytes
 
 	int rc;
-	int file_offset = 0;
 
 	ss_fs_init(&seq_data_path);
 
-	for (file_offset = 0; file_offset < SS_ARRAY_SIZE(seq_data->seq) + 1; file_offset++) {
-		rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID_BASE + file_offset);
+	if (seq_data->dirty_ind == NO_IND_UPDATE) {
+		SS_LOGP(SAUTH, LERROR, "seq data index not found -- abort\n");
+		ss_path_reset(&seq_data_path);
+		return -EINVAL;
+	}
 
-		if (rc < 0) {
-			SS_LOGP(SAUTH, LERROR, "seq data file (%04x) not found -- abort\n", KEY_DATA_FID);
-			ss_path_reset(&seq_data_path);
-			return -EINVAL;
-		}
+	rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID_BASE + seq_data->dirty_ind);
 
-		if (file_offset < SS_ARRAY_SIZE(seq_data->seq)) {
-			ss_uint64_store_to_be(write_buffer, seq_data->seq[file_offset]);
+	if (rc < 0) {
+		SS_LOGP(SAUTH, LERROR, "seq data file (%04x) not found -- abort\n", KEY_DATA_FID);
+		ss_path_reset(&seq_data_path);
+		return -EINVAL;
+	}
 
-		} else {
-			ss_uint64_store_to_be(write_buffer, seq_data->delta);
-		}
+	ss_uint64_store_to_be(write_buffer, seq_data->seq[seq_data->dirty_ind]);
 
-		rc = ss_storage_write_file(&seq_data_path, write_buffer, 0, sizeof(write_buffer));
+	rc = ss_storage_write_file(&seq_data_path, write_buffer, 0, sizeof(write_buffer));
 
-		if (rc < 0) {
-			SS_LOGP(SAUTH, LERROR, "seq data file (%s) not writeable -- abort\n",
-				ss_fs_utils_dump_path(&seq_data_path));
-			ss_path_reset(&seq_data_path);
-			return -EINVAL;
-		}
+	if (rc < 0) {
+		SS_LOGP(SAUTH, LERROR, "seq data file (%s) not writeable -- abort\n",
+			ss_fs_utils_dump_path(&seq_data_path));
+		ss_path_reset(&seq_data_path);
+		return -EINVAL;
 	}
 
 	SS_LOGP(SAUTH, LDEBUG, "seq data file (%s) updated\n", ss_fs_utils_dump_path(&seq_data_path));
