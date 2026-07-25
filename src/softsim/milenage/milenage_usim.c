@@ -84,14 +84,14 @@ int milenage_usim_check(const struct milenage_key_data *kd,
 	u8 mac_a[8], ak[6], rx_sqn[6];
 	const u8 *amf;
 	u8 ind;
-	u64 rx_sqn64, rx_seq, seq_ms;
+	u64 rx_sqn64, rx_seq;
 	int ret = -1;
 	unsigned int i = 0;
 
 	u8 auts_amf[2] = { 0x00, 0x00 }; /* TS 33.102 v7.0.0, 6.3.3 */
-	/* USIM shall generate a synchronisation failure message
-	 * using the highest previously accepted sequence number
-	 * anywhere in the array, i.e. SQN_MS. */
+	/* SQN_MS, the highest previously accepted sequence number anywhere in
+	 * the array (C.2). It bounds the acceptable jump in C.2.1 below, and it
+	 * is the value a synchronisation failure message reports (6.3.3). */
 	u64 highest_seq_ms = get_highest_seq_ms(sd);
 	u8 highest_sqn_ms[6];
 
@@ -145,12 +145,9 @@ int milenage_usim_check(const struct milenage_key_data *kd,
 	ind = rx_sqn64 & MILENAGE_IND_MASK;
 	rx_seq = rx_sqn64 >> MILENAGE_IND_LEN;
 
-	/* FIXME #54: check whether this can be anything else than highest_seq_ms */
-	seq_ms = get_highest_seq_ms(sd);
-
 	/* the received sequence number SQN shall only be
 	   accepted by the USIM if SEQ - SEQ_MS ≤ delta */
-	if (rx_seq - seq_ms >= sd->delta) {
+	if (rx_seq - highest_seq_ms >= sd->delta) {
 		/* C.2.1 unsuccessful case: SEQ - SEQ_MS >= delta */
 		goto out_auts;
 	}
