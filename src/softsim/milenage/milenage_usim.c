@@ -69,7 +69,8 @@ static void store_u48be(u8 *out, u64 in)
  * @mr: caller-allocated memory for output data
  * @_rand: RAND = 128-bit random challenge
  * @autn: AUTN = 128-bit authentication token
- * Returns: 0 on success, -1 on failure, or -2 on synchronization failure
+ * Returns: 0 on success, -1 on failure, -2 on synchronization failure, or -3 on
+ * AUTN MAC mismatch
  *
  * See Annex C.2.2 of 3GPP TS 33.102 for the details on how the USIM checks for
  * SQN freshness.
@@ -139,8 +140,7 @@ int milenage_usim_check(const struct milenage_key_data *kd,
 		goto out;
 	}
 
-	/* MAC is valid; now check SQN freshness. */
-	/* Determine IND and SEQ from SQN */
+	/* MAC is valid; now check SQN freshness. Determine IND and SEQ from SQN */
 	rx_sqn64 = load_u48be(rx_sqn);
 	ind = rx_sqn64 & MILENAGE_IND_MASK;
 	rx_seq = rx_sqn64 >> MILENAGE_IND_LEN;

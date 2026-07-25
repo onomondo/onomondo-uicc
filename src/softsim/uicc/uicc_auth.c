@@ -311,7 +311,11 @@ static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_c
 			 * incorrect MAC". */
 			SS_LOGP(SAUTH, LERROR, "authentication failed: incorrect MAC\n");
 			apdu->sw = SS_SW_APP_ERR_AUTH_ERR_APP_SPECIFIC;
-			return 0;
+			/* Leave via out_err so RES/CK/IK -- already derived
+			 * before the MAC check -- are scrubbed. out_err
+			 * returns -1, but the dispatcher only substitutes its
+			 * own SW when the handler left apdu->sw at 0. */
+			goto out_err;
 		default:
 			SS_LOGP(SAUTH, LERROR, "authentication failed\n");
 			break;
