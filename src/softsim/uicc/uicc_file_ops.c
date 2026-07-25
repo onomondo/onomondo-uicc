@@ -564,6 +564,7 @@ int ss_uicc_file_ops_cmd_update_record(struct ss_apdu *apdu)
 		return rc;
 
 	if (record_number > selected_file->fcp_file_descr->number_of_records) {
+		apdu->le = 0;
 		return SS_SW_ERR_WRONG_PARAM_RECORD_NOT_FOUND;
 	}
 
@@ -753,6 +754,13 @@ int ss_uicc_file_ops_cmd_search_record(struct ss_apdu *apdu)
 	default:
 		SS_LOGP(SFILE, LERROR, "invalid search mode (%02x)!\n", search_mode);
 		return SS_SW_ERR_WRONG_PARAM_FUNCTION_NOT_SUPPORTED;
+	}
+
+	/* Both search modes take the starting record from P1 unchecked, so bound
+	 * it here rather than letting the read below fail with 6a84. */
+	if (search_record_number > n_records) {
+		apdu->le = 0;
+		return SS_SW_ERR_WRONG_PARAM_RECORD_NOT_FOUND;
 	}
 
 	SS_LOGP(SFILE, LDEBUG, "search parameter:\n");
