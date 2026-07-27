@@ -90,6 +90,27 @@ static void unknown_class_test(struct ss_context *ctx)
 	}
 }
 
+/* ss_transact() requires the full 5-byte header; every shorter prefix
+ * answers 6700. */
+static void transact_short_apdu_test(struct ss_context *ctx)
+{
+	/* 5 bytes of a plausible SELECT; only the first `len` are handed over. */
+	uint8_t cmd[] = { 0x00, 0xa4, 0x00, 0x0c, 0x02 };
+	uint8_t resp[300];
+
+	for (size_t len = 0; len < sizeof(cmd); len++) {
+		size_t cmd_len = len;
+		size_t resp_len;
+
+		memset(resp, 0, sizeof(resp));
+		resp_len = ss_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
+
+		/* SS_SW_ERR_CHECKING_WRONG_LENGTH, big endian */
+		assert(resp_len == 2);
+		assert(resp[0] == 0x67 && resp[1] == 0x00);
+	}
+}
+
 int main(void)
 {
 	struct ss_context *ctx;
@@ -98,6 +119,9 @@ int main(void)
 	ss_reset(ctx);
 
 	unknown_class_test(ctx);
+	ss_reset(ctx);
+
+	transact_short_apdu_test(ctx);
 	ss_reset(ctx);
 
 	size_t cmd_len = 0;
