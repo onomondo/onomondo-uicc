@@ -71,4 +71,4 @@ struct ss_profile {
  *  \param[in] profile a pointer to the receiving profile struct.
  *  \returns return 0 if valid profile is decoded. error code otherwise.
  */
-uint8_t ss_profile_from_string(uint16_t len, const char input_string[len], struct ss_profile *profile);
+uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile);
