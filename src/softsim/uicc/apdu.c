@@ -178,13 +178,19 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 	apdu->hdr.p3 = lc;
 	processed_bytes = APDU_HEADER_SIZE + 1 + lc + 1;
 out:
-	// lc is externally supplied so we can't trust it at all
-	if (lc > len - APDU_HEADER_SIZE) {
-		SS_LOGP(SAPDU, LERROR,
-			"APDU malformed. LC is larger than the remaining buffer. Len: %zu, lc: %d, apdu: %s\n", len, lc,
-			ss_hexdump(buffer, len));
-		lc = 0;
-		apdu->hdr.p3 = 0;
+	/* lc is externally supplied so we can't trust it at all. It must fit both
+	 * the bytes that follow data_start and apdu->cmd, which bound the memcpy
+	 * below. */
+	if (lc) {
+		size_t available = len - (size_t)(data_start - buffer);
+
+		if (lc > available || lc > sizeof(apdu->cmd)) {
+			SS_LOGP(SAPDU, LERROR,
+				"APDU malformed. LC is larger than the remaining buffer. Len: %zu, lc: %d, apdu: %s\n",
+				len, lc, ss_hexdump(buffer, len));
+			lc = 0;
+			apdu->hdr.p3 = 0;
+		}
 	}
 	apdu->lc = lc;
 	apdu->le = le;
