@@ -55,6 +55,7 @@ int ss_utils_ota_calc_cc(uint8_t *cc, size_t cc_len, uint8_t *key, size_t key_le
 {
 	struct utils_3des_cc_ctx cc_des;
 	struct utils_aes_cc_ctx cc_aes;
+	int rc = -EINVAL;
 
 	/* This allows users to fetch keys from more custom locations.
 	 * Very useful for devices where the filesystem isn't trusted.
@@ -90,7 +91,8 @@ int ss_utils_ota_calc_cc(uint8_t *cc, size_t cc_len, uint8_t *key, size_t key_le
 		ss_utils_3des_cc_feed(&cc_des, data2, data2_len);
 		ss_utils_3des_cc_cleanup(&cc_des);
 		memcpy(cc, cc_des.cbc, cc_len);
-		return 0;
+		rc = 0;
+		break;
 	case AES_CMAC:
 		assert(data1_len % AES_BLOCKSIZE == 0);
 		assert(cc_len <= sizeof(cc_aes.cbc));
@@ -99,15 +101,19 @@ int ss_utils_ota_calc_cc(uint8_t *cc, size_t cc_len, uint8_t *key, size_t key_le
 		ss_utils_aes_cc_feed(&cc_aes, data2, data2_len, true);
 		ss_utils_aes_cc_cleanup(&cc_aes);
 		memcpy(cc, cc_aes.cbc, cc_len);
-		return 0;
+		rc = 0;
+		break;
 	default:
 		SS_LOGP(SREMOTECMD, LERROR, "unable to calculate cc, improper crypto algorithm selected\n");
-		return -EINVAL;
+		break;
 	}
 
+	/* Single exit point: the scrub below must run on every path. */
 #ifdef CONFIG_EXTERNAL_KEY_LOAD
 	ss_memzero(modified_key, sizeof(modified_key));
 #endif // CONFIG_EXTERNAL_KEY_LOAD
+
+	return rc;
 }
 
 #endif // CONFIG_EXTERNAL_CRYPTO_IMPL
