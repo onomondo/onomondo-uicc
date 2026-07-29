@@ -136,7 +136,7 @@ void ss_utils_3des_cc_cleanup(struct utils_3des_cc_ctx *cc)
 {
 	/*! This function removes the key from the context data in a secure.
 	 *  way. The cryptographic checksum result will be retained. */
-	ss_memzero(cc->key, sizeof(cc->key));
+	ss_memzero(cc->key, sizeof(*cc->key));
 	SS_FREE(cc->key);
 }
 #endif // CONFIG_EXTERNAL_CRYPTO_IMPL
