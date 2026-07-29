@@ -15,6 +15,7 @@
 #define SS_FREE(obj) free(obj)
 #else /* !CONFIG_USE_SYSTEM_HEAP */
 void *port_malloc(size_t);
+/* Must accept NULL as a no-op, like free(): cleanup paths free unconditionally. */
 void port_free(void *);
 #define SS_ALLOC(obj) port_malloc(sizeof(obj))
 #define SS_ALLOC_N(n) port_malloc(n)
