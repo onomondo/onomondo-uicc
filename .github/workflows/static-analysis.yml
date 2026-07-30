@@ -1,0 +1,78 @@
+name: Static Analysis
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clang-static-analysis:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    strategy:
+      # A lint gate should report every broken cell, not just the first.
+      fail-fast: false
+      matrix:
+        # Same cells as ci_uicc.yml. Reachability is #ifdef-dependent, so one
+        # configure is not enough: an unreachable key-scrub call inside
+        # `#ifdef CONFIG_EXTERNAL_KEY_LOAD` is invisible in the default config.
+        # CONFIG_COMPACT_STORAGE is deliberately absent, that config does not
+        # link today (storage_compact.c never defines storage_path or
+        # ss_storage_{get,set}_path), so it cannot be gated until it builds.
+        flags: ["", "-DCONFIG_EXTERNAL_KEY_LOAD=y", "-DCONFIG_USE_UTILS=y", "-DCONFIG_BUILD_LIB_ONLY=y"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install clang toolchain
+        # 18 is the ubuntu-24.04 default and matches the pinned clang-format-18.
+        run: sudo apt-get update && sudo apt-get install -y clang-18 clang-tidy-18
+
+      - name: Add key loaders to tests
+        run: |
+          echo "void ss_load_key_external(const uint8_t *key_id, size_t in_len, uint8_t *key, size_t *key_len){memcpy(key, key_id, in_len);*key_len = in_len;}" >> src/softsim/main.c
+          echo "void ss_load_key_external(const uint8_t *key_id, size_t in_len, uint8_t *key, size_t *key_len){memcpy(key, key_id, in_len);*key_len = in_len;}" >> tests/ota/ota_test.c
+          echo "void ss_load_key_external(const uint8_t *key_id, size_t in_len, uint8_t *key, size_t *key_len){memcpy(key, key_id, in_len);*key_len = in_len;}" >> tests/aes/aes_test.c
+        if: matrix.flags == '-DCONFIG_EXTERNAL_KEY_LOAD=y'
+
+      # This job is clang-only on purpose: gcc has accepted-but-ignored
+      # -Wunreachable-code since 4.4, so adding it to the gcc legs of
+      # ci_uicc.yml would only give false confidence.
+      # No sanitizers here, warnings are emitted before instrumentation.
+      # -Wunreachable-code-{return,break} were measured and rejected: they only
+      # flag dead return/break idioms, which have no side effect to lose.
+      - name: Configure
+        env:
+          CC: clang-18
+        run: >
+          cmake -S . -B build
+          -DBUILD_TESTING=y -DCONFIG_USE_SYSTEM_HEAP=y ${{ matrix.flags }}
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          -DCMAKE_C_FLAGS=-Werror=unreachable-code
+
+      - name: Build, gates -Wunreachable-code
+        run: cmake --build build --parallel
+
+      # Check list and error policy live in .clang-tidy so that CI and a
+      # developer's editor cannot drift. Same vendored/generated exclusions as
+      # clang-format.yml; a per-directory .clang-tidy cannot do the job because
+      # clang-tidy exits with "no checks enabled" when a config disables all.
+      - name: Run clang-tidy
+        # bash for pipefail: without it a failing find is masked by grep's exit
+        # status and the file list silently shrinks.
+        shell: bash
+        run: |
+          FILES=$(find src tests utils -name "*.c" \
+            | grep -v "crypto/" \
+            | grep -v "milenage/" \
+            | grep -v "utils/files-c-array/")
+          run-clang-tidy-18 -p build -quiet $FILES

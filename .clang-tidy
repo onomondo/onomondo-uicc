@@ -1,0 +1,10 @@
+# Deliberately one check only: the codebase builds with no warning flags at all
+# today, so everything else stays off until it has been triaged.
+# sizeof() feeds the length argument of memcpy/snprintf/ss_memzero/
+# ss_storage_write_file all over this codebase, so a sizeof on the wrong
+# operand is a buffer bug.
+Checks: '-*,bugprone-sizeof-expression'
+WarningsAsErrors: '*'
+# HeaderFilterRegex intentionally unset: headers are not diagnosed, so a bad
+# sizeof in an include/onomondo/ macro is missed. Upgrade path is a
+# HeaderFilterRegex scoped to 'include/onomondo|src/softsim/uicc'.
