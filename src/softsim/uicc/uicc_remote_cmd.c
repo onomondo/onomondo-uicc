@@ -329,14 +329,16 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param, size_t cmd_pac
  * the CNTR value. */
 static int parse_cmd_hdr_ciphtxt(struct command_parameters *param, size_t cmd_packet_len, const uint8_t *cmd_packet)
 {
-	SS_LOGP(SREMOTECMD, LDEBUG, "command packet header data (decrypted ciphertext): %s\n",
-		ss_hexdump(cmd_packet, 6));
-
 	/* We need at least 6 bytes of data (5 byte CNTR + 1 byte PCNTR) */
 	if (cmd_packet_len < 6) {
 		SS_LOGP(SREMOTECMD, LERROR, "message too short\n");
 		return -SS_SW_ERR_CHECKING_WRONG_LENGTH;
 	}
+
+	/* Dumped only after the length check: unlike the cleartext header these
+	 * six bytes are not guaranteed to exist. */
+	SS_LOGP(SREMOTECMD, LDEBUG, "command packet header data (decrypted ciphertext): %s\n",
+		ss_hexdump(cmd_packet, 6));
 
 	param->cntr = ss_uint64_from_array(&cmd_packet[0], CNTR_LEN);
 	param->pcntr = cmd_packet[5];
