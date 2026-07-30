@@ -29,7 +29,7 @@
 >>> Card APDU request 00b000000f >>>
 <<< Card APDU response 0008000c21000000000010000000009000 <<<
 >>> Card APDU request 00a408040000047fff6fe30168 >>>
-<<< Card APDU response 62178202412183026fe38a01058b036f0604800200128801189000 <<<
+<<< Card APDU response 62178202412183026fe38a01058b036f0604800200128801f09000 <<<
 >>> Card APDU request 00b0000012 >>>
 <<< Card APDU response ffffffffffffffffffffffffffffff0000019000 <<<
 >>> Card APDU request 00a408040000047fff6fe40168 >>>
