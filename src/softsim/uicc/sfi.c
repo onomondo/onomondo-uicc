@@ -131,6 +131,9 @@ int ss_sfi_resolve(const struct ss_list *path, uint8_t sfi)
 	SS_LOGP(SSFI, LDEBUG, "resolved SFI=%02x to FID=%04x using lookup file %s\n", sfi, rc,
 		ss_fs_utils_dump_path(&path_copy));
 leave:
+	/* NULL on every path that jumps here before the read, and ss_buf_free
+	 * tolerates NULL. */
+	ss_buf_free(fid);
 	ss_path_reset(&path_copy);
 	return rc;
 }

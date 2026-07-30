@@ -68,6 +68,7 @@ size_t ss_fs_utils_find_free_record(const struct ss_list *path)
 		if (record->len == 0) {
 			SS_LOGP(SFS, LERROR, "file (%s) seems to contain zero length record (bad file descriptor?)\n",
 				ss_fs_utils_dump_path(path));
+			ss_buf_free(record);
 			return 0;
 		}
 
