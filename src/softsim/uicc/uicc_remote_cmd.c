@@ -750,7 +750,7 @@ static int encrypt(uint8_t *data, size_t data_len, uint8_t *key, size_t key_len,
 		ss_utils_aes_encrypt(data, data_len, key, key_len);
 		break;
 	default:
-		SS_LOGP(SREMOTECMD, LERROR, "unable to decrypt, improper crypto algorithm selected\n");
+		SS_LOGP(SREMOTECMD, LERROR, "unable to encrypt, improper crypto algorithm selected\n");
 		return -EINVAL;
 	}
 
@@ -824,6 +824,7 @@ static void build_message(uint8_t *outbuf, size_t *outbuf_len, uint8_t *plaintex
 			break;
 		case TRIPLE_DES_CBC2:
 			memset(&outbuf[16 + param->out_integrity_len + plaintext_len], 0, pcnt);
+			break;
 		default:
 			break;
 		}
@@ -1116,7 +1117,6 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 		/* The response fits in the GET RESPONSE buffer of the UICC,
 		 * the MS will take care of the SMS sending. */
 		memcpy(response, response_message->data, response_message->len);
-		SS_LOGP(SREMOTECMD, LERROR, "------------ setresponse len %zu\n", response_message->len);
 		*response_len = response_message->len;
 		ss_buf_free(response_message);
 	} else {
