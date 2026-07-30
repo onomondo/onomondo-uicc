@@ -928,13 +928,17 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 
 	/* Decode cleartext part of the command packet header */
 	ret = parse_cmd_hdr_clrtxt(&param, cmd_packet_len, cmd_packet);
-	if (ret <= 0)
-		return -ret;
+	if (ret <= 0) {
+		ret = -ret;
+		goto clear_out;
+	}
 
 	/* Decrypt the encrypted part of the command packet. This includes
 	 * the remaining encrypted header bytes and the secured payload data */
-	if (setup_keys_from_tar(&param, kic_key, kid_key) == false)
-		return SS_SW_WARN_NO_INFO_NV_UNCHANGED;
+	if (setup_keys_from_tar(&param, kic_key, kid_key) == false) {
+		ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
+		goto clear_out;
+	}
 	ciphertext = &cmd_packet[ret];
 	ciphertext_len = cmd_packet_len - ret;
 	SS_LOGP(SREMOTECMD, LDEBUG, "Ciphertext command: %s\n", ss_hexdump(ciphertext, ciphertext_len));
@@ -950,8 +954,10 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 	SS_LOGP(SREMOTECMD, LDEBUG, "Plaintext command: %s\n", ss_hexdump(plaintext, plaintext_len));
 
 	ret = parse_cmd_hdr_ciphtxt(&param, plaintext_len, plaintext);
-	if (ret <= 0)
-		return -ret;
+	if (ret <= 0) {
+		ret = -ret;
+		goto clear_out;
+	}
 	ciph_hdr_len = ret;
 
 	/* Guard against invalid length params */
