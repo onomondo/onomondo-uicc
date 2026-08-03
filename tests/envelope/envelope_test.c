@@ -113,6 +113,25 @@ int main(void)
 	printf("ENVELOPE padding-only template: %04x\n", sw);
 	assert(sw == 0x6a80);
 
+	/* Same defect in ss_tlv8_free(): an SMS-DELIVER with TP-UDHI set and a
+	 * zero-length user data header decodes to a valid but empty TLV8 list. The
+	 * 6f00 is the dispatcher's mapping for the unknown IEIa=00 that follows;
+	 * the point is again that the sanitizer sees no leak. */
+	sw = transact_hex_apdu(ctx,
+			       "80c2000018" /* ENVELOPE, Lc=24 */
+			       "d116" /* SMS-PP download CAT template */
+			       "82028381" /* device identities: network -> UICC */
+			       "8b10" /* SMS-TPDU IE, 16 bytes */
+			       "60" /* SMS-DELIVER, TP-UDHI set */
+			       "03912143" /* TP-OA */
+			       "7ff6" /* TP-PID, TP-DCS */
+			       "62408011934280" /* TP-SCTS */
+			       "01" /* TP-UDL = 1 */
+			       "00", /* TP-UD: UDHL = 0 */
+			       resp, sizeof(resp), &resp_len);
+	printf("ENVELOPE empty user data header: %04x\n", sw);
+	assert(sw == 0x6f00);
+
 	ss_free_ctx(ctx);
 	return 0;
 }
