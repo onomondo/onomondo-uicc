@@ -105,6 +105,14 @@ int main(void)
 	printf("ENVELOPE short header, permissive MSL: %04x\n", sw);
 	assert(sw == 0x6700);
 
+	/* SMS-PP DOWNLOAD whose CAT template is nothing but 0xff padding. That
+	 * decodes to a valid but empty COMPREHENSION-TLV list, which is the case
+	 * ss_ctlv_free() used to return from without freeing the list head. The
+	 * status word is incidental; the point is that the sanitizer sees no leak. */
+	sw = transact_hex_apdu(ctx, "80c2000005d103ffffff", resp, sizeof(resp), &resp_len);
+	printf("ENVELOPE padding-only template: %04x\n", sw);
+	assert(sw == 0x6a80);
+
 	ss_free_ctx(ctx);
 	return 0;
 }
