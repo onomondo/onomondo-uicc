@@ -4,6 +4,7 @@
 # Enable testing for current directory and below.
 enable_testing()
 
+add_subdirectory(access)
 add_subdirectory(aes)
 add_subdirectory(apdu)
 add_subdirectory(app_transact)

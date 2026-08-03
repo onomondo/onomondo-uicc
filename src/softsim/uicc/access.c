@@ -246,8 +246,14 @@ bool ss_access_check_command(struct ss_apdu *apdu, enum ss_access_intention inte
 	struct ss_file *mf = ss_get_file_from_path(apdu->lchan->fs_path.next->next);
 	/* If a situation ever comes up where using a path that does not start at the
 	 * MF is valid, we can still consider loading the MF as it is done above --
-	 * but until there is a legitimate use case, it is most likely a bug. */
-	assert(mf->fid == 0x3f00);
+	 * but until there is a legitimate use case, it is most likely a bug.
+	 *
+	 * Not an assert: -DNDEBUG would strip it, and the lifecycle byte read below
+	 * would then decide access control based on an unrelated file. */
+	if (!mf || mf->fid != 0x3f00) {
+		SS_LOGP(SACCESS, LERROR, "path does not start at the MF, rejecting all access.\n");
+		return false;
+	}
 
 	struct ber_tlv_ie *lcsi_do = ss_btlv_get_ie_minlen(mf->fcp_decoded, TS_102_221_IEI_FCP_LIFE_CYCLE_ST, 1);
 	if (lcsi_do == NULL || lcsi_do->value->data[0] == 0) {
