@@ -114,6 +114,7 @@ static int get_seq_data(struct milenage_seq_data *seq_data)
 	 * */
 
 	ss_fs_init(&seq_data_path);
+	seq_data->dirty_ind = NO_IND_UPDATE;
 
 	for (file_offset = 0; file_offset < SS_ARRAY_SIZE(seq_data->seq) + 1; file_offset++) {
 		rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID_BASE + file_offset);
@@ -148,7 +149,6 @@ static int get_seq_data(struct milenage_seq_data *seq_data)
 			SS_LOGP(SAUTH, LDEBUG, "seq data file (%s) loaded\n", ss_fs_utils_dump_path(&seq_data_path));
 		} else {
 			seq_data->delta = ss_uint64_load_from_be(seq_data_raw->data);
-			seq_data->dirty_ind = NO_IND_UPDATE;
 
 			SS_LOGP(SAUTH, LDEBUG, "delta data file (%s) loaded\n", ss_fs_utils_dump_path(&seq_data_path));
 		}
@@ -270,7 +270,6 @@ static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_c
 		case 0: /* successful case */
 			SS_LOGP(SAUTH, LDEBUG, "Milenage successful\n");
 			assert(mres.res_len == 8);
-			/* FIXME #59: update SEQ bucket for IND */
 			/* generate response */
 			res_3g = (struct auth_res_success_3g *)apdu->rsp;
 			res_3g->tag = 0xDB;
