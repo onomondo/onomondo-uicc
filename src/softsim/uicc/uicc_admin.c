@@ -407,6 +407,10 @@ int ss_uicc_admin_cmd_activate_file(struct ss_apdu *apdu)
 	struct ber_tlv_ie *fcp_decoded_lifecycle;
 	struct ss_file *selected_file = ss_get_file_from_path(&apdu->lchan->fs_path);
 	fcp_decoded_lifecycle = ss_btlv_get_ie_minlen(selected_file->fcp_decoded, TS_102_221_IEI_FCP_LIFE_CYCLE_ST, 1);
+	if (!fcp_decoded_lifecycle) {
+		SS_LOGP(SADMIN, LERROR, "missing lifecycle status IE -- cannot activate file\n");
+		return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
+	}
 	fcp_decoded_lifecycle->value->data[0] = 0x05;
 
 	/* Store encoded FCP again */
