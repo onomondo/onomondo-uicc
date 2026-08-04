@@ -26,6 +26,7 @@
 
 #include "crypto/common.h"
 #include "crypto/aes_wrap.h"
+#include "uicc/utils.h" /* ss_memzero(); same cross-lib include as milenage_usim.c */
 #include "milenage.h"
 
 
@@ -243,9 +244,10 @@ int gsm_milenage(const u8 *opc, const u8 *k, const u8 *_rand, u8 *sres, u8 *kc)
 {
 	u8 res[8], ck[16], ik[16];
 	int i;
+	int ret = -1;
 
 	if (milenage_f2345(opc, k, _rand, res, ck, ik, NULL, NULL))
-		return -1;
+		goto out;
 
 	for (i = 0; i < 8; i++)
 		kc[i] = ck[i] ^ ck[i + 8] ^ ik[i] ^ ik[i + 8];
@@ -258,7 +260,13 @@ int gsm_milenage(const u8 *opc, const u8 *k, const u8 *_rand, u8 *sres, u8 *kc)
 			sres[i] = res[i] ^ res[i + 4];
 #endif /* GSM_MILENAGE_ALT_SRES */
 	}
-	return 0;
+	ret = 0;
+out:
+	/* SRES and Kc are already copied out; CK/IK/RES must not outlive the call. */
+	ss_memzero(res, sizeof(res));
+	ss_memzero(ck, sizeof(ck));
+	ss_memzero(ik, sizeof(ik));
+	return ret;
 }
 
 
