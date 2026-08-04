@@ -183,7 +183,7 @@ int ss_fs_utils_create_record_file(const struct ss_list *path, uint32_t fid, uin
 leave:
 	ss_buf_free(fcp);
 	ss_path_reset(&path_copy);
-	return 0;
+	return rc;
 }
 
 /*! Obtain a deep copy of a path.

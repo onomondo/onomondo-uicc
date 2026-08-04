@@ -10,6 +10,9 @@
 #include <string.h>
 #include <assert.h>
 #include <onomondo/softsim/storage.h>
+#include <onomondo/softsim/list.h>
+#include "src/softsim/uicc/fs.h"
+#include "src/softsim/uicc/fs_utils.h"
 
 void test_storage_path_default(void)
 {
@@ -100,6 +103,26 @@ void test_storage_path_empty_string(void)
 	printf("Empty path rejection test passed\n");
 }
 
+/* ss_fs_utils_create_record_file() used to return 0 unconditionally, so a
+ * caller could not tell that the internal lookup file it asked for was never
+ * created. Point the storage root at a directory that does not exist, which
+ * makes the create fail in the storage layer, and require that the failure
+ * reaches the caller. */
+void test_create_record_file_reports_failure(void)
+{
+	struct ss_list path;
+	int rc;
+
+	rc = ss_storage_set_path("/nonexistent-storage-root-for-test/files");
+	assert(rc == 0);
+
+	ss_list_init(&path);
+	rc = ss_fs_utils_create_record_file(&path, 0x5F100001, 2, 0x1f);
+	assert(rc < 0);
+	ss_path_reset(&path);
+	printf("Create record file failure propagation test passed\n");
+}
+
 int main(void)
 {
 	test_storage_path_default();
@@ -110,5 +133,6 @@ int main(void)
 	test_storage_path_multiple_sets();
 	test_storage_path_special_chars();
 	test_storage_path_empty_string();
+	test_create_record_file_reports_failure();
 	return 0;
 }
