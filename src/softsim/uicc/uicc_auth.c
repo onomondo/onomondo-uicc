@@ -21,6 +21,7 @@
 #include "apdu.h"
 #include "fs.h"
 #include "fs_utils.h"
+#include "utils.h"
 
 /* 3GPP TS 31.102 Table 7.1.2-1 + Table 7.1.2-2 */
 enum usim_auth_ctx {
@@ -81,6 +82,7 @@ static int get_key_data(struct milenage_key_data *key_data)
 		SS_LOGP(SAUTH, LERROR, "key data file (%s) too short -- abort\n",
 			ss_fs_utils_dump_path(&key_data_path));
 		ss_path_reset(&key_data_path);
+		ss_memzero(key_data_raw->data, key_data_raw->len);
 		ss_buf_free(key_data_raw);
 		return -EINVAL;
 	}
@@ -95,6 +97,8 @@ static int get_key_data(struct milenage_key_data *key_data)
 	SS_LOGP(SAUTH, LDEBUG, "key data file (%s) loaded\n", ss_fs_utils_dump_path(&key_data_path));
 
 	ss_path_reset(&key_data_path);
+	/* ss_buf_free() does not zero. */
+	ss_memzero(key_data_raw->data, key_data_raw->len);
 	ss_buf_free(key_data_raw);
 	return 0;
 }
