@@ -7,3 +7,4 @@ Max length path test passed (length: 98)
 Multiple path changes test passed
 Special characters in path test passed
 Empty path rejection test passed
+Create record file failure propagation test passed
