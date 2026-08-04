@@ -600,14 +600,14 @@ int ss_uicc_file_ops_cmd_search_record(struct ss_apdu *apdu)
 
 	switch (search_mode) {
 	case SEARCH_ENHANCED:
-		/* See also ETSI TS 102 221, table Table 11.13 */
-		enchanced_search_mode = apdu->cmd[0];
-
 		SS_LOGP(SFILE, LDEBUG, "search mode: \"enhanced search\"\n");
 		if (apdu->lc < 3) {
 			SS_LOGP(SFILE, LERROR, "no search string!\n");
 			return SS_SW_ERR_CHECKING_WRONG_P1_P2;
 		}
+
+		/* See also ETSI TS 102 221, table Table 11.13 */
+		enchanced_search_mode = apdu->cmd[0];
 
 		search_string = apdu->cmd + 2;
 		search_string_len = apdu->lc - 2;
