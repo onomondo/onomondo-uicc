@@ -251,7 +251,7 @@ bool ss_access_check_command(struct ss_apdu *apdu, enum ss_access_intention inte
 	 * Not an assert: -DNDEBUG would strip it, and the lifecycle byte read below
 	 * would then decide access control based on an unrelated file. */
 	if (!mf || mf->fid != 0x3f00) {
-		SS_LOGP(SACCESS, LERROR, "path does not start at the MF, rejecting all access.\n");
+		SS_LOGP(SACCESS, LERROR, "Path does not start at the MF, rejecting all access.\n");
 		return false;
 	}
 
