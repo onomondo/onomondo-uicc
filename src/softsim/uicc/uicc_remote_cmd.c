@@ -928,9 +928,9 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 	int rc;
 
 	/* Decode cleartext part of the command packet header */
-	ret = parse_cmd_hdr_clrtxt(&param, cmd_packet_len, cmd_packet);
-	if (ret <= 0) {
-		ret = -ret;
+	rc = parse_cmd_hdr_clrtxt(&param, cmd_packet_len, cmd_packet);
+	if (rc <= 0) {
+		ret = -rc;
 		goto clear_out;
 	}
 
@@ -940,8 +940,8 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 		ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 		goto clear_out;
 	}
-	ciphertext = &cmd_packet[ret];
-	ciphertext_len = cmd_packet_len - ret;
+	ciphertext = &cmd_packet[rc];
+	ciphertext_len = cmd_packet_len - rc;
 	SS_LOGP(SREMOTECMD, LDEBUG, "Ciphertext command: %s\n", ss_hexdump(ciphertext, ciphertext_len));
 	if (param.in_ciphering) {
 		rc = decrypt(ciphertext, ciphertext_len, kic_key, sizeof(kic_key), param.kic_algorithm);
@@ -954,12 +954,12 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 	plaintext_len = ciphertext_len;
 	SS_LOGP(SREMOTECMD, LDEBUG, "Plaintext command: %s\n", ss_hexdump(plaintext, plaintext_len));
 
-	ret = parse_cmd_hdr_ciphtxt(&param, plaintext_len, plaintext);
-	if (ret <= 0) {
-		ret = -ret;
+	rc = parse_cmd_hdr_ciphtxt(&param, plaintext_len, plaintext);
+	if (rc <= 0) {
+		ret = -rc;
 		goto clear_out;
 	}
-	ciph_hdr_len = ret;
+	ciph_hdr_len = rc;
 
 	/* Guard against invalid length params */
 	if (ciph_hdr_len + param.pcntr + param.in_integrity_len > plaintext_len) {
