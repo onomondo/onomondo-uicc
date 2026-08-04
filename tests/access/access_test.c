@@ -48,10 +48,11 @@ static int non_mf_root_denied_test(void)
 	ss_btlv_free(file.fcp_decoded);
 
 	if (granted) {
-		printf("FAIL: access granted on a path not rooted at the MF\n");
+		/* stderr, so ctest shows it: stdout goes to access_test.out */
+		fprintf(stderr, "FAIL: access granted on a path not rooted at the MF\n");
 		return 1;
 	}
-	printf("Access check on a path not rooted at the MF is denied\n");
+	printf("Non-MF root path rejection test passed\n");
 	return 0;
 }
 
