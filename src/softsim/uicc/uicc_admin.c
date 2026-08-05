@@ -409,7 +409,8 @@ int ss_uicc_admin_cmd_activate_file(struct ss_apdu *apdu)
 	fcp_decoded_lifecycle = ss_btlv_get_ie_minlen(selected_file->fcp_decoded, TS_102_221_IEI_FCP_LIFE_CYCLE_ST, 1);
 	if (!fcp_decoded_lifecycle) {
 		SS_LOGP(SADMIN, LERROR, "missing lifecycle status IE -- cannot activate file\n");
-		return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
+		/* TS 102 221 §10.2.2 - Status words of the commands */
+		return SS_SW_ERR_EXEC_NO_INFO_NV_UNCHANGED;
 	}
 	fcp_decoded_lifecycle->value->data[0] = 0x05;
 
