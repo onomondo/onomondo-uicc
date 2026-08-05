@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <errno.h>
 #include <onomondo/softsim/utils.h>
 #include "src/softsim/uicc/utils_3des.h"
 #include "src/softsim/uicc/utils_ota.h"
@@ -134,6 +135,11 @@ static void ss_utils_ota_calc_cc_test(void)
 				  sizeof(data2_C));
 	printf("AES-CMAC data1=%s, data2=%s, rc=%d, checksum=%s\n", ss_hexdump(data1, sizeof(data1)),
 	       ss_hexdump(data2_C, sizeof(data2_C)), rc, ss_hexdump(cc, sizeof(cc)));
+
+	/* Unsupported algorithm must be rejected via the common exit path. */
+	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), NONE, data1, sizeof(data1), data2_A,
+				  sizeof(data2_A));
+	assert(rc == -EINVAL);
 }
 
 int main(int argc, char **argv)

@@ -329,14 +329,16 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param, size_t cmd_pac
  * the CNTR value. */
 static int parse_cmd_hdr_ciphtxt(struct command_parameters *param, size_t cmd_packet_len, const uint8_t *cmd_packet)
 {
-	SS_LOGP(SREMOTECMD, LDEBUG, "command packet header data (decrypted ciphertext): %s\n",
-		ss_hexdump(cmd_packet, 6));
-
 	/* We need at least 6 bytes of data (5 byte CNTR + 1 byte PCNTR) */
 	if (cmd_packet_len < 6) {
 		SS_LOGP(SREMOTECMD, LERROR, "message too short\n");
 		return -SS_SW_ERR_CHECKING_WRONG_LENGTH;
 	}
+
+	/* Dumped only after the length check: unlike the cleartext header these
+	 * six bytes are not guaranteed to exist. */
+	SS_LOGP(SREMOTECMD, LDEBUG, "command packet header data (decrypted ciphertext): %s\n",
+		ss_hexdump(cmd_packet, 6));
 
 	param->cntr = ss_uint64_from_array(&cmd_packet[0], CNTR_LEN);
 	param->pcntr = cmd_packet[5];
@@ -748,7 +750,7 @@ static int encrypt(uint8_t *data, size_t data_len, uint8_t *key, size_t key_len,
 		ss_utils_aes_encrypt(data, data_len, key, key_len);
 		break;
 	default:
-		SS_LOGP(SREMOTECMD, LERROR, "unable to decrypt, improper crypto algorithm selected\n");
+		SS_LOGP(SREMOTECMD, LERROR, "unable to encrypt, improper crypto algorithm selected\n");
 		return -EINVAL;
 	}
 
@@ -822,6 +824,7 @@ static void build_message(uint8_t *outbuf, size_t *outbuf_len, uint8_t *plaintex
 			break;
 		case TRIPLE_DES_CBC2:
 			memset(&outbuf[16 + param->out_integrity_len + plaintext_len], 0, pcnt);
+			break;
 		default:
 			break;
 		}
@@ -925,16 +928,20 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 	int rc;
 
 	/* Decode cleartext part of the command packet header */
-	ret = parse_cmd_hdr_clrtxt(&param, cmd_packet_len, cmd_packet);
-	if (ret <= 0)
-		return -ret;
+	rc = parse_cmd_hdr_clrtxt(&param, cmd_packet_len, cmd_packet);
+	if (rc <= 0) {
+		ret = -rc;
+		goto clear_out;
+	}
 
 	/* Decrypt the encrypted part of the command packet. This includes
 	 * the remaining encrypted header bytes and the secured payload data */
-	if (setup_keys_from_tar(&param, kic_key, kid_key) == false)
-		return SS_SW_WARN_NO_INFO_NV_UNCHANGED;
-	ciphertext = &cmd_packet[ret];
-	ciphertext_len = cmd_packet_len - ret;
+	if (setup_keys_from_tar(&param, kic_key, kid_key) == false) {
+		ret = SS_SW_WARN_NO_INFO_NV_UNCHANGED;
+		goto clear_out;
+	}
+	ciphertext = &cmd_packet[rc];
+	ciphertext_len = cmd_packet_len - rc;
 	SS_LOGP(SREMOTECMD, LDEBUG, "Ciphertext command: %s\n", ss_hexdump(ciphertext, ciphertext_len));
 	if (param.in_ciphering) {
 		rc = decrypt(ciphertext, ciphertext_len, kic_key, sizeof(kic_key), param.kic_algorithm);
@@ -947,10 +954,12 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 	plaintext_len = ciphertext_len;
 	SS_LOGP(SREMOTECMD, LDEBUG, "Plaintext command: %s\n", ss_hexdump(plaintext, plaintext_len));
 
-	ret = parse_cmd_hdr_ciphtxt(&param, plaintext_len, plaintext);
-	if (ret <= 0)
-		return -ret;
-	ciph_hdr_len = ret;
+	rc = parse_cmd_hdr_ciphtxt(&param, plaintext_len, plaintext);
+	if (rc <= 0) {
+		ret = -rc;
+		goto clear_out;
+	}
+	ciph_hdr_len = rc;
 
 	/* Guard against invalid length params */
 	if (ciph_hdr_len + param.pcntr + param.in_integrity_len > plaintext_len) {
@@ -1108,7 +1117,6 @@ int ss_uicc_remote_cmd_receive(size_t cmd_packet_len, uint8_t *cmd_packet, size_
 		/* The response fits in the GET RESPONSE buffer of the UICC,
 		 * the MS will take care of the SMS sending. */
 		memcpy(response, response_message->data, response_message->len);
-		SS_LOGP(SREMOTECMD, LERROR, "------------ setresponse len %zu\n", response_message->len);
 		*response_len = response_message->len;
 		ss_buf_free(response_message);
 	} else {

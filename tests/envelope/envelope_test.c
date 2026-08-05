@@ -11,6 +11,20 @@
 #include <onomondo/softsim/utils.h>
 extern uint32_t ss_log_mask;
 
+/* The shipped TAR record mandates ciphering (MSL 0x06), which rejects an
+ * unciphered command packet before the header is parsed. Relax it so the
+ * cleartext header path becomes reachable. Patches the build-dir copy only. */
+static void relax_tar_msl(void)
+{
+	FILE *f = fopen("files/3f00/a004", "r+");
+
+	assert(f);
+	/* Records are stored as ASCII hex; MSL is byte 3 of struct tar_record. */
+	assert(fseek(f, 6, SEEK_SET) == 0);
+	assert(fwrite("00", 1, 2, f) == 2);
+	fclose(f);
+}
+
 static uint16_t transact_hex_apdu(struct ss_context *ctx, const char *hex, uint8_t *resp, size_t resp_bufsize,
 				  size_t *out_resp_len)
 {
@@ -67,6 +81,29 @@ int main(void)
 	sw = transact_hex_apdu(ctx, "801400000c810301130082028281830100", resp, sizeof(resp), &resp_len);
 	printf("TERMINAL RESPONSE: %04x\n", sw);
 	assert(sw == 0x9000);
+
+	/* Unciphered command packet whose encrypted part is a single byte. The
+	 * CNTR/PCNTR header is 6 bytes, so it must be rejected on length before
+	 * anything reads it. */
+	const char *short_hdr = "80c200002c"
+				"d12a"
+				"82028381"
+				"860510426587f9"
+				"8b1d"
+				"60039121437ff6"
+				"62408011934280"
+				"0e"
+				"027000"
+				"00090d00010000b00011aa";
+
+	sw = transact_hex_apdu(ctx, short_hdr, resp, sizeof(resp), &resp_len);
+	printf("ENVELOPE short header, strict MSL: %04x\n", sw);
+	assert(sw == 0x6200);
+
+	relax_tar_msl();
+	sw = transact_hex_apdu(ctx, short_hdr, resp, sizeof(resp), &resp_len);
+	printf("ENVELOPE short header, permissive MSL: %04x\n", sw);
+	assert(sw == 0x6700);
 
 	ss_free_ctx(ctx);
 	return 0;
