@@ -4,3 +4,5 @@ FETCH: d03d8103011300820281838b324100049121437ff629027100002412b000118bd0716adbf
 TERMINAL RESPONSE: 9000
 ENVELOPE short header, strict MSL: 6200
 ENVELOPE short header, permissive MSL: 6700
+ENVELOPE padding-only template: 6a80
+ENVELOPE empty user data header: 6f00

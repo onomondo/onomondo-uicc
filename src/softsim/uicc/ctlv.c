@@ -219,9 +219,8 @@ void ss_ctlv_free(struct ss_list *list)
 	if (!list)
 		return;
 
-	if (ss_list_empty(list))
-		return;
-
+	/* No early return for an empty list: the loop below is a no-op on one and
+	 * the head still has to be freed. */
 	SS_LIST_FOR_EACH_SAVE(list, ie, ie_pre, struct cmp_tlv_ie, list) {
 		/* Unlink the element from the list and free it. */
 		ss_list_remove(&ie->list);
