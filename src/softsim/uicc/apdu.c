@@ -118,6 +118,14 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 			goto out;
 		}
 
+		/* P3 == 0 promises two length bytes; here the second one is missing. */
+		if (len < APDU_HEADER_SIZE + 3) {
+			SS_LOGP(SAPDU, LERROR, "APDU malformed. Extended length field truncated. Len: %zu, apdu: %s\n",
+				len, ss_hexdump(buffer, len));
+			processed_bytes = len;
+			goto out;
+		}
+
 		// [ CLA, INS, P1, P2, 0, LC1, LC2 [REST] ]
 		lc = buffer[P3 + 1] << 8 | buffer[P3 + 2];
 		data_start = buffer + APDU_HEADER_SIZE + 3;
