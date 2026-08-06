@@ -111,6 +111,34 @@ static void transact_short_apdu_test(struct ss_context *ctx)
 	}
 }
 
+/* Both CLA rejections answer before a logical channel is resolved, so the APDU
+ * has no holder and must be freed rather than parked. First APDU, no auth. */
+static void transact_unresolved_lchan_test(struct ss_context *ctx)
+{
+	/* CLA 0x0c sets the secure-messaging bits; CLA 0x01 leaves them clear and
+	 * names logical channel 1, so each reaches a different rejection. */
+	struct {
+		uint8_t cla;
+		uint8_t sw2;
+	} cases[] = {
+		{ 0x0c, 0x82 }, /* SS_SW_ERR_FUNCTION_IN_CLA_NOT_SUPP_SM */
+		{ 0x01, 0x81 }, /* SS_SW_ERR_FUNCTION_IN_CLA_NOT_SUPP_LCHAN */
+	};
+	uint8_t resp[300];
+
+	for (size_t i = 0; i < SS_ARRAY_SIZE(cases); i++) {
+		uint8_t cmd[] = { cases[i].cla, 0xa4, 0x00, 0x0c, 0x02 };
+		size_t cmd_len = sizeof(cmd);
+		size_t resp_len;
+
+		memset(resp, 0, sizeof(resp));
+		resp_len = ss_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
+
+		assert(resp_len == 2);
+		assert(resp[0] == 0x68 && resp[1] == cases[i].sw2);
+	}
+}
+
 int main(void)
 {
 	struct ss_context *ctx;
@@ -122,6 +150,9 @@ int main(void)
 	ss_reset(ctx);
 
 	transact_short_apdu_test(ctx);
+	ss_reset(ctx);
+
+	transact_unresolved_lchan_test(ctx);
 	ss_reset(ctx);
 
 	size_t cmd_len = 0;
