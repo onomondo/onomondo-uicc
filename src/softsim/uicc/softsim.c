@@ -186,6 +186,7 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 	struct ss_apdu *last_apdu = NULL;
 
 	int processed_length = -1;
+	ss_list_init(&backup_path);
 
 	SS_LOGP(SLCHAN, LDEBUG, "------------------------- transaction begins ------------------------\n");
 
@@ -385,7 +386,8 @@ out:
 		SS_LOGP(SLCHAN, LDEBUG, "Tx R-APDU SW=%04x\n", apdu->sw);
 	}
 
-	if (!ss_sw_is_successful(apdu->sw)
+	if (apdu->lchan &&
+	    !ss_sw_is_successful(apdu->sw)
 	    /* If the command just fails with "wrong length", it usually didn't change the path */
 	    && (apdu->sw >> 8) != 0x6c) {
 		SS_LOGP(SLCHAN, LINFO, "Unsuccessful response %04x, restoring backup path.\n", apdu->sw);
