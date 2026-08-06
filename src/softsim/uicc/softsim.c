@@ -348,9 +348,9 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 				else
 					apdu->sw = rc;
 			}
-		} else {
-			apdu->sw = SS_SW_ERR_CHECKING_INS_INVALID;
 		}
+		/* No else: ss_command_match() already set 6e00 or 6d00, and it can tell
+		 * an unknown class from an unknown instruction. */
 	}
 
 out:
