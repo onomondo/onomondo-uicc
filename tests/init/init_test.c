@@ -62,11 +62,42 @@ const char *apdus[] = {
 	/* perform authentication */
 };
 
+/* An unknown class must be answered 6e00, an unknown instruction 6d00.
+ * TS 102 221 clause 10.2.1.5.0; TS 31.122 clause 6.7.2.1 steps r) and t). */
+static void unknown_class_test(struct ss_context *ctx)
+{
+	const struct {
+		uint8_t apdu[5];
+		uint16_t sw;
+	} cases[] = {
+		{ { 0x30, 0xc0, 0x00, 0x00, 0x00 }, 0x6e00 }, /* class '30' */
+		{ { 0xa0, 0xf2, 0x00, 0x00, 0x00 }, 0x6e00 }, /* GSM class 'A0' */
+		{ { 0x00, 0x6f, 0x00, 0x00, 0x00 }, 0x6d00 }, /* known class, unknown INS */
+	};
+	uint8_t resp[300];
+
+	for (size_t i = 0; i < SS_ARRAY_SIZE(cases); i++) {
+		uint8_t cmd[sizeof(cases[i].apdu)];
+		size_t cmd_len = sizeof(cmd);
+		size_t resp_len;
+
+		memcpy(cmd, cases[i].apdu, sizeof(cmd));
+		memset(resp, 0, sizeof(resp));
+		resp_len = ss_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
+
+		assert(resp_len == 2);
+		assert(((resp[0] << 8) | resp[1]) == cases[i].sw);
+	}
+}
+
 int main(void)
 {
 	struct ss_context *ctx;
 
 	ctx = ss_new_ctx();
+	ss_reset(ctx);
+
+	unknown_class_test(ctx);
 	ss_reset(ctx);
 
 	size_t cmd_len = 0;
