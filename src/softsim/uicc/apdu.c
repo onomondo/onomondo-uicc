@@ -37,9 +37,12 @@ void ss_apdu_toss(struct ss_apdu *apdu)
 
 	/* NOTE: An APDU without lchan may occur when it was impossible to
 	 * resolve a valid lchan. This may happen when a non existing lchan
-	 * is addressed. */
+	 * is addressed. Nothing can reference it later -- GET RESPONSE reaches
+	 * the previous APDU through lchan->last_apdu -- so free it now instead
+	 * of keeping it for another cycle. */
 	if (!apdu->lchan) {
-		SS_LOGP(SLCHAN, LERROR, "tossing APDU without lchan\n");
+		SS_LOGP(SLCHAN, LDEBUG, "tossing APDU %p without lchan\n", apdu);
+		SS_FREE(apdu);
 		return;
 	}
 
