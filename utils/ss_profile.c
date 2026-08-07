@@ -6,7 +6,9 @@
  * Author: Onomondo ApS
  */
 
+#include <stdbool.h>
 #include <string.h>
+#include "onomondo/softsim/log.h"
 #include "onomondo/utils/ss_profile.h"
 
 static uint8_t ss_hex_to_uint8(const char *hex);
@@ -14,6 +16,7 @@ static void ss_hex_string_to_bytes(const uint8_t *hex, size_t hex_len, uint8_t *
 static uint32_t ss_profile_uint32_from_hex(const char *hex);
 static void ss_profile_wipe(void *ptr, size_t len);
 static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct ss_profile *profile);
+static bool ss_profile_copy_pin(uint8_t *field, const char *data, uint8_t data_len);
 
 uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile)
 {
@@ -52,6 +55,8 @@ static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct 
 	uint8_t tag = 0, data_len = 0;
 
 	while (pos + 4 <= len) {
+		bool pin_fits = true;
+
 		data_start = pos + 4;
 		tag = ss_hex_to_uint8((char *)&input_string[pos]);
 		data_len = ss_hex_to_uint8((char *)&input_string[pos + 2]);
@@ -109,30 +114,22 @@ static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct 
 			memcpy(&profile->SMSC, &input_string[data_start], data_len);
 			break;
 		case PIN_1_TAG:
-			if (data_len > PIN_SIZE)
-				break;
-			memcpy(&profile->_3F00_A003[0 * A003_RECORD_SIZE + PIN_OFFSET], &input_string[data_start],
-			       data_len);
+			pin_fits = ss_profile_copy_pin(&profile->_3F00_A003[0 * A003_RECORD_SIZE + PIN_OFFSET],
+						       &input_string[data_start], data_len);
 			break;
 		case PIN_2_TAG:
-			if (data_len > PIN_SIZE)
-				break;
-			memcpy(&profile->_3F00_A003[1 * A003_RECORD_SIZE + PIN_OFFSET], &input_string[data_start],
-			       data_len);
+			pin_fits = ss_profile_copy_pin(&profile->_3F00_A003[1 * A003_RECORD_SIZE + PIN_OFFSET],
+						       &input_string[data_start], data_len);
 			break;
 		case PIN_ADM_TAG:
-			if (data_len > PIN_SIZE)
-				break;
-			memcpy(&profile->_3F00_A003[2 * A003_RECORD_SIZE + PIN_OFFSET], &input_string[data_start],
-			       data_len);
+			pin_fits = ss_profile_copy_pin(&profile->_3F00_A003[2 * A003_RECORD_SIZE + PIN_OFFSET],
+						       &input_string[data_start], data_len);
 			break;
 		case PUK_TAG:
-			if (data_len > PIN_SIZE)
-				break;
-			memcpy(&profile->_3F00_A003[0 * A003_RECORD_SIZE + PUK_OFFSET], &input_string[data_start],
-			       data_len);
-			memcpy(&profile->_3F00_A003[1 * A003_RECORD_SIZE + PUK_OFFSET], &input_string[data_start],
-			       data_len);
+			pin_fits = ss_profile_copy_pin(&profile->_3F00_A003[0 * A003_RECORD_SIZE + PUK_OFFSET],
+						       &input_string[data_start], data_len) &&
+				   ss_profile_copy_pin(&profile->_3F00_A003[1 * A003_RECORD_SIZE + PUK_OFFSET],
+						       &input_string[data_start], data_len);
 			break;
 		case CRC32_TAG:
 			if (data_len != CRC32_LEN)
@@ -158,6 +155,16 @@ static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct 
 		default:
 			/* unknown tag, skip (next_pos already points to the right location) */
 			break;
+		}
+
+		/* Refused rather than skipped, because the alternative is a card left on
+		 * the shipped default while the profile says the value was rotated. Every
+		 * other tag rejects a value it cannot store, and so does this one. */
+		if (!pin_fits) {
+			SS_LOGP(SPIN, LERROR,
+				"profile tag %02x carries %u characters that no PIN code file record can hold\n",
+				(unsigned int)tag, (unsigned int)data_len);
+			return 20;
 		}
 
 		/* move the parser to the next position after handling the tag */
@@ -216,6 +223,70 @@ static uint32_t ss_profile_uint32_from_hex(const char *hex)
 {
 	return ((uint32_t)ss_hex_to_uint8(&hex[0]) << 24) | ((uint32_t)ss_hex_to_uint8(&hex[2]) << 16) |
 	       ((uint32_t)ss_hex_to_uint8(&hex[4]) << 8) | (uint32_t)ss_hex_to_uint8(&hex[6]);
+}
+
+static bool is_hex_digit(uint8_t c)
+{
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
+
+/** Copy a PIN, PUK or ADM value into a PIN code file record.
+ *
+ *  A record holds the value as the 16 hex characters of its 8 bytes, which is
+ *  what the profile carries for a value of up to 8 characters. A 16 character
+ *  value does not fit that way, but when it is itself hex it names those 8 bytes
+ *  exactly -- the usual form of an ADM key -- so unwrap one layer of encoding
+ *  instead of dropping it. Anything longer cannot be stored, nor presented:
+ *  TS 102 221 clause 11.1.9.3 carries a PIN in exactly 8 bytes.
+ *
+ *  A short value is padded with 'f' so the unused bytes read as the 'FF' padding
+ *  TS 31.101 clause 9.6 expects. The same clause sets a four digit minimum,
+ *  which is eight characters here. Every character has to be hex either way: the
+ *  record is a hex string, and whatever goes in comes back out through a hex
+ *  decoder.
+ *
+ *  \param[out] field the 16 character field to fill, left untouched on failure
+ *  \param[in] data the value as it appears in the profile
+ *  \param[in] data_len length of data in characters
+ *  \returns true if the value was stored */
+static bool ss_profile_copy_pin(uint8_t *field, const char *data, uint8_t data_len)
+{
+	uint8_t unwrapped[PIN_SIZE];
+	size_t i;
+
+	/* Two characters per digit, and TS 31.101 clause 9.6 wants at least four. */
+	if (data_len < 8 || data_len % 2)
+		return false;
+
+	if (data_len <= PIN_SIZE) {
+		/* The record is read back as hex pairs, so a character that is not hex
+		 * names no byte -- it decodes to the 0xFF padding and shortens the value
+		 * the card ends up holding. */
+		for (i = 0; i < data_len; i++) {
+			if (!is_hex_digit((uint8_t)data[i]))
+				return false;
+		}
+		memcpy(field, data, data_len);
+		memset(&field[data_len], 'f', PIN_SIZE - data_len);
+		return true;
+	}
+
+	if (data_len != 2 * PIN_SIZE)
+		return false;
+
+	/* Both layers have to be hex: the characters that arrive, so they spell a byte
+	 * at all, and the characters they spell, because those are what the record
+	 * stores. */
+	for (i = 0; i < PIN_SIZE; i++) {
+		if (!is_hex_digit((uint8_t)data[i * 2]) || !is_hex_digit((uint8_t)data[i * 2 + 1]))
+			return false;
+		unwrapped[i] = ss_hex_to_uint8(&data[i * 2]);
+		if (!is_hex_digit(unwrapped[i]))
+			return false;
+	}
+
+	memcpy(field, unwrapped, PIN_SIZE);
+	return true;
 }
 
 /** Hex to uint8 converter

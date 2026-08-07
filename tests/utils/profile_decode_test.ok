@@ -49,3 +49,23 @@ Profile decode return value: 1
 TEST: A rejected profile leaves no key material behind
 Profile decode return value: 14
 Profile struct cleared
+TEST: Decode a decrypted Onomondo SoftSIM profile that carries only some tags
+Profile decode return value: 0
+TEST: Decode a decrypted Onomondo SoftSIM profile carrying PIN, PUK and ADM
+Profile decode return value: 0
+PIN1: 36383638ffffffff
+PUK1: 3739373937393739
+PUK2: 3739373937393739
+ADM : 8034270253113864
+TEST: Decode a decrypted Onomondo SoftSIM profile with a PIN shorter than the field
+Profile decode return value: 0
+PIN1: 35363738ffffffff
+TEST: Decode a decrypted Onomondo SoftSIM profile whose ADM cannot be stored
+Profile decode return value: 20
+Profile struct cleared
+TEST: Decode a decrypted Onomondo SoftSIM profile whose PIN cannot be stored
+Profile decode return value: 20
+Profile struct cleared
+TEST: Decode a decrypted Onomondo SoftSIM profile whose PIN cannot be stored
+Profile decode return value: 20
+Profile struct cleared
