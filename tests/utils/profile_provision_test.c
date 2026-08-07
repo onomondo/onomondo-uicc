@@ -398,6 +398,80 @@ static void provision_profile_keeps_extra_a003_records_test()
 	restore_ef("/3f00/a003", a003_file_shipped, A003_LEN);
 }
 
+/* No Ki tag, so nothing may be written at all. KIC and KID are absent too, which
+ * on its own is a profile the provisioner accepts: they are OTA keys. */
+static const char *decrypted_profile_no_keys = "01"
+					       "12"
+					       "080910101032540636"
+					       "02"
+					       "14"
+					       "98001032547698103214"
+					       "03"
+					       "20"
+					       "00000000000000000000000000000000";
+
+/* An incomplete profile is refused before the first EF is written, rather than
+ * writing NUL over the key material and reporting success. */
+static void provision_profile_missing_tag_test()
+{
+	/* A001 holds the Ki this profile omits, so it is the file at risk. Snapshot it
+	 * rather than comparing against the shipped template: the tests above have
+	 * already provisioned over it. */
+	char a001_before[A001_LEN], a001_after[A001_LEN];
+	int rc;
+
+	printf("TEST: Provision a SoftSIM profile that is missing its Ki\n");
+
+	rc = read_ef("/3f00/a001", a001_before, sizeof(a001_before));
+	assert(rc == 0);
+
+	rc = onomondo_profile_provisioning(decrypted_profile_no_keys);
+	printf("Provisioning return value: %d\n", rc);
+	assert(rc != 0);
+
+	rc = read_ef("/3f00/a001", a001_after, sizeof(a001_after));
+	assert(rc == 0);
+	assert(memcmp(a001_before, a001_after, A001_LEN) == 0);
+	printf("Key material untouched\n");
+}
+
+/* KIC and KID are OTA keys, so a profile without them provisions normally. */
+static const char *decrypted_profile_no_ota_keys = "01"
+						   "12"
+						   "080910101032540636"
+						   "02"
+						   "14"
+						   "98001032547698103214"
+						   "03"
+						   "20"
+						   "00000000000000000000000000000000"
+						   "04"
+						   "20"
+						   "000102030405060708090A0B0C0D0E0F";
+
+static void provision_profile_without_ota_keys_test()
+{
+	char a004[A004_LEN], expect[A004_LEN];
+	int rc;
+
+	printf("TEST: Provision a SoftSIM profile that carries no KIC or KID\n");
+
+	rc = onomondo_profile_provisioning(decrypted_profile_no_ota_keys);
+	printf("Provisioning return value: %d\n", rc);
+	assert(rc == 0);
+
+	/* The key area comes out NUL, which truncates the record when it is read
+	 * back, so remote commands are rejected rather than verified against a key
+	 * the profile never carried. */
+	memcpy(expect, "b00011060101", A004_HEADER_SIZE);
+	memset(&expect[A004_HEADER_SIZE], 0, 2 * KEY_SIZE);
+	memset(&expect[A004_HEADER_SIZE + 2 * KEY_SIZE], 'f', A004_LEN - A004_HEADER_SIZE - 2 * KEY_SIZE);
+	rc = read_ef("/3f00/a004", a004, sizeof(a004));
+	assert(rc == 0);
+	assert(memcmp(a004, expect, A004_LEN) == 0);
+	printf("OTA key area left unusable\n");
+}
+
 /* The PIN code file is optional: a reduced template need not ship it, and the
  * rest of the profile must still be provisioned. */
 static void provision_profile_without_a003_test()
@@ -471,6 +545,8 @@ int main(void)
 	provision_profile_torn_a003_write_test();
 	provision_profile_keeps_extra_a003_records_test();
 	provision_profile_without_a003_test();
+	provision_profile_missing_tag_test();
+	provision_profile_without_ota_keys_test();
 	provision_profile_bad_storage_test();
 	return 0;
 }
