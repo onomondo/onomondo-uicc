@@ -6,6 +6,7 @@
  * Author: Onomondo ApS
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include "onomondo/softsim/log.h"
@@ -73,7 +74,33 @@ static int write_ef(const char *rel_path, char *mode, long offset, const void *d
 static int write_profile_to_fs(const struct ss_profile *profile)
 {
 	const uint8_t zeros[SMSP_RECORD_SIZE * 2] = { 0 };
+	const char *missing = NULL;
 	int rc;
+
+	/* The EFs below are written whether or not the profile carried the tag that
+	 * fills them, so a field the profile left empty has to be caught here. The
+	 * parser zeroes the struct and writes only what it found, so an absent tag
+	 * leaves its field zeroed. Judged on the hex characters and never on the
+	 * decoded keys: an all-zero Ki or OPc is a legitimate value, and it arrives
+	 * here as '0' characters, not as NUL.
+	 *
+	 * KIC and KID are deliberately absent from the list. They are OTA keys
+	 * (TS 102 225, TS 31.115) and a device that never receives a secured packet
+	 * has no use for them, so the exporter emits them only when the profile has
+	 * them. The four below are the ones that leave an unusable card when zeroed. */
+	if (memcmp(profile->_3F00_2FE2, zeros, ICCID_LEN) == 0)
+		missing = "ICCID";
+	else if (memcmp(profile->_3F00_7ff0_6f07, zeros, IMSI_LEN) == 0)
+		missing = "IMSI";
+	else if (memcmp(&profile->_3F00_A001[0], zeros, KEY_SIZE) == 0)
+		missing = "Ki";
+	else if (memcmp(&profile->_3F00_A001[KEY_SIZE], zeros, KEY_SIZE) == 0)
+		missing = "OPc";
+
+	if (missing) {
+		SS_LOGP(SSTORAGE, LERROR, "profile carries no %s, refusing to provision it\n", missing);
+		return -1;
+	}
 
 	if (write_ef(ICCID_REL_PATH, "w", 0, profile->_3F00_2FE2, ICCID_LEN) != 0)
 		return -1;
@@ -123,16 +150,19 @@ static int write_profile_to_fs(const struct ss_profile *profile)
 int onomondo_profile_provisioning(const char *at_profile)
 {
 	struct ss_profile *profile = SS_ALLOC(*profile);
+	size_t input_string_size;
+	int rc;
 
 	if (!profile)
 		return -1;
 
-	memset(profile, 0, sizeof *profile);
+	input_string_size = strlen(at_profile);
+	if (input_string_size > UINT16_MAX) {
+		rc = -1;
+		goto exit;
+	}
 
-	/* Validate the size of the profile hiding in the FS */
-	uint16_t input_string_size = strlen(at_profile);
-
-	int rc = ss_profile_from_string(input_string_size, at_profile, profile);
+	rc = ss_profile_from_string((uint16_t)input_string_size, at_profile, profile);
 	if (rc != 0)
 		goto exit;
 

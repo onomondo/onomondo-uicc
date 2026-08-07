@@ -20,5 +20,11 @@ Provisioning return value: 0
 Extra record preserved
 TEST: Provision a SoftSIM profile into a storage tree with no PIN code file
 Provisioning return value: 0
+TEST: Provision a SoftSIM profile that is missing its Ki
+Provisioning return value: -1
+Key material untouched
+TEST: Provision a SoftSIM profile that carries no KIC or KID
+Provisioning return value: 0
+OTA key area left unusable
 TEST: Provision a SoftSIM profile into a storage path that does not exist
 Provisioning return value: -1

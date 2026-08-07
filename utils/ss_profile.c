@@ -41,6 +41,11 @@ static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct 
 	/* Stucture (a004): [TAR[3] | MSL | KIC_IND | KID_IND | KIC[32] | KID[32] | */
 	static const char a004_header[] = "b00011060101";
 	const size_t A004_RECORD_SIZE = A004_HEADER_SIZE + KEY_SIZE + KEY_SIZE;
+
+	/* A field the profile carries no tag for is left zeroed, which is how a caller
+	 * tells the two apart. Zeroing here rather than expecting it of the caller. */
+	memset(profile, 0, sizeof *profile);
+
 	/* set the default header values */
 	memcpy(&profile->_3F00_A004, a004_header, sizeof(a004_header) - 1);
 	/* and fill the rest of the record with "f" */
