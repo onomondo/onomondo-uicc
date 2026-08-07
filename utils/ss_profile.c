@@ -46,9 +46,11 @@ static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct 
 	/* and fill the rest of the record with "f" */
 	memset(&profile->_3F00_A004[A004_RECORD_SIZE], 'f', A004_LEN - A004_RECORD_SIZE);
 
-	/* Structure (a003): */
+	/* Structure (a003): three records of [header(12) | PIN(16) | PUK(16)]. Must
+	 * match the shipped PIN code file: the record is written out whether or not
+	 * the profile carried a PIN, and the ADM record has no PUK. */
 	static const char a003_default[] = "0003000a000131323334ffffffff31323334353637380003000a008131323334ffffff"
-					   "ff313233343536373801030000000a31323334ffffffff3132333435363738";
+					   "ff313233343536373801030000000a31323334ffffffffffffffffffffffff";
 	memcpy(profile->_3F00_A003, a003_default, sizeof(a003_default) - 1);
 
 	size_t pos = 0, data_end = 0, data_start = 0, next_pos = 0;
@@ -156,6 +158,11 @@ static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct 
 			/* unknown tag, skip (next_pos already points to the right location) */
 			break;
 		}
+
+		/* The PIN code file holds state the card maintains, so the provisioner
+		 * needs to know whether the profile has anything to say about it. */
+		if (tag == PIN_1_TAG || tag == PIN_2_TAG || tag == PIN_ADM_TAG || tag == PUK_TAG)
+			profile->pin_present = 1;
 
 		/* Refused rather than skipped, because the alternative is a card left on
 		 * the shipped default while the profile says the value was rotated. Every
