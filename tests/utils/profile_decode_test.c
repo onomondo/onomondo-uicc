@@ -234,6 +234,114 @@ static void decode_softsim_profile_test_short_input()
 	assert(rc == 0);
 }
 
+/* The same tags as decrypted_profile_ok, as one string so a CRC can be appended.
+ * This is byte for byte what the exporter emits for its own test profile, so
+ * 3016ba59 is the value both implementations have to agree on. */
+// clang-format off
+#define PROFILE_OK_TAGS \
+	"01" "12" "080910101032540636" \
+	"02" "14" "98001032547698103214" \
+	"03" "20" "00000000000000000000000000000000" \
+	"04" "20" "000102030405060708090A0B0C0D0E0F" \
+	"05" "20" "000102030405060708090A0B0C0D0E0F" \
+	"06" "20" "000102030405060708090A0B0C0D0E0F"
+// clang-format on
+
+/* An optional CRC32 record covers every character before it. */
+static void decode_softsim_profile_test_crc()
+{
+	// clang-format off
+	static const char *profile_crc_ok = PROFILE_OK_TAGS "fe083016ba59";
+	static const char *profile_crc_upper = PROFILE_OK_TAGS "fe083016BA59";
+	static const char *profile_crc_short = PROFILE_OK_TAGS "fe06016ba5";
+	/* A CRC record with nothing in front of it, spelling crc32("") */
+	static const char *profile_crc_only = "fe0800000000";
+	/* A valid CRC, then an IMSI record the CRC does not cover. */
+	static const char *profile_crc_then_imsi = PROFILE_OK_TAGS "fe083016ba59"
+						   "01" "12" "999999999999999999";
+	/* Same profile, one character of the Ki flipped. */
+	static const char *profile_crc_body_changed =
+		"01" "12" "080910101032540636"
+		"02" "14" "98001032547698103214"
+		"03" "20" "00000000000000000000000000000000"
+		"04" "20" "000102030405060708090A0B0C0D0E0E"
+		"05" "20" "000102030405060708090A0B0C0D0E0F"
+		"06" "20" "000102030405060708090A0B0C0D0E0F"
+		"fe" "08" "3016ba59";
+	// clang-format on
+	struct ss_profile profile = { 0 };
+	uint8_t rc;
+
+	printf("TEST: CRC32 known answer\n");
+	printf("CRC32 of \"123456789\": %08x\n", ss_profile_crc32("123456789", 9));
+	assert(ss_profile_crc32("123456789", 9) == 0xcbf43926);
+
+	printf("TEST: Decode a decrypted Onomondo SoftSIM profile carrying a matching CRC32\n");
+	rc = ss_profile_from_string(strlen(profile_crc_ok), profile_crc_ok, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+
+	printf("TEST: The same profile with the CRC written in upper case\n");
+	rc = ss_profile_from_string(strlen(profile_crc_upper), profile_crc_upper, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+
+	printf("TEST: Decode a profile whose body no longer matches its CRC32\n");
+	rc = ss_profile_from_string(strlen(profile_crc_body_changed), profile_crc_body_changed, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 19);
+
+	printf("TEST: Decode a profile whose CRC32 record is the wrong length\n");
+	rc = ss_profile_from_string(strlen(profile_crc_short), profile_crc_short, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 18);
+
+	/* The record ends the profile, so a record appended behind it -- which the CRC
+	 * does not cover -- must not reach the struct. */
+	printf("TEST: Decode a profile with a record appended after its CRC32\n");
+	rc = ss_profile_from_string(strlen(profile_crc_then_imsi), profile_crc_then_imsi, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+	assert(memcmp(profile._3F00_7ff0_6f07, test_profile_imsi, IMSI_LEN) == 0);
+	printf("Appended record ignored\n");
+
+	/* A profile without the record must keep decoding, which is what every
+	 * profile in the field looks like. */
+	printf("TEST: Decode a profile carrying no CRC32 record\n");
+	rc = ss_profile_from_string(strlen(PROFILE_OK_TAGS), PROFILE_OK_TAGS, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+
+	/* crc32("") is 0x00000000, so a lone CRC record spells its own correct value
+	 * and would otherwise certify a profile carrying nothing at all. */
+	printf("TEST: Decode a profile that is nothing but a CRC32 record\n");
+	rc = ss_profile_from_string(strlen(profile_crc_only), profile_crc_only, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 1);
+}
+
+/* A rejected profile is cleared before it goes back to the caller, which frees it
+ * without scrubbing. The record order matters: the Ki is copied in before the KIC
+ * record is found to be short. */
+static void decode_softsim_profile_test_err_scrubs()
+{
+	// clang-format off
+	static const char *profile_ki_then_short_kic =
+		"04" "20" "000102030405060708090A0B0C0D0E0F"
+		"05" "02" "00";
+	// clang-format on
+	struct ss_profile profile = { 0 };
+	uint8_t zero[sizeof(struct ss_profile)] = { 0 };
+	uint8_t rc;
+
+	printf("TEST: A rejected profile leaves no key material behind\n");
+	rc = ss_profile_from_string(strlen(profile_ki_then_short_kic), profile_ki_then_short_kic, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 14);
+	assert(memcmp(&profile, zero, sizeof(profile)) == 0);
+	printf("Profile struct cleared\n");
+}
+
 int main(int argc, char **argv)
 {
 	decode_softsim_profile_test_ok();
@@ -241,5 +349,7 @@ int main(int argc, char **argv)
 	decode_softsim_profile_test_err_bad_length_encoding();
 	decode_softsim_profile_test_err_length_no_overflow();
 	decode_softsim_profile_test_short_input();
+	decode_softsim_profile_test_crc();
+	decode_softsim_profile_test_err_scrubs();
 	return 0;
 }

@@ -27,3 +27,23 @@ TEST: Decode a decrypted Onomondo SoftSIM profile that is too short
 Profile decode return value: 1
 Profile decode return value: 1
 Profile decode return value: 0
+TEST: CRC32 known answer
+CRC32 of "123456789": cbf43926
+TEST: Decode a decrypted Onomondo SoftSIM profile carrying a matching CRC32
+Profile decode return value: 0
+TEST: The same profile with the CRC written in upper case
+Profile decode return value: 0
+TEST: Decode a profile whose body no longer matches its CRC32
+Profile decode return value: 19
+TEST: Decode a profile whose CRC32 record is the wrong length
+Profile decode return value: 18
+TEST: Decode a profile with a record appended after its CRC32
+Profile decode return value: 0
+Appended record ignored
+TEST: Decode a profile carrying no CRC32 record
+Profile decode return value: 0
+TEST: Decode a profile that is nothing but a CRC32 record
+Profile decode return value: 1
+TEST: A rejected profile leaves no key material behind
+Profile decode return value: 14
+Profile struct cleared
