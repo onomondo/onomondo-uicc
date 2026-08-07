@@ -2,12 +2,13 @@
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
  *
  * SPDX-License-Identifier: GPL-3.0-only
- * 
+ *
  * Author: Onomondo ApS
  */
 
 #include <stdio.h>
 #include <string.h>
+#include "onomondo/softsim/log.h"
 #include "onomondo/softsim/mem.h"
 #include "onomondo/softsim/fs.h"
 #include "onomondo/softsim/storage.h"
@@ -19,78 +20,101 @@
 static const char *ICCID_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "2fe2";
 static const char *IMSI_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "7ff0" PATH_SEPARATOR "6f07";
 static const char *A001_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "a001";
+static const char *A003_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "a003";
 static const char *A004_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "a004";
 static const char *SMSP_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "7ff0" PATH_SEPARATOR "6f42";
+
+/* SMSC offset inside EF.SMSP, in characters */
+#define SMSC_OFFSET 74
+
+/*! Write one EF inside storage
+ *  \param[in] rel_path path of the EF relative to the storage root
+ *  \param[in] mode "w" to replace the EF, "r+" to update it without truncating
+ *  \param[in] offset offset to write at
+ *  \param[in] data data to write
+ *  \param[in] len length of data
+ *  \returns 0 on success, -1 if the EF could not be opened, -2 if it was opened
+ *  and not written whole */
+static int write_ef(const char *rel_path, char *mode, long offset, const void *data, size_t len)
+{
+	char path[SS_STORAGE_PATH_MAX + 1];
+	ss_FILE f;
+	size_t wrote;
+	int path_len;
+
+	path_len = snprintf(path, sizeof(path), "%s%s", ss_storage_get_path(), rel_path);
+	if (path_len < 0 || (size_t)path_len >= sizeof(path))
+		return -2;
+
+	/* "r+" does not create the EF, so a template tree missing it lands here. */
+	f = ss_fopen(path, mode);
+	if (!f)
+		return -1;
+
+	if (offset != 0 && ss_fseek(f, offset, SEEK_SET) != 0) {
+		ss_fclose(f);
+		return -2;
+	}
+
+	wrote = ss_fwrite(data, 1, len, f);
+
+	/* An EF that was opened and then not written whole is torn, which is a
+	 * different answer than one that was never there. The close carries that too:
+	 * a buffered write reports a full disk there. */
+	if (ss_fclose(f) != 0 || wrote != len)
+		return -2;
+
+	return 0;
+}
 
 /*! Write the decoded profile to the SoftSIM filesystem
  *  \param[in] profile Pointer to the decoded SoftSIM profile
  *  \returns 0 on success, -1 on failure */
 static int write_profile_to_fs(const struct ss_profile *profile)
 {
-	size_t wrote = 0;
-	ss_FILE f = NULL;
-	char path[SS_STORAGE_PATH_MAX + 1];
-	const char *storage = ss_storage_get_path();
+	const uint8_t zeros[SMSP_RECORD_SIZE * 2] = { 0 };
+	int rc;
 
-	/* write ICCID */
-	snprintf(path, sizeof(path), "%s%s", storage, ICCID_REL_PATH);
-	f = ss_fopen(path, "w");
-	wrote = ss_fwrite(profile->_3F00_2FE2, 1, ICCID_LEN, f);
-	ss_fclose(f);
-	if (wrote == 0 || wrote != ICCID_LEN)
-		goto exit;
+	if (write_ef(ICCID_REL_PATH, "w", 0, profile->_3F00_2FE2, ICCID_LEN) != 0)
+		return -1;
 
-	/* write IMSI */
-	snprintf(path, sizeof(path), "%s%s", storage, IMSI_REL_PATH);
-	f = ss_fopen(path, "w");
-	wrote = ss_fwrite(profile->_3F00_7ff0_6f07, 1, IMSI_LEN, f);
-	ss_fclose(f);
-	if (wrote == 0 || wrote != IMSI_LEN)
-		goto exit;
+	if (write_ef(IMSI_REL_PATH, "w", 0, profile->_3F00_7ff0_6f07, IMSI_LEN) != 0)
+		return -1;
 
-	/* write A001 */
-	snprintf(path, sizeof(path), "%s%s", storage, A001_REL_PATH);
-	f = ss_fopen(path, "w");
-	wrote = ss_fwrite(profile->_3F00_A001, 1, A001_LEN, f);
-	ss_fclose(f);
-	if (wrote == 0 || wrote != A001_LEN)
-		goto exit;
+	if (write_ef(A001_REL_PATH, "w", 0, profile->_3F00_A001, A001_LEN) != 0)
+		return -1;
 
-	/* write A004 */
-	snprintf(path, sizeof(path), "%s%s", storage, A004_REL_PATH);
-	f = ss_fopen(path, "w");
-	wrote = ss_fwrite(profile->_3F00_A004, 1, A004_LEN, f);
-	ss_fclose(f);
-	if (wrote == 0 || wrote != A004_LEN)
-		goto exit;
-
-	/* write EF.SMSP */
-	uint8_t zeros_smsp[SMSP_RECORD_SIZE * 2] = { 0 };
-	if (memcmp(profile->SMSP, zeros_smsp, (SMSP_RECORD_SIZE * 2)) != 0) {
-		snprintf(path, sizeof(path), "%s%s", storage, SMSP_REL_PATH);
-		f = ss_fopen(path, "r+"); /* open for update without truncation */
-		wrote = ss_fwrite(profile->SMSP, 1, (SMSP_RECORD_SIZE * 2), f);
-		ss_fclose(f);
-		if (wrote == 0 || wrote != (SMSP_RECORD_SIZE * 2))
-			goto exit;
+	/* PIN code file. It holds state the card maintains -- a PIN the user changed,
+	 * the enabled flag, the retry and unblock counters -- so it is written only
+	 * when the profile carries a value to put in it. Writing it unconditionally
+	 * would put the shipped defaults back over all of that.
+	 *
+	 * Updated rather than replaced: a template may hold records this format does
+	 * not describe, and those must survive. Optional, because a reduced template
+	 * need not ship the file at all: "r+" does not create it, and a file that was
+	 * never there is the one failure this EF forgives. A torn write is not. */
+	if (profile->pin_present) {
+		rc = write_ef(A003_REL_PATH, "r+", 0, profile->_3F00_A003, A003_LEN);
+		if (rc == -1)
+			SS_LOGP(SPIN, LINFO, "no PIN code file to update, keeping the card's PIN configuration\n");
+		else if (rc != 0)
+			return -1;
 	}
 
-	/* write SMSC in EF.SMSP */
-	uint8_t zeros_smsc[SMSC_LEN] = { 0 };
-	if (memcmp(profile->SMSC, zeros_smsc, SMSC_LEN) != 0) {
-		snprintf(path, sizeof(path), "%s%s", storage, SMSP_REL_PATH);
-		f = ss_fopen(path, "r+"); /* open for update without truncation */
-		ss_fseek(f, 74, SEEK_SET); /* Move to SMSC offset in EF.SMSP */
-		wrote = ss_fwrite(profile->SMSC, 1, SMSC_LEN, f);
-		ss_fclose(f);
-		if (wrote == 0 || wrote != SMSC_LEN)
-			goto exit;
-	}
+	if (write_ef(A004_REL_PATH, "w", 0, profile->_3F00_A004, A004_LEN) != 0)
+		return -1;
+
+	/* EF.SMSP and the SMSC inside it are optional: a profile carrying neither
+	 * keeps what the template shipped. */
+	if (memcmp(profile->SMSP, zeros, SMSP_RECORD_SIZE * 2) != 0 &&
+	    write_ef(SMSP_REL_PATH, "r+", 0, profile->SMSP, SMSP_RECORD_SIZE * 2) != 0)
+		return -1;
+
+	if (memcmp(profile->SMSC, zeros, SMSC_LEN) != 0 &&
+	    write_ef(SMSP_REL_PATH, "r+", SMSC_OFFSET, profile->SMSC, SMSC_LEN) != 0)
+		return -1;
 
 	return 0;
-
-exit:
-	return -1;
 }
 
 /*! Provision a SoftSIM profile from e.g. an AT command string
@@ -99,6 +123,10 @@ exit:
 int onomondo_profile_provisioning(const char *at_profile)
 {
 	struct ss_profile *profile = SS_ALLOC(*profile);
+
+	if (!profile)
+		return -1;
+
 	memset(profile, 0, sizeof *profile);
 
 	/* Validate the size of the profile hiding in the FS */
@@ -109,8 +137,6 @@ int onomondo_profile_provisioning(const char *at_profile)
 		goto exit;
 
 	rc = write_profile_to_fs(profile);
-	if (rc != 0)
-		goto exit;
 
 exit:
 	SS_FREE(profile);

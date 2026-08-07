@@ -4,3 +4,21 @@ TEST: Provision a SoftSIM profile with SMSC content
 Successfully provisioned and validated SMSC update
 TEST: Provision a SoftSIM profile with SMSP and SMSC content
 Successfully provisioned and validated both SMSP and SMSC
+TEST: Provision a SoftSIM profile with PIN, PUK and ADM content
+Provisioning return value: 0
+PIN code file: 0003000a000136383638ffffffff37393739373937390003000a008131323334ffffffff373937393739373901030000000a8034270253113864ffffffffffffffff
+TEST: Provision a SoftSIM profile without PIN content
+Provisioning return value: 0
+PIN code file unchanged
+TEST: Provision a SoftSIM profile without PIN content over a card in use
+Provisioning return value: 0
+PIN code file left as the card had it
+TEST: Provision a SoftSIM profile when the PIN code file write is cut short
+Provisioning return value: -1
+TEST: Provision a SoftSIM profile over a PIN code file with an extra record
+Provisioning return value: 0
+Extra record preserved
+TEST: Provision a SoftSIM profile into a storage tree with no PIN code file
+Provisioning return value: 0
+TEST: Provision a SoftSIM profile into a storage path that does not exist
+Provisioning return value: -1

@@ -54,6 +54,10 @@ struct ss_profile {
 	uint8_t k[16];
 	uint8_t kid[16];
 	uint8_t kic[16];
+	/* Set when the profile carried a PIN, PUK or ADM value. The PIN code file
+	 * holds state the card maintains, so it is written only for a profile that
+	 * has something to put in it. */
+	uint8_t pin_present;
 };
 
 /* Onomondo SoftSIM Profile Decoder
