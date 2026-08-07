@@ -91,7 +91,8 @@ struct ss_profile {
  *              key material behind.
  *  \returns return 0 if valid profile is decoded. error code otherwise: 1 for a
  *  malformed blob, 10..17 for a tag of the wrong length, 18 for a CRC record of
- *  the wrong length and 19 for a CRC that does not match the profile.
+ *  the wrong length, 19 for a CRC that does not match the profile and 20 for a
+ *  PIN, PUK or ADM value no PIN code file record can hold.
  */
 uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile);
 
