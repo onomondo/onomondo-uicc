@@ -18,6 +18,7 @@ option(CONFIG_USE_UTILS 		"Use the extra functionality found in the collective u
 option(CONFIG_NO_DEFAULT_IMPL 	"Build with no default implementation")
 option(CONFIG_COMPACT_STORAGE 	"Build with compact storage implementation")
 option(CONFIG_BUILD_LIB_ONLY 	"Build libraries only")
+option(CONFIG_ALT_FILE_SEPARATOR "Use _ as file separator instead of /")
 
 set(CONFIG_SS_STORAGE_PATH_DEFAULT "./files" CACHE STRING "Default storage path for SoftSIM filesystem")
 set(CONFIG_SS_STORAGE_PATH_MAX "100" CACHE STRING "Maximum path length for storage operations")
@@ -50,6 +51,10 @@ endif()
 if(CONFIG_COMPACT_STORAGE)
   message(STATUS "Using compact storage implementation (from nRF91 SoftSIM project)")
   add_compile_definitions(CONFIG_COMPACT_STORAGE)
+endif()
+
+if(CONFIG_ALT_FILE_SEPARATOR)
+	add_compile_definitions(CONFIG_ALT_FILE_SEPARATOR)
 endif()
 
 if(CONFIG_EXTERNAL_KEY_LOAD)
