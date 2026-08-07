@@ -148,10 +148,6 @@ struct crypto_hash;
  * @key_len: Length of the key in bytes
  * Returns: Pointer to hash context to use with other hash functions or %NULL
  * on failure
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 struct crypto_hash * crypto_hash_init(enum crypto_hash_alg alg, const u8 *key,
 				      size_t key_len);
@@ -161,10 +157,6 @@ struct crypto_hash * crypto_hash_init(enum crypto_hash_alg alg, const u8 *key,
  * @ctx: Context pointer from crypto_hash_init()
  * @data: Data buffer to add
  * @len: Length of the buffer
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 void crypto_hash_update(struct crypto_hash *ctx, const u8 *data, size_t len);
 
@@ -180,10 +172,6 @@ void crypto_hash_update(struct crypto_hash *ctx, const u8 *data, size_t len);
  *
  * This function calculates the hash value and frees the context buffer that
  * was used for hash calculation.
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 int crypto_hash_finish(struct crypto_hash *ctx, u8 *hash, size_t *len);
 
@@ -203,10 +191,6 @@ struct crypto_cipher;
  * @key_len: Length of key in bytes
  * Returns: Pointer to cipher context to use with other cipher functions or
  * %NULL on failure
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 struct crypto_cipher * crypto_cipher_init(enum crypto_cipher_alg alg,
 					  const u8 *iv, const u8 *key,
@@ -219,10 +203,6 @@ struct crypto_cipher * crypto_cipher_init(enum crypto_cipher_alg alg,
  * @crypt: Resulting ciphertext
  * @len: Length of the plaintext
  * Returns: 0 on success, -1 on failure
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 int __must_check crypto_cipher_encrypt(struct crypto_cipher *ctx,
 				       const u8 *plain, u8 *crypt, size_t len);
@@ -234,10 +214,6 @@ int __must_check crypto_cipher_encrypt(struct crypto_cipher *ctx,
  * @plain: Resulting plaintext
  * @len: Length of the cipher text
  * Returns: 0 on success, -1 on failure
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 int __must_check crypto_cipher_decrypt(struct crypto_cipher *ctx,
 				       const u8 *crypt, u8 *plain, size_t len);
@@ -245,10 +221,6 @@ int __must_check crypto_cipher_decrypt(struct crypto_cipher *ctx,
 /**
  * crypto_cipher_decrypt - Free cipher context
  * @ctx: Context pointer from crypto_cipher_init()
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 void crypto_cipher_deinit(struct crypto_cipher *ctx);
 
@@ -265,10 +237,6 @@ struct crypto_private_key;
  * This function can just return %NULL if the crypto library supports X.509
  * parsing. In that case, crypto_public_key_from_cert() is used to import the
  * public key from a certificate.
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 struct crypto_public_key * crypto_public_key_import(const u8 *key, size_t len);
 
@@ -284,8 +252,6 @@ crypto_public_key_import_parts(const u8 *n, size_t n_len,
  * Returns: Pointer to the private key or %NULL on failure
  *
  * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 struct crypto_private_key * crypto_private_key_import(const u8 *key,
 						      size_t len,
@@ -302,8 +268,6 @@ struct crypto_private_key * crypto_private_key_import(const u8 *key,
  * certificate and public key is imported using crypto_public_key_import().
  *
  * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 struct crypto_public_key * crypto_public_key_from_cert(const u8 *buf,
 						       size_t len);
@@ -318,8 +282,6 @@ struct crypto_public_key * crypto_public_key_from_cert(const u8 *buf,
  * Returns: 0 on success, -1 on failure
  *
  * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 int __must_check crypto_public_key_encrypt_pkcs1_v15(
 	struct crypto_public_key *key, const u8 *in, size_t inlen,
@@ -335,8 +297,6 @@ int __must_check crypto_public_key_encrypt_pkcs1_v15(
  * Returns: 0 on success, -1 on failure
  *
  * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 int __must_check crypto_private_key_decrypt_pkcs1_v15(
 	struct crypto_private_key *key, const u8 *in, size_t inlen,
@@ -350,10 +310,6 @@ int __must_check crypto_private_key_decrypt_pkcs1_v15(
  * @out: Output buffer for encrypted (signed) data
  * @outlen: Length of output buffer in bytes; set to used length on success
  * Returns: 0 on success, -1 on failure
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 int __must_check crypto_private_key_sign_pkcs1(struct crypto_private_key *key,
 					       const u8 *in, size_t inlen,
@@ -362,20 +318,12 @@ int __must_check crypto_private_key_sign_pkcs1(struct crypto_private_key *key,
 /**
  * crypto_public_key_free - Free public key
  * @key: Public key
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 void crypto_public_key_free(struct crypto_public_key *key);
 
 /**
  * crypto_private_key_free - Free private key
  * @key: Private key from crypto_private_key_import()
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 void crypto_private_key_free(struct crypto_private_key *key);
 
@@ -394,19 +342,11 @@ int __must_check crypto_public_key_decrypt_pkcs1(
 
 /**
  * crypto_global_init - Initialize crypto wrapper
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 int __must_check crypto_global_init(void);
 
 /**
  * crypto_global_deinit - Deinitialize crypto wrapper
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 void crypto_global_deinit(void);
 
@@ -425,10 +365,6 @@ void crypto_global_deinit(void);
  * This function calculates result = base ^ power mod modulus. modules_len is
  * used as the maximum size of modulus buffer. It is set to the used size on
  * success.
- *
- * This function is only used with internal TLSv1 implementation
- * (CONFIG_TLS=internal). If that is not used, the crypto wrapper does not need
- * to implement this.
  */
 int __must_check crypto_mod_exp(const u8 *base, size_t base_len,
 				const u8 *power, size_t power_len,
