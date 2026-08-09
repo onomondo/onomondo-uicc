@@ -127,7 +127,7 @@ void ss_poll(struct ss_context *ctx)
  *  \param[inout] ctx softsim context.
  *  \param[out] atr_buf user provided memory to store the resulting ATR.
  *  \param[in] atr_buf_len maxium length of the user provided memory.
- *  \returns length of the resulting ATR. */
+ *  \returns length of the resulting ATR, 0 if atr_buf is too small. */
 size_t ss_atr(struct ss_context *ctx, uint8_t *atr_buf, size_t atr_buf_len)
 {
 	uint8_t tck = 0;
@@ -135,9 +135,13 @@ size_t ss_atr(struct ss_context *ctx, uint8_t *atr_buf, size_t atr_buf_len)
 
 	/* ATR returned by ss_atr(). Interface bytes (TS, T0, TA/TD) per ISO/IEC
 	 * 7816-3 §8; historical bytes (compact-TLV) per ISO/IEC 7816-4 §8.1.1 and
-	 * ETSI TS 102 221 §6.3.1. Card-capabilities byte 3 bit b7 = 0 declares "no
-	 * extended Lc/Le support" — kept consistent with the fixed 256-byte
-	 * apdu->cmd / apdu->rsp buffers. */
+	 * ETSI TS 102 221 §6.3.1. Every declared capability is asserted against the
+	 * code that implements it in tests/atr/atr_test.c.
+	 *
+	 * This ATR describes the ISO interface, which ss_transact() serves. The
+	 * extended Lc/Le declaration below therefore says nothing about
+	 * ss_application_apdu_transact(), a separate modem-side interface that
+	 * presents no ATR and does parse extended APDUs. */
 	// clang-format off
 	uint8_t atr[] = {
 		0x3B,                                  /* TS  — direct convention */
@@ -145,24 +149,38 @@ size_t ss_atr(struct ss_context *ctx, uint8_t *atr_buf, size_t atr_buf_len)
 		0x01,                                  /* TA1 — Fi=372, Di=1 (default speed) */
 		0x80,                                  /* TD1 — TD2 present; protocol T=0 */
 		0x1F,                                  /* TD2 — TA3 present; T=15 (global interface params) */
-		0x87,                                  /* TA3 — clock-stop + class A/B/C (5V/3V/1.8V), per 7816-3 §8.3 */
+		0x87,                                  /* TA3 — clock-stop state H; classes A/B/C (5V/3V/1.8V), per 7816-3 §8.3.
+		                                        *       Low 6 bits '07' satisfy TS 31.122 §8.2.2 (consecutive classes). */
 		/* --- 15 historical bytes: compact-TLV after 0x80 category indicator --- */
-		0x80,                                  /* category indicator: compact-TLV */
-		0x31, 0xE0,                            /* tag 3 len 1 — card service data: 0xE0 */
+		0x80,                                  /* category indicator: compact-TLV; status indicator optional and absent */
+		0x31, 0xE0,                            /* tag 3 len 1 — card service data, 7816-4 Table 85:
+		                                        *   b8=1 select by full DF name, b7=1 by partial DF name,
+		                                        *   b6=1 BER-TLV in EF.DIR, b5=0 no EF.ATR,
+		                                        *   b4b3b2=000 EF.DIR read by READ RECORD(S) (it is linear fixed),
+		                                        *   b1=0 card with MF */
 		0x73,                                  /* tag 7 len 3 — card capabilities */
-		0xFE,                                  /*   byte 1: selection methods */
-		0x21,                                  /*   byte 2: data coding */
-		0x00,                                  /*   byte 3: chaining / length fields / lchans — b7=0 ⇒ no extended Lc/Le */
-		0x67,                                  /* tag 6 len 7 — pre-issuing data */
+		0xFE,                                  /*   byte 1: selection methods, Table 86 — by full/partial DF name,
+		                                        *   path, file identifier, implicit; SFI and record number.
+		                                        *   b1=0: record identifier not supported */
+		0x21,                                  /*   byte 2: data coding, Table 87 — no TLV-structure EFs,
+		                                        *   proprietary write behaviour, data unit = 1 byte */
+		0x00,                                  /*   byte 3: Table 88 — no command chaining, no extended Lc/Le,
+		                                        *   no logical channel assignment, one logical channel */
+		0x67,                                  /* tag 6 len 7 — pre-issuing data, manufacturer defined (7816-4 §8.1.1.2.6) */
 		0x4A, 0x4C, 0x75, 0x30, 0x34, 0x05, 0x4B,
 	};
 	// clang-format on
 
+	/* TCK is mandatory because TD2 indicates T=15, and covers T0 onwards. */
 	for (i = 1; i < sizeof(atr); i++) {
 		tck ^= atr[i];
 	}
 
-	assert(atr_buf_len >= sizeof(atr) + 1);
+	if (atr_buf_len < sizeof(atr) + 1) {
+		SS_LOGP(SIFACE, LERROR, "atr_buf_len=%u too small (need >= %u), refusing\n", (unsigned int)atr_buf_len,
+			(unsigned int)(sizeof(atr) + 1));
+		return 0;
+	}
 
 	memcpy(atr_buf, atr, sizeof(atr));
 	atr_buf[sizeof(atr)] = tck;
