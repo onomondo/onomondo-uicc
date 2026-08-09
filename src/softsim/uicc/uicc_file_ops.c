@@ -133,6 +133,13 @@ int ss_uicc_file_ops_cmd_status(struct ss_apdu *apdu)
 			return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
 		}
 
+		/* An FCP is returned as one TLV; a larger one cannot be delivered. */
+		if (current_df->fci->len > sizeof(apdu->rsp)) {
+			SS_LOGP(SFILE, LERROR, "FCI length %u exceeds the response buffer\n",
+				(unsigned)current_df->fci->len);
+			return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
+		}
+
 		/* Per TS 102 221, Le=0 (Case 2 short), Le=256 (0x00), or Le=65535
 		 * (extended) means "return all available data". Also accept Le=0
 		 * for Case 1 APDUs (no Le byte) as some modems like nRF91 use this. */
@@ -141,7 +148,8 @@ int ss_uicc_file_ops_cmd_status(struct ss_apdu *apdu)
 				"Terminal requested status expecting length %u, returning actual FCI length %u\n",
 				apdu->le, (unsigned)current_df->fci->len);
 			apdu->le = 0;
-			return 0x6c00 | (current_df->fci->len);
+			/* '6C00' means 256 bytes or more (ISO/IEC 7816-4 section 7.4.2) */
+			return 0x6c00 | (current_df->fci->len & 0xff);
 		}
 
 		memcpy(apdu->rsp, current_df->fci->data, current_df->fci->len);
@@ -154,6 +162,11 @@ int ss_uicc_file_ops_cmd_status(struct ss_apdu *apdu)
 
 		df_name = ss_btlv_get_ie(active_adf->fcp_decoded, TS_102_221_IEI_FCP_DF_NAME);
 		if (df_name) {
+			if (df_name->value->len + 2 > sizeof(apdu->rsp)) {
+				SS_LOGP(SFILE, LERROR, "DF name length %u exceeds the response buffer\n",
+					(unsigned)df_name->value->len);
+				return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
+			}
 			apdu->rsp[0] = TS_102_221_IEI_FCP_DF_NAME;
 			apdu->rsp[1] = df_name->value->len;
 			memcpy(apdu->rsp + 2, df_name->value->data, df_name->value->len);
@@ -306,14 +319,22 @@ int ss_uicc_file_ops_cmd_read_binary(struct ss_apdu *apdu)
 		return SS_SW_ERR_CHECKING_WRONG_P1_P2;
 	}
 	if (offset + apdu->le > file_len) {
-		/* return actual length */
+		/* return actual length, which SW2 carries in a single byte */
+		size_t available = file_len - offset;
+
 		apdu->le = 0;
-		return 0x6c00 | (file_len - offset);
+		return 0x6c00 | (available > 0xff ? 0xff : available);
 	}
 
 	if (read_len == 0) {
 		read_len = file_len - offset;
 	}
+
+	/* A transparent EF is read in chunks addressed by a 15-bit offset
+	 * (TS 102 221 section 11.1.3), so the response buffer bounds one READ
+	 * BINARY and the terminal continues at offset + sizeof(apdu->rsp). */
+	if (read_len > sizeof(apdu->rsp))
+		read_len = sizeof(apdu->rsp);
 
 	buf = ss_storage_read_file(&apdu->lchan->fs_path, offset, read_len);
 	if (!buf)
@@ -468,6 +489,14 @@ int ss_uicc_file_ops_cmd_read_record(struct ss_apdu *apdu)
 	rc = calc_record_number(&record_number_new, &record_number, apdu, selected_file);
 	if (rc != 0)
 		return rc;
+
+	/* A record is read whole (TS 102 221 section 11.1.5) and its length
+	 * field caps at 'FF', so a larger value is malformed metadata. */
+	if (selected_file->fcp_file_descr->record_len > 0xff) {
+		SS_LOGP(SFILE, LERROR, "record length %u exceeds the response buffer\n",
+			selected_file->fcp_file_descr->record_len);
+		return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
+	}
 
 	if (apdu->le != selected_file->fcp_file_descr->record_len) {
 		/* return actual length */
@@ -1090,6 +1119,12 @@ int ss_uicc_file_ops_cmd_select(struct ss_apdu *apdu)
 
 	/* Return FCP template if requested */
 	if ((apdu->hdr.p2 & 0x0c) == 0x04) {
+		/* An FCP is returned as one TLV; a larger one cannot be delivered. */
+		if (selected_file->fci->len > sizeof(apdu->rsp)) {
+			SS_LOGP(SFILE, LERROR, "FCI length %u exceeds the response buffer\n",
+				(unsigned)selected_file->fci->len);
+			return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
+		}
 		memcpy(apdu->rsp, selected_file->fci->data, selected_file->fci->len);
 		apdu->rsp_len = selected_file->fci->len;
 	}

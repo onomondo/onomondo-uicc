@@ -185,6 +185,67 @@ static void transact_short_response_buf_test(struct ss_context *ctx)
 	}
 }
 
+/* A READ BINARY response is bounded by apdu->rsp, whatever the file holds and
+ * whatever Le asks for; Le='00' means 256 (ISO/IEC 7816-4 section 5.1). The EF
+ * is grown past the buffer for the duration of the case. The file is tracked
+ * in git and the conformance suite copies this tree, so the result is captured
+ * and the file restored before anything is asserted -- an assert aborts. */
+#define BIG_EF_PATH "./files/3f00/7ff0/6f38"
+#define BIG_EF_BYTES 300
+
+static void read_binary_bound_test(struct ss_context *ctx)
+{
+	uint8_t resp[512];
+	char saved[2 * BIG_EF_BYTES + 1];
+	size_t saved_len;
+	size_t le0_len;
+	uint16_t le0_sw;
+	FILE *f;
+	size_t i;
+
+	static const char *const select_seq[] = {
+		"00a4000c023f00", /* MF */
+		"00a4040410a0000000871002ffffffff8907090000", /* ADF.USIM */
+		"00a40804047fff6f3800", /* 7fff/6f38 */
+	};
+
+	f = fopen(BIG_EF_PATH, "r");
+	assert(f); /* ctest sets WORKING_DIRECTORY to the project root */
+	saved_len = fread(saved, 1, sizeof(saved), f);
+	assert(saved_len < sizeof(saved) && feof(f)); /* whole file, or the restore truncates it */
+	fclose(f);
+
+	f = fopen(BIG_EF_PATH, "w");
+	assert(f);
+	for (i = 0; i < BIG_EF_BYTES; i++)
+		fputs("ab", f);
+	fclose(f);
+
+	for (i = 0; i < SS_ARRAY_SIZE(select_seq); i++) {
+		uint8_t cmd[64];
+		size_t cmd_len = ss_binary_from_hexstr(cmd, sizeof(cmd), select_seq[i]);
+
+		ss_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
+	}
+
+	{
+		uint8_t cmd[] = { 0x00, 0xb0, 0x00, 0x00, 0x00 };
+		size_t cmd_len = sizeof(cmd);
+
+		memset(resp, 0, sizeof(resp));
+		le0_len = ss_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
+		le0_sw = resp[le0_len - 2] << 8 | resp[le0_len - 1];
+	}
+
+	f = fopen(BIG_EF_PATH, "w");
+	assert(f);
+	fwrite(saved, 1, saved_len, f);
+	fclose(f);
+
+	assert(le0_len == 256 + 2); /* 256 data bytes + SW */
+	assert(le0_sw == 0x9000);
+}
+
 int main(void)
 {
 	struct ss_context *ctx;
@@ -202,6 +263,9 @@ int main(void)
 	ss_reset(ctx);
 
 	transact_short_response_buf_test(ctx);
+	ss_reset(ctx);
+
+	read_binary_bound_test(ctx);
 	ss_reset(ctx);
 
 	size_t cmd_len = 0;
