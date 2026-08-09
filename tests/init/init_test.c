@@ -139,6 +139,52 @@ static void transact_unresolved_lchan_test(struct ss_context *ctx)
 	}
 }
 
+/* Both entry points write up to sizeof(apdu->rsp) + sizeof(apdu->sw) bytes, so a
+ * caller that offers less is refused before anything is written -- including the
+ * short-request path, which answers 6700 straight into the buffer. */
+static void transact_short_response_buf_test(struct ss_context *ctx)
+{
+	/* one well-formed SELECT and one too-short request: the short one takes the
+	 * early-return path that writes the status word */
+	static const char *const cases[] = { "00a4000c023f00", "00a4" };
+	size_t i, len;
+
+	for (i = 0; i < SS_ARRAY_SIZE(cases); i++) {
+		for (len = 0; len < 258; len++) {
+			uint8_t cmd[16];
+			size_t cmd_len;
+			size_t resp_len;
+			/* sized to exactly what is offered, so a write past it is an
+			 * ASan report rather than a scribble on a roomy stack array */
+			uint8_t *tight = malloc(len ? len : 1);
+
+			assert(tight);
+
+			/* the calls stay outside the asserts: NDEBUG drops the whole
+			 * expression, and this run has to reach them to mean anything */
+			cmd_len = ss_binary_from_hexstr(cmd, sizeof(cmd), cases[i]);
+			resp_len = ss_transact(ctx, tight, len, cmd, &cmd_len);
+			assert(resp_len == 0);
+
+			cmd_len = ss_binary_from_hexstr(cmd, sizeof(cmd), cases[i]);
+			resp_len = ss_application_apdu_transact(ctx, tight, len, cmd, &cmd_len);
+			assert(resp_len == 0);
+
+			free(tight);
+		}
+	}
+
+	/* the contract length itself is served */
+	{
+		uint8_t buf[258];
+		uint8_t cmd[16];
+		size_t cmd_len = ss_binary_from_hexstr(cmd, sizeof(cmd), cases[0]);
+		size_t resp_len = ss_transact(ctx, buf, sizeof(buf), cmd, &cmd_len);
+
+		assert(resp_len == 2);
+	}
+}
+
 int main(void)
 {
 	struct ss_context *ctx;
@@ -153,6 +199,9 @@ int main(void)
 	ss_reset(ctx);
 
 	transact_unresolved_lchan_test(ctx);
+	ss_reset(ctx);
+
+	transact_short_response_buf_test(ctx);
 	ss_reset(ctx);
 
 	size_t cmd_len = 0;
