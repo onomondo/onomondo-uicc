@@ -26,6 +26,7 @@
 
 #include "crypto/common.h"
 #include "crypto/aes_wrap.h"
+#include "uicc/utils.h" /* ss_memzero(); same cross-lib include as milenage_usim.c */
 #include "milenage.h"
 
 
@@ -45,12 +46,13 @@ int milenage_f1(const u8 *opc, const u8 *k, const u8 *_rand,
 {
 	u8 tmp1[16], tmp2[16], tmp3[16];
 	int i;
+	int ret = -1;
 
 	/* tmp1 = TEMP = E_K(RAND XOR OP_C) */
 	for (i = 0; i < 16; i++)
 		tmp1[i] = _rand[i] ^ opc[i];
 	if (aes_128_encrypt_block(k, tmp1, tmp1))
-		return -1;
+		goto out;
 
 	/* tmp2 = IN1 = SQN || AMF || SQN || AMF */
 	os_memcpy(tmp2, sqn, 6);
@@ -69,14 +71,20 @@ int milenage_f1(const u8 *opc, const u8 *k, const u8 *_rand,
 
 	/* f1 || f1* = E_K(tmp3) XOR OP_c */
 	if (aes_128_encrypt_block(k, tmp3, tmp1))
-		return -1;
+		goto out;
 	for (i = 0; i < 16; i++)
 		tmp1[i] ^= opc[i];
 	if (mac_a)
 		os_memcpy(mac_a, tmp1, 8); /* f1 */
 	if (mac_s)
 		os_memcpy(mac_s, tmp1 + 8, 8); /* f1* */
-	return 0;
+	ret = 0;
+out:
+	/* The temporaries are derived from K and OPc; MAC-A/MAC-S are already copied out. */
+	ss_memzero(tmp1, sizeof(tmp1));
+	ss_memzero(tmp2, sizeof(tmp2));
+	ss_memzero(tmp3, sizeof(tmp3));
+	return ret;
 }
 
 
@@ -97,12 +105,13 @@ int milenage_f2345(const u8 *opc, const u8 *k, const u8 *_rand,
 {
 	u8 tmp1[16], tmp2[16], tmp3[16];
 	int i;
+	int ret = -1;
 
 	/* tmp2 = TEMP = E_K(RAND XOR OP_C) */
 	for (i = 0; i < 16; i++)
 		tmp1[i] = _rand[i] ^ opc[i];
 	if (aes_128_encrypt_block(k, tmp1, tmp2))
-		return -1;
+		goto out;
 
 	/* OUT2 = E_K(rot(TEMP XOR OP_C, r2) XOR c2) XOR OP_C */
 	/* OUT3 = E_K(rot(TEMP XOR OP_C, r3) XOR c3) XOR OP_C */
@@ -116,7 +125,7 @@ int milenage_f2345(const u8 *opc, const u8 *k, const u8 *_rand,
 	tmp1[15] ^= 1; /* XOR c2 (= ..01) */
 	/* f5 || f2 = E_K(tmp1) XOR OP_c */
 	if (aes_128_encrypt_block(k, tmp1, tmp3))
-		return -1;
+		goto out;
 	for (i = 0; i < 16; i++)
 		tmp3[i] ^= opc[i];
 	if (res)
@@ -131,7 +140,7 @@ int milenage_f2345(const u8 *opc, const u8 *k, const u8 *_rand,
 			tmp1[(i + 12) % 16] = tmp2[i] ^ opc[i];
 		tmp1[15] ^= 2; /* XOR c3 (= ..02) */
 		if (aes_128_encrypt_block(k, tmp1, ck))
-			return -1;
+			goto out;
 		for (i = 0; i < 16; i++)
 			ck[i] ^= opc[i];
 	}
@@ -143,7 +152,7 @@ int milenage_f2345(const u8 *opc, const u8 *k, const u8 *_rand,
 			tmp1[(i + 8) % 16] = tmp2[i] ^ opc[i];
 		tmp1[15] ^= 4; /* XOR c4 (= ..04) */
 		if (aes_128_encrypt_block(k, tmp1, ik))
-			return -1;
+			goto out;
 		for (i = 0; i < 16; i++)
 			ik[i] ^= opc[i];
 	}
@@ -155,12 +164,18 @@ int milenage_f2345(const u8 *opc, const u8 *k, const u8 *_rand,
 			tmp1[(i + 4) % 16] = tmp2[i] ^ opc[i];
 		tmp1[15] ^= 8; /* XOR c5 (= ..08) */
 		if (aes_128_encrypt_block(k, tmp1, tmp1))
-			return -1;
+			goto out;
 		for (i = 0; i < 6; i++)
 			akstar[i] = tmp1[i] ^ opc[i];
 	}
 
-	return 0;
+	ret = 0;
+out:
+	/* The temporaries are derived from K and OPc; all outputs are already copied out. */
+	ss_memzero(tmp1, sizeof(tmp1));
+	ss_memzero(tmp2, sizeof(tmp2));
+	ss_memzero(tmp3, sizeof(tmp3));
+	return ret;
 }
 
 
@@ -191,7 +206,7 @@ void milenage_generate(const u8 *opc, const u8 *amf, const u8 *k,
 	if (milenage_f1(opc, k, _rand, sqn, amf, mac_a, NULL) ||
 	    milenage_f2345(opc, k, _rand, res, ck, ik, ak, NULL)) {
 		*res_len = 0;
-		return;
+		goto out;
 	}
 	*res_len = 8;
 
@@ -200,6 +215,10 @@ void milenage_generate(const u8 *opc, const u8 *amf, const u8 *k,
 		autn[i] = sqn[i] ^ ak[i];
 	os_memcpy(autn + 6, amf, 2);
 	os_memcpy(autn + 8, mac_a, 8);
+out:
+	/* MAC-A is already copied into AUTN; AK must not outlive the call. */
+	ss_memzero(mac_a, sizeof(mac_a));
+	ss_memzero(ak, sizeof(ak));
 }
 
 
@@ -218,15 +237,21 @@ int milenage_auts(const u8 *opc, const u8 *k, const u8 *_rand, const u8 *auts,
 	u8 amf[2] = { 0x00, 0x00 }; /* TS 33.102 v7.0.0, 6.3.3 */
 	u8 ak[6], mac_s[8];
 	int i;
+	int ret = -1;
 
 	if (milenage_f2345(opc, k, _rand, NULL, NULL, NULL, NULL, ak))
-		return -1;
+		goto out;
 	for (i = 0; i < 6; i++)
 		sqn[i] = auts[i] ^ ak[i];
 	if (milenage_f1(opc, k, _rand, sqn, amf, NULL, mac_s) ||
 	    os_memcmp_const(mac_s, auts + 6, 8) != 0)
-		return -1;
-	return 0;
+		goto out;
+	ret = 0;
+out:
+	/* AK and MAC-S are key-derived; SQN is already written to the caller. */
+	ss_memzero(ak, sizeof(ak));
+	ss_memzero(mac_s, sizeof(mac_s));
+	return ret;
 }
 
 
@@ -243,9 +268,10 @@ int gsm_milenage(const u8 *opc, const u8 *k, const u8 *_rand, u8 *sres, u8 *kc)
 {
 	u8 res[8], ck[16], ik[16];
 	int i;
+	int ret = -1;
 
 	if (milenage_f2345(opc, k, _rand, res, ck, ik, NULL, NULL))
-		return -1;
+		goto out;
 
 	for (i = 0; i < 8; i++)
 		kc[i] = ck[i] ^ ck[i + 8] ^ ik[i] ^ ik[i + 8];
@@ -258,7 +284,13 @@ int gsm_milenage(const u8 *opc, const u8 *k, const u8 *_rand, u8 *sres, u8 *kc)
 			sres[i] = res[i] ^ res[i + 4];
 #endif /* GSM_MILENAGE_ALT_SRES */
 	}
-	return 0;
+	ret = 0;
+out:
+	/* SRES and Kc are already copied out; CK/IK/RES must not outlive the call. */
+	ss_memzero(res, sizeof(res));
+	ss_memzero(ck, sizeof(ck));
+	ss_memzero(ik, sizeof(ik));
+	return ret;
 }
 
 

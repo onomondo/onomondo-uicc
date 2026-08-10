@@ -19,6 +19,7 @@
 #include <onomondo/softsim/mem.h>
 #include <onomondo/softsim/storage.h>
 #include <onomondo/softsim/fs.h>
+#include "uicc/utils.h" /* ss_memzero(); same cross-lib include as milenage_usim.c */
 
 /*! Generate a host filesystem path for a given file path.
  *  \param[in] def_path buffer to store the generated path. Must be at least SS_STORAGE_PATH_MAX bytes long.
@@ -180,6 +181,7 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 			"unable to load content (read_offset=%u, read_len=%u) from file: "
 			"%s\n",
 			(unsigned int)read_offset, (unsigned int)read_len, host_path);
+		ss_memzero(line_buf, read_len);
 		SS_FREE(line_buf);
 		ss_fclose(fd);
 		return NULL;
@@ -188,6 +190,8 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 	ss_fclose(fd);
 
 	result = ss_buf_alloc_and_cpy(line_buf, fgets_rc);
+	/* Holds the file content, key files included. */
+	ss_memzero(line_buf, read_len);
 	SS_FREE(line_buf);
 	if (!result) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to allocate result buffer (len=%u) for file: %s\n",

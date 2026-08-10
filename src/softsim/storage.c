@@ -20,6 +20,7 @@
 #include <onomondo/softsim/mem.h>
 #include <onomondo/softsim/storage.h>
 #include <onomondo/softsim/fs.h>
+#include "uicc/utils.h" /* ss_memzero(); same cross-lib include as milenage_usim.c */
 
 #ifdef IS_WINDOWS
 // Defined due to missing header file (<unistd.h>) include in ARM DS-5 Windows build.
@@ -176,6 +177,7 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 	if (fgets_rc != read_len) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to load content (read_offset=%zu, read_len=%zu) from file: %s\n",
 			read_offset, read_len, host_path);
+		ss_memzero(line_buf, read_len * 2 + 1);
 		SS_FREE(line_buf);
 		ss_fclose(fd);
 		return NULL;
@@ -185,6 +187,8 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 
 	/* Note: Module fs.c must ensure freeing of the content */
 	result = ss_buf_from_hexstr(line_buf);
+	/* Holds the file as hex text, key files included. */
+	ss_memzero(line_buf, read_len * 2 + 1);
 	SS_FREE(line_buf);
 	return result;
 }

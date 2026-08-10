@@ -21,6 +21,7 @@
 #include "apdu.h"
 #include "fs.h"
 #include "fs_utils.h"
+#include "utils.h"
 
 /* 3GPP TS 31.102 Table 7.1.2-1 + Table 7.1.2-2 */
 enum usim_auth_ctx {
@@ -81,6 +82,7 @@ static int get_key_data(struct milenage_key_data *key_data)
 		SS_LOGP(SAUTH, LERROR, "key data file (%s) too short -- abort\n",
 			ss_fs_utils_dump_path(&key_data_path));
 		ss_path_reset(&key_data_path);
+		ss_memzero(key_data_raw->data, key_data_raw->len);
 		ss_buf_free(key_data_raw);
 		return -EINVAL;
 	}
@@ -95,6 +97,8 @@ static int get_key_data(struct milenage_key_data *key_data)
 	SS_LOGP(SAUTH, LDEBUG, "key data file (%s) loaded\n", ss_fs_utils_dump_path(&key_data_path));
 
 	ss_path_reset(&key_data_path);
+	/* ss_buf_free() does not zero. */
+	ss_memzero(key_data_raw->data, key_data_raw->len);
 	ss_buf_free(key_data_raw);
 	return 0;
 }
@@ -220,17 +224,22 @@ static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_c
 	struct milenage_seq_data *msd = &msd_storage;
 	struct milenage_result mres;
 	struct auth_res_success_3g *res_3g;
+	u8 opc[16];
 	int rc;
+	int ret = -1;
 
 	/* Load key material and SEQ from file */
 	rc = get_key_data(mkd);
-	if (rc < 0)
-		return -EINVAL;
+	if (rc < 0) {
+		ret = -EINVAL;
+		goto out;
+	}
 	rc = get_seq_data(msd);
-	if (rc < 0)
-		return -EINVAL;
+	if (rc < 0) {
+		ret = -EINVAL;
+		goto out;
+	}
 
-	u8 opc[16];
 	gen_opc(opc, mkd);
 
 	memset(&mres, 0, sizeof(mres));
@@ -254,7 +263,8 @@ static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_c
 		/* GSM context success: deliver SRES/Kc with SW=9000. A break here
 		 * would fall through to out_err and return -1, which the dispatcher
 		 * maps to SW=6F00. */
-		return 0;
+		ret = 0;
+		goto out;
 	case USIM_AUTH_CTX_3G:
 		if (rand_len != 128 / 8) {
 			SS_LOGP(SAUTH, LERROR, "unexpected RAND len -- authentication failed\n");
@@ -291,18 +301,21 @@ static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_c
 			rc = update_seq_data(msd);
 			if (rc < 0) {
 				SS_LOGP(SAUTH, LERROR, "Failing milenage: Sequence data could not be stored\n");
-				return -EINVAL;
+				ret = -EINVAL;
+				goto out;
 			}
 
 			apdu->rsp_len = sizeof(*res_3g);
-			return 0;
+			ret = 0;
+			goto out;
 		case -2:
 			SS_LOGP(SAUTH, LINFO, "Milenage requesting resync (returning AUTS)\n");
 			apdu->rsp[0] = 0xDC;
 			apdu->rsp[1] = sizeof(mres.auts);
 			memcpy(&apdu->rsp[2], mres.auts, sizeof(mres.auts));
 			apdu->rsp_len = 2 + sizeof(mres.auts);
-			return 0;
+			ret = 0;
+			goto out;
 		case -3:
 			/* AUTN MAC verification failed: TS 31.102 7.1.2 /
 			 * TS 102 221 -> SW 9862 "authentication error,
@@ -324,8 +337,13 @@ static int authenticate_milenage(struct ss_apdu *apdu, enum usim_auth_ctx auth_c
 	}
 
 out_err:
-	memset(&mres, 0, sizeof(mres));
-	return -1;
+	ret = -1;
+out:
+	/* K, OP/OPc and the derived CK/IK/RES must not outlive the command. */
+	ss_memzero(&mkd_storage, sizeof(mkd_storage));
+	ss_memzero(opc, sizeof(opc));
+	ss_memzero(&mres, sizeof(mres));
+	return ret;
 }
 
 /* AUTHENTICATE, see 3GPP TS 31.102 Section 7.1 */
