@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+# Copyright (c) 2026 Onomondo ApS. All rights reserved.
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""Generate libFuzzer seed corpora.
+
+The APDU seeds are lifted from the modem-initialisation transcript that
+tests/init/init_test.c already maintains, so the corpus tracks the transcript
+instead of drifting from it. The profile seeds are built from the TLV layout
+documented in include/onomondo/utils/ss_profile.h.
+
+A seed corpus is not decoration: without one the fuzzer spends its budget
+rediscovering that APDUs start with a class byte, and never reaches the file
+operations behind SELECT.
+"""
+
+import argparse
+import hashlib
+import pathlib
+import re
+
+# Quoted, even-length, pure-hex string literals. In init_test.c that is exactly
+# the apdus[] array; log format strings and byte arrays do not match.
+HEX_LITERAL = re.compile(r'"((?:[0-9a-fA-F]{2})+)"')
+
+
+def write_seeds(out_dir, blobs):
+    """Write one file per distinct blob, named by content hash."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for stale in out_dir.glob("*.bin"):
+        stale.unlink()
+
+    written = 0
+    for blob in {bytes(b) for b in blobs}:
+        name = hashlib.sha1(blob).hexdigest()[:16] + ".bin"
+        (out_dir / name).write_bytes(blob)
+        written += 1
+    return written
+
+
+def apdu_seeds(init_test):
+    text = pathlib.Path(init_test).read_text()
+    seeds = [bytes.fromhex(m) for m in HEX_LITERAL.findall(text)]
+    if not seeds:
+        raise SystemExit(f"{init_test}: no APDU hex literals found -- has the transcript moved?")
+
+    # Boundary lengths around the fixed 5-byte header copy in ss_transact().
+    # Cheap to include and they are where the length arithmetic goes wrong.
+    seeds += [b"", b"\x00", b"\x00\xa4\x00\x0c", b"\x00\xa4\x00\x0c\x02"]
+    return seeds
+
+
+def profile_seeds():
+    def tlv(tag, payload):
+        # Both tag and length are themselves hex-encoded in this format.
+        return f"{tag:02x}{len(payload):02x}{payload}"
+
+    key = "000102030405060708090A0B0C0D0E0F"
+    complete = (
+        tlv(0x01, "080910101032540636")   # IMSI
+        + tlv(0x02, "98001032547698103214")  # ICCID
+        + tlv(0x03, "0" * 32)             # OPc
+        + tlv(0x04, key)                  # Ki
+        + tlv(0x05, key)                  # KIC
+        + tlv(0x06, key)                  # KID
+    )
+
+    return [
+        complete.encode(),
+        (complete + "ff00").encode(),          # explicit END tag
+        tlv(0x01, "080910101032540636").encode(),  # single record
+        b"",                                    # the degenerate length
+    ]
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--init-test", required=True)
+    ap.add_argument("--out", required=True, type=pathlib.Path)
+    args = ap.parse_args()
+
+    n_apdu = write_seeds(args.out / "apdu", apdu_seeds(args.init_test))
+    n_profile = write_seeds(args.out / "profile", profile_seeds())
+    print(f"fuzz corpus: {n_apdu} apdu seeds, {n_profile} profile seeds -> {args.out}")
+
+
+if __name__ == "__main__":
+    main()

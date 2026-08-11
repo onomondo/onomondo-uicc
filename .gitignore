@@ -17,6 +17,7 @@ lib_*.a
 targets
 .editorconfig
 *.py
+!tests/fuzz/gen_corpus.py
 
 # clang-format
 .cache

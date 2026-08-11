@@ -19,6 +19,7 @@ option(CONFIG_NO_DEFAULT_IMPL 	"Build with no default implementation")
 option(CONFIG_COMPACT_STORAGE 	"Build with compact storage implementation")
 option(CONFIG_BUILD_LIB_ONLY 	"Build libraries only")
 option(CONFIG_ALT_FILE_SEPARATOR "Use _ as file separator instead of /")
+option(CONFIG_BUILD_FUZZERS 	"Build libFuzzer targets in tests/fuzz (clang only, implies sanitizers)")
 
 set(CONFIG_SS_STORAGE_PATH_DEFAULT "./files" CACHE STRING "Default storage path for SoftSIM filesystem")
 set(CONFIG_SS_STORAGE_PATH_MAX "100" CACHE STRING "Maximum path length for storage operations")
@@ -61,7 +62,20 @@ if(CONFIG_EXTERNAL_KEY_LOAD)
 	add_compile_definitions(CONFIG_EXTERNAL_KEY_LOAD)
 endif()
 
-if(CONFIG_ENABLE_SANITIZE)
+if(CONFIG_BUILD_FUZZERS)
+	if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
+		message(FATAL_ERROR "CONFIG_BUILD_FUZZERS needs clang for libFuzzer. Re-run with CC=clang.")
+	endif()
+	# Instrument every translation unit so the fuzzer gets coverage feedback
+	# from the library under test, but link libFuzzer's main() only into the
+	# fuzz targets themselves (tests/fuzz adds -fsanitize=fuzzer there).
+	message(STATUS "Building libFuzzer targets (implies address/undefined sanitizers)")
+	# -fno-sanitize-recover makes UBSan abort rather than print and continue;
+	# without it a "runtime error:" line scrolls past and the run exits 0.
+	add_compile_options(-fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=undefined
+			    -fno-omit-frame-pointer -g)
+	add_link_options(-fsanitize=address,undefined -fno-sanitize-recover=undefined)
+elseif(CONFIG_ENABLE_SANITIZE)
 	add_compile_options(-fsanitize=address -fsanitize=undefined)
 	add_link_options(-fsanitize=address -fsanitize=undefined)
 endif()
