@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-#include <assert.h>
 #include <string.h>
 #include <onomondo/softsim/log.h>
 #include <onomondo/softsim/mem.h>
@@ -74,10 +73,19 @@ void ss_apdu_toss(struct ss_apdu *apdu)
  *  \param[in] len bytes in buffer */
 void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 {
-	assert(len >= APDU_HEADER_SIZE);
 	// resulting apdu is collected in the end
 	uint16_t le = 0, lc = 0, processed_bytes = 0;
 	uint8_t *data_start = NULL;
+
+	/* Not an assert: -DNDEBUG would strip it, and the header memcpy below
+	 * reads APDU_HEADER_SIZE bytes from a caller-supplied buffer. */
+	if (len < APDU_HEADER_SIZE) {
+		SS_LOGP(SAPDU, LERROR, "APDU malformed. Shorter than the header. Len: %u\n", (unsigned int)len);
+		apdu->lc = 0;
+		apdu->le = 0;
+		apdu->processed_bytes = 0;
+		return;
+	}
 
 	SS_LOGP(SAPDU, LDEBUG, "Parsing APDU %s\n", ss_hexdump(buffer, len));
 
