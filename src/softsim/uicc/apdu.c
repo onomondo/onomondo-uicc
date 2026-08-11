@@ -30,9 +30,9 @@ struct ss_apdu *ss_apdu_new(struct ss_context *ctx)
  *  \param[in] apdu to toss. */
 void ss_apdu_toss(struct ss_apdu *apdu)
 {
-	/*! NOTE: By calling this function the APDU struct is not freed
-	 *  immediately. It is kept for another cycle for internal
-	 *  references. */
+	/*! NOTE: The APDU struct is either freed here or parked as
+	 *  lchan->last_apdu for one more cycle. The caller must not touch
+	 *  the pointer after this call. */
 
 	/* NOTE: An APDU without lchan may occur when it was impossible to
 	 * resolve a valid lchan. This may happen when a non existing lchan
