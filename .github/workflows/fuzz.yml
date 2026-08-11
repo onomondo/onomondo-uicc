@@ -1,0 +1,117 @@
+name: Fuzz
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Replays the fuzz seed corpora and exits. This is the safety net that keeps a
+  # fixed crash fixed, so unlike the search below it runs on every PR. It needs
+  # its own job because CONFIG_BUILD_FUZZERS requires clang, which rules out
+  # adding it to the uicc-build-and-test matrix in ci_uicc.yml.
+  fuzz-corpus:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install CMake
+        uses: lukka/get-cmake@f5b8fbb4d77cec1acc5a5f9f0df4beffaf5d98d9 # v4.3.4
+        with:
+          cmakeVersion: 3.27.0
+          ninjaVersion: 1.11.1
+
+      - name: Install CLANG
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libclang-rt-18-dev llvm-18
+
+      - name: Configure and Build Fuzz Targets
+        run: |
+          cmake -S . -B build-fuzz -G Ninja \
+            -DBUILD_TESTING=y -DCONFIG_BUILD_FUZZERS=y \
+            -DCONFIG_USE_UTILS=y -DCONFIG_USE_SYSTEM_HEAP=y
+          cmake --build build-fuzz
+        env:
+          CC: clang
+
+      - name: Replay Seed Corpora
+        run: cd build-fuzz && ctest --output-on-failure -R '_corpus$'
+
+  # Coverage-guided fuzzing of the APDU and profile parsers.
+  #
+  # Deliberately not run on ordinary PRs: a time-boxed search either repeats
+  # what the seed corpus already covers or reports something unrelated to the
+  # change under review. Ordinary PRs are covered by the fuzz-corpus job above,
+  # which replays the corpora deterministically in under a second. This search
+  # runs on the release-please PR and on manual dispatch.
+  #
+  # This job is informational -- do not add it to the required checks.
+  fuzz:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       startsWith(github.head_ref, 'release-please--branches--'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install CMake
+        uses: lukka/get-cmake@f5b8fbb4d77cec1acc5a5f9f0df4beffaf5d98d9 # v4.3.4
+        with:
+          cmakeVersion: 3.27.0
+          ninjaVersion: 1.11.1
+
+      - name: Install CLANG
+        # libclang-rt-*-dev carries the libFuzzer/ASan/UBSan runtimes. The
+        # hosted runner preinstalls them, but naming it keeps the job working
+        # on a bare container too. llvm-18 carries llvm-symbolizer, without
+        # which an ASan stack trace is hex addresses and no source lines.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libclang-rt-18-dev llvm-18
+
+      - name: Configure and Build Fuzz Targets
+        run: |
+          cmake -S . -B build-fuzz -G Ninja \
+            -DBUILD_TESTING=y -DCONFIG_BUILD_FUZZERS=y \
+            -DCONFIG_USE_UTILS=y -DCONFIG_USE_SYSTEM_HEAP=y
+          cmake --build build-fuzz
+        env:
+          CC: clang
+
+      - name: Fuzz
+        run: |
+          set -e
+          mkdir -p artifacts
+          F=build-fuzz/tests/fuzz
+          # -max_len per target: a T=0 TPDU is at most 261 bytes, and a profile
+          # string carrying every tag is 326 characters (include/onomondo/utils/ss_profile.h).
+          run() { "$F/$1" "$F/corpus/$2" -max_total_time="$3" -max_len="$4" \
+                    -artifact_prefix="$PWD/artifacts/$1-"; }
+          run fuzz_apdu_t0  apdu    600 261
+          run fuzz_apdu_app apdu    600 261
+          run fuzz_profile  profile 120 512
+
+      - name: Upload reproducers
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-reproducers
+          path: artifacts/
+          if-no-files-found: ignore
