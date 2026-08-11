@@ -148,7 +148,8 @@ int ss_uicc_file_ops_cmd_status(struct ss_apdu *apdu)
 				"Terminal requested status expecting length %u, returning actual FCI length %u\n",
 				apdu->le, (unsigned)current_df->fci->len);
 			apdu->le = 0;
-			/* '6C00' means 256 bytes or more (ISO/IEC 7816-4 section 7.4.2) */
+			/* '6C00' means 256 bytes (ISO/IEC 7816-4 clauses 5.4.5
+			 * and 5.3.2); fci->len is bounded to 256 above. */
 			return 0x6c00 | (current_df->fci->len & 0xff);
 		}
 
@@ -319,11 +320,13 @@ int ss_uicc_file_ops_cmd_read_binary(struct ss_apdu *apdu)
 		return SS_SW_ERR_CHECKING_WRONG_P1_P2;
 	}
 	if (offset + apdu->le > file_len) {
-		/* return actual length, which SW2 carries in a single byte */
+		/* Return the actual length: SW2 is the short Le for the reissued
+		 * command, where '00' encodes 256 (ISO/IEC 7816-4 clauses 5.4.5
+		 * and 5.3.2). */
 		size_t available = file_len - offset;
 
 		apdu->le = 0;
-		return 0x6c00 | (available > 0xff ? 0xff : available);
+		return 0x6c00 | (available < 256 ? available : 0);
 	}
 
 	if (read_len == 0) {
