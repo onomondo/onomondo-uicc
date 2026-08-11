@@ -30,3 +30,7 @@ add_subdirectory(key_scrub)
 if(CONFIG_BUILD_FUZZERS)
 	add_subdirectory(fuzz)
 endif()
+
+if(CONFIG_BUILD_KLEE)
+	add_subdirectory(klee)
+endif()
