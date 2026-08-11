@@ -10,7 +10,7 @@
 #include "onomondo/utils/ss_profile.h"
 
 static uint8_t ss_hex_to_uint8(const char *hex);
-static void ss_hex_string_to_bytes(const uint8_t *hex, size_t hex_len, uint8_t bytes[hex_len / 2]);
+static void ss_hex_string_to_bytes(const uint8_t *hex, size_t hex_len, uint8_t *bytes);
 
 uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile)
 {
@@ -152,10 +152,10 @@ static uint8_t ss_hex_to_uint8(const char *hex)
 /** Hex string to bytes converter
  *  \param[in] hex a pointer to the hex string
  *  \param[in] hex_len the size of the string
- *  \param[inout] bytes the byte array to store the result in */
-static void ss_hex_string_to_bytes(const uint8_t *hex, size_t hex_len, uint8_t bytes[hex_len / 2])
+ *  \param[out] bytes the byte array to store the result in, hex_len / 2 bytes long */
+static void ss_hex_string_to_bytes(const uint8_t *hex, size_t hex_len, uint8_t *bytes)
 {
-	int i;
+	size_t i;
 
 	for (i = 0; i < hex_len / 2; i++) {
 		bytes[i] = ss_hex_to_uint8((char *)&hex[i * 2]);
