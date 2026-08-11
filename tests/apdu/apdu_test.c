@@ -90,6 +90,26 @@ void apdu_test_truncated_extended_len(void)
 	dump_apdu(&apdu);
 }
 
+/* Lc declares one byte more than the data field holds; the bound rejects it. */
+void apdu_test_lc_boundary_reject(void)
+{
+	fprintf(stderr, "apdu_test_lc_boundary_reject\n");
+	struct ss_apdu apdu = { 0 };
+	uint8_t cmd[] = { 0x00, 0xa4, 0x08, 0x04, 0x04, 0x2f, 0x00, 0x68 };
+	ss_apdu_parse_exhaustive(&apdu, cmd, SS_ARRAY_SIZE(cmd));
+	dump_apdu(&apdu);
+}
+
+/* Lc matches the data field exactly: a well-formed Case 3. */
+void apdu_test_lc_exact_fit(void)
+{
+	fprintf(stderr, "apdu_test_lc_exact_fit\n");
+	struct ss_apdu apdu = { 0 };
+	uint8_t cmd[] = { 0x00, 0xa4, 0x08, 0x04, 0x03, 0x2f, 0x00, 0x68 };
+	ss_apdu_parse_exhaustive(&apdu, cmd, SS_ARRAY_SIZE(cmd));
+	dump_apdu(&apdu);
+}
+
 int main(int argc, char **argv)
 {
 	apdu_test_select_extended();
@@ -100,5 +120,7 @@ int main(int argc, char **argv)
 	apdu_test_lc_too_large();
 	apdu_test_lc_too_large_extended();
 	apdu_test_truncated_extended_len();
+	apdu_test_lc_boundary_reject();
+	apdu_test_lc_exact_fit();
 	return 0;
 }
