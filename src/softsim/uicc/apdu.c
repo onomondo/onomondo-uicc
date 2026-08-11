@@ -209,6 +209,8 @@ out:
 				len, lc, ss_hexdump(buffer, len));
 			lc = 0;
 			apdu->hdr.p3 = 0;
+			/* the count derived from the untrusted Lc is equally untrusted */
+			processed_bytes = len;
 		}
 	}
 	apdu->lc = lc;
