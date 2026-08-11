@@ -459,6 +459,8 @@ size_t ss_transact(struct ss_context *ctx, uint8_t *response_buf, size_t respons
 		SS_LOGP(SIFACE, LERROR, "ignoring short APDU: %s\n", ss_hexdump(request_buf, _request_len));
 		response_buf[response_len++] = SS_SW_ERR_CHECKING_WRONG_LENGTH >> 8;
 		response_buf[response_len++] = SS_SW_ERR_CHECKING_WRONG_LENGTH & 0xff;
+		/* the whole request is consumed by discarding it */
+		*request_len = _request_len;
 		return 2;
 	}
 

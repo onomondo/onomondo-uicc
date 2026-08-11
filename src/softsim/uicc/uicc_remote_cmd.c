@@ -654,7 +654,9 @@ static size_t process_commands(uint8_t *tar, size_t commands_len, uint8_t *comma
 	/* Number of commands executed within the script */
 	outbuf[0] = 0;
 
-	while (commands_len >= 4) {
+	/* ss_transact() rejects anything shorter than the 5-byte TPDU header;
+	 * a shorter tail is leftover bytes, reported below. */
+	while (commands_len >= 5) {
 		/* Count number of executed commands */
 		outbuf[0]++;
 
