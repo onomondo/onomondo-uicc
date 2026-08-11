@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "src/softsim/uicc/sw.h"
 
 /* init_test: Basic application APDU exchange smoke test
  *
@@ -105,9 +106,8 @@ static void transact_short_apdu_test(struct ss_context *ctx)
 		memset(resp, 0, sizeof(resp));
 		resp_len = ss_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
 
-		/* SS_SW_ERR_CHECKING_WRONG_LENGTH, big endian */
 		assert(resp_len == 2);
-		assert(resp[0] == 0x67 && resp[1] == 0x00);
+		assert(((resp[0] << 8) | resp[1]) == SS_SW_ERR_CHECKING_WRONG_LENGTH);
 	}
 }
 
@@ -119,10 +119,10 @@ static void transact_unresolved_lchan_test(struct ss_context *ctx)
 	 * names logical channel 1, so each reaches a different rejection. */
 	struct {
 		uint8_t cla;
-		uint8_t sw2;
+		uint16_t sw;
 	} cases[] = {
-		{ 0x0c, 0x82 }, /* SS_SW_ERR_FUNCTION_IN_CLA_NOT_SUPP_SM */
-		{ 0x01, 0x81 }, /* SS_SW_ERR_FUNCTION_IN_CLA_NOT_SUPP_LCHAN */
+		{ 0x0c, SS_SW_ERR_FUNCTION_IN_CLA_NOT_SUPP_SM },
+		{ 0x01, SS_SW_ERR_FUNCTION_IN_CLA_NOT_SUPP_LCHAN },
 	};
 	uint8_t resp[300];
 
@@ -135,7 +135,7 @@ static void transact_unresolved_lchan_test(struct ss_context *ctx)
 		resp_len = ss_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
 
 		assert(resp_len == 2);
-		assert(resp[0] == 0x68 && resp[1] == cases[i].sw2);
+		assert(((resp[0] << 8) | resp[1]) == cases[i].sw);
 	}
 }
 
