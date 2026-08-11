@@ -299,8 +299,10 @@ int ss_uicc_pin_cmd_change_pin(struct ss_apdu *apdu)
 		goto leave;
 	}
 
-	/* Apply new PIN code */
+	/* Apply new PIN code. A successful verification of the old PIN resets
+	 * the retry counter, as it does for VERIFY PIN. */
 	memcpy(pin->pin, apdu->cmd + sizeof(pin->pin), sizeof(pin->pin));
+	pin->tries = 0;
 	rc = update_pin_context(pin);
 	if (rc < 0) {
 		result = SS_SW_ERR_CMD_NOT_ALLOWED_PIN_BLOCKED;
