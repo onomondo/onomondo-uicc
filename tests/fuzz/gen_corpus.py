@@ -4,14 +4,19 @@
 
 """Generate libFuzzer seed corpora.
 
-The APDU seeds are lifted from the modem-initialisation transcript that
-tests/init/init_test.c already maintains, so the corpus tracks the transcript
-instead of drifting from it. The profile seeds are built from the TLV layout
-documented in include/onomondo/utils/ss_profile.h.
+The APDU seeds are lifted from the transcripts the test suite already
+maintains, so the corpus tracks them instead of drifting from them:
+tests/init/init_test.c covers modem initialisation in short form, and
+tests/app_transact/app_transact_test.c carries the extended-length encodings,
+including the STATUS with an extended Le that the nRF9151 sends. The profile
+seeds are built from the TLV layout documented in
+include/onomondo/utils/ss_profile.h.
 
 A seed corpus is not decoration: without one the fuzzer spends its budget
 rediscovering that APDUs start with a class byte, and never reaches the file
-operations behind SELECT.
+operations behind SELECT. Extended length is keyed on a single zero byte at
+offset 4, so without an extended seed the fuzzer has to stumble onto that
+encoding before it can explore anything behind it.
 """
 
 import argparse
@@ -19,8 +24,8 @@ import hashlib
 import pathlib
 import re
 
-# Quoted, even-length, pure-hex string literals. In init_test.c that is exactly
-# the apdus[] array; log format strings and byte arrays do not match.
+# Quoted, even-length, pure-hex string literals. In these transcripts that is
+# exactly the apdus[] arrays; format strings and byte arrays do not match.
 HEX_LITERAL = re.compile(r'"((?:[0-9a-fA-F]{2})+)"')
 
 
@@ -38,11 +43,14 @@ def write_seeds(out_dir, blobs):
     return written
 
 
-def apdu_seeds(init_test):
-    text = pathlib.Path(init_test).read_text()
-    seeds = [bytes.fromhex(m) for m in HEX_LITERAL.findall(text)]
-    if not seeds:
-        raise SystemExit(f"{init_test}: no APDU hex literals found -- has the transcript moved?")
+def apdu_seeds(transcripts):
+    seeds = []
+    for transcript in transcripts:
+        text = pathlib.Path(transcript).read_text()
+        found = [bytes.fromhex(m) for m in HEX_LITERAL.findall(text)]
+        if not found:
+            raise SystemExit(f"{transcript}: no APDU hex literals found -- has the transcript moved?")
+        seeds += found
 
     # Boundary lengths around the fixed 5-byte header copy in ss_transact().
     # Cheap to include and they are where the length arithmetic goes wrong.
@@ -75,11 +83,12 @@ def profile_seeds():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--init-test", required=True)
+    ap.add_argument("--transcript", required=True, action="append", metavar="PATH",
+                    help="C file holding an apdus[] array of hex literals; repeatable")
     ap.add_argument("--out", required=True, type=pathlib.Path)
     args = ap.parse_args()
 
-    n_apdu = write_seeds(args.out / "apdu", apdu_seeds(args.init_test))
+    n_apdu = write_seeds(args.out / "apdu", apdu_seeds(args.transcript))
     n_profile = write_seeds(args.out / "profile", profile_seeds())
     print(f"fuzz corpus: {n_apdu} apdu seeds, {n_profile} profile seeds -> {args.out}")
 

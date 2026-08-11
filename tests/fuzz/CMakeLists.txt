@@ -15,14 +15,20 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 set(corpus_dir ${CMAKE_CURRENT_BINARY_DIR}/corpus)
 
+# init_test.c is the short-form modem transcript; app_transact_test.c carries the
+# extended-length encodings. Both are DEPENDS so the corpus regenerates when
+# either transcript changes.
+set(init_transcript ${PROJECT_SOURCE_DIR}/tests/init/init_test.c)
+set(app_transcript ${PROJECT_SOURCE_DIR}/tests/app_transact/app_transact_test.c)
+
 add_custom_command(
 	OUTPUT ${corpus_dir}/.stamp
 	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/gen_corpus.py
-			--init-test ${PROJECT_SOURCE_DIR}/tests/init/init_test.c
+			--transcript ${init_transcript}
+			--transcript ${app_transcript}
 			--out ${corpus_dir}
 	COMMAND ${CMAKE_COMMAND} -E touch ${corpus_dir}/.stamp
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/gen_corpus.py
-			${PROJECT_SOURCE_DIR}/tests/init/init_test.c
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/gen_corpus.py ${init_transcript} ${app_transcript}
 	COMMENT "Generating fuzz seed corpus"
 	VERBATIM
 )

@@ -11,11 +11,11 @@ Not built by default. Requires clang.
 | Mode | Command | When |
 |---|---|---|
 | Corpus replay | `<target> <corpus> -runs=0` | Every PR, as `ctest` cases `fuzz_*_corpus`. Deterministic, well under a second. A fixed crash whose reproducer is in the corpus stays fixed. |
-| Searching | `<target> <corpus> -max_total_time=N` | The release-please release PR, the weekly cron and manual dispatch. See the `fuzz` job in `.github/workflows/ci_uicc.yml`. |
+| Searching | `<target> <corpus> -max_total_time=N` | The release-please release PR and manual dispatch. See the `fuzz` job in `.github/workflows/fuzz.yml`. |
 
 Fuzzing on every PR buys nothing: the run is time-boxed, so it either repeats
 what the corpus already covers or reports something unrelated to the change
-under review. The calibration follows zcbor's.
+under review.
 
 ## Running it
 
@@ -64,9 +64,13 @@ Both APDU harnesses share `fuzz_apdu.c`, compiled once per entry point with
 `-DFUZZ_ENTRY=<symbol>`; the two functions take the same arguments but do not
 share a parser.
 
-The seed corpus is generated at build time by `gen_corpus.py` from the modem
-initialisation transcript in `tests/init/init_test.c`, so it tracks that
-transcript rather than drifting from it.
+The seed corpus is generated at build time by `gen_corpus.py` from two
+transcripts the suite already maintains, so it tracks them rather than drifting
+from them: `tests/init/init_test.c` for short-form modem initialisation, and
+`tests/app_transact/app_transact_test.c` for the extended-length encodings.
+Extended length is selected by a single zero byte at offset 4, so an extended
+seed is what puts `fuzz_apdu_app` inside those branches from the first
+execution instead of leaving it to find the encoding by mutation.
 
 ## Known limits
 
