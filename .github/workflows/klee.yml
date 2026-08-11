@@ -1,0 +1,55 @@
+name: KLEE
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Symbolic execution of the APDU parser (exhaustive) and the card path
+  # (directed) with KLEE. See tests/klee/README.md. Runs in the KLEE container,
+  # which carries the whole toolchain, so unlike the uicc-build-and-test matrix
+  # it needs no install step. The parser sweep is a deterministic golden check
+  # (~1 min) against tests/klee/expected.txt -- like the fuzz-corpus replay it
+  # runs on every PR and turns red on drift until expected.txt is regenerated.
+  klee:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: klee/klee:3.0
+      # The image runs as uid 1000; the checkout mount is root-owned.
+      options: --user root
+
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Configure
+        run: cmake -S . -B build-klee -DBUILD_TESTING=y -DCONFIG_BUILD_KLEE=y -DCONFIG_USE_SYSTEM_HEAP=y
+        env:
+          CC: clang
+
+      - name: Backend self-test (native)
+        run: |
+          cmake --build build-klee --target fs_ram_selftest
+          ctest --test-dir build-klee -R fs_ram_selftest --output-on-failure
+
+      - name: Parser sweep (exhaustive; golden verdict diff)
+        run: ctest --test-dir build-klee -R klee_apdu --output-on-failure
+
+      - name: Card path (directed; SELECT)
+        run: ctest --test-dir build-klee -R klee_transact_select --output-on-failure
+
+      - name: Upload witnesses
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: klee-witnesses
+          path: build-klee/tests/klee/**/*.ktest
+          if-no-files-found: ignore
