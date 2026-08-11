@@ -131,8 +131,8 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 
 		/* P3 == 0 promises two length bytes; here the second one is missing. */
 		if (len < APDU_HEADER_SIZE + 3) {
-			SS_LOGP(SAPDU, LERROR, "APDU malformed. Extended length field truncated. Len: %zu, apdu: %s\n",
-				len, ss_hexdump(buffer, len));
+			SS_LOGP(SAPDU, LERROR, "APDU malformed. Extended length field truncated. Len: %u, apdu: %s\n",
+				(unsigned int)len, ss_hexdump(buffer, len));
 			processed_bytes = len;
 			goto out;
 		}
@@ -205,8 +205,8 @@ out:
 
 		if (lc > available || lc > sizeof(apdu->cmd)) {
 			SS_LOGP(SAPDU, LERROR,
-				"APDU malformed. LC is larger than the remaining buffer. Len: %zu, lc: %d, apdu: %s\n",
-				len, lc, ss_hexdump(buffer, len));
+				"APDU malformed. LC is larger than the remaining buffer. Len: %u, lc: %d, apdu: %s\n",
+				(unsigned int)len, lc, ss_hexdump(buffer, len));
 			lc = 0;
 			apdu->hdr.p3 = 0;
 			/* the count derived from the untrusted Lc is equally untrusted */
