@@ -14,6 +14,12 @@ static void ss_hex_string_to_bytes(const uint8_t *hex, size_t hex_len, uint8_t b
 
 uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile)
 {
+	/* TAG(2) + LEN(2): the loop bound keeps the header inside the buffer, and the
+	 * data_end check below bounds the data field. Rejected before anything is
+	 * written into the output struct. */
+	if (len < 4)
+		return 1;
+
 	/* Stucture (a004): [TAR[3] | MSL | KIC_IND | KID_IND | KIC[32] | KID[32] | */
 	static const char a004_header[] = "b00011060101";
 	const size_t A004_RECORD_SIZE = A004_HEADER_SIZE + KEY_SIZE + KEY_SIZE;
@@ -29,11 +35,6 @@ uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss
 
 	size_t pos = 0, data_end = 0, data_start = 0, next_pos = 0;
 	uint8_t tag = 0, data_len = 0;
-
-	/* TAG(2) + LEN(2): the loop bound keeps the header inside the buffer, and the
-	 * data_end check below bounds the data field. */
-	if (len < 4)
-		return 1;
 
 	while (pos + 4 <= len) {
 		data_start = pos + 4;
