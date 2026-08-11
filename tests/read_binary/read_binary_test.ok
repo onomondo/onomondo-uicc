@@ -1,0 +1,4 @@
+SELECT EF.ICCID: 9000
+READ BINARY offset 256, 44 available: len=46 sw=9000
+READ BINARY offset 44, 256 available: len=258 sw=9000
+READ BINARY offset 0, 300 available: len=258 sw=9000
