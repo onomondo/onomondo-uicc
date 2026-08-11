@@ -209,8 +209,9 @@ static void decode_softsim_profile_test_err_length_no_overflow()
 }
 
 /* An input too short to hold one TAG(2) + LEN(2) record header is rejected without
- * reading it. Trailing characters that cannot start a header are ignored, so a
- * profile arriving with a line ending decodes. */
+ * reading it. Fewer than four trailing characters are ignored regardless of their
+ * content, so a profile arriving with a line ending decodes; four or more are
+ * parsed as a record header. */
 static void decode_softsim_profile_test_short_input()
 {
 	char with_line_ending[256];

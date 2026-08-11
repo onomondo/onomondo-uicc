@@ -66,9 +66,10 @@ struct ss_profile {
  *  This decoder is made specifically to fit the Onomondo SoftSIM
  *  CLI tools decrypted output format.
  *  
- *  \param[in] input_string a pointer to the input data source of the profile.
  *  \param[in] len the length of the profile string.
- *  \param[in] profile a pointer to the receiving profile struct.
+ *  \param[in] input_string a pointer to the input data source of the profile,
+ *             at least len characters long.
+ *  \param[out] profile a pointer to the receiving profile struct.
  *  \returns return 0 if valid profile is decoded. error code otherwise.
  */
 uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile);
