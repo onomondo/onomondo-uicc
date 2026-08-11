@@ -17,11 +17,17 @@ extern uint32_t ss_log_mask;
 static void relax_tar_msl(void)
 {
 	FILE *f = fopen("files/3f00/a004", "r+");
+	size_t written;
+	int rc;
 
 	assert(f);
-	/* Records are stored as ASCII hex; MSL is byte 3 of struct tar_record. */
-	assert(fseek(f, 6, SEEK_SET) == 0);
-	assert(fwrite("00", 1, 2, f) == 2);
+	/* Records are stored as ASCII hex; MSL is byte 3 of struct tar_record.
+	 * The seek and the write stay outside the asserts: NDEBUG drops the whole
+	 * expression, and the patch has to happen for the test to mean anything. */
+	rc = fseek(f, 6, SEEK_SET);
+	assert(rc == 0);
+	written = fwrite("00", 1, 2, f);
+	assert(written == 2);
 	fclose(f);
 }
 
