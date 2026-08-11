@@ -217,6 +217,14 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 	 * error cases. */
 	ss_fs_utils_path_clone(&backup_path, &apdu->lchan->fs_path);
 
+	/* A malformed length field means the command body cannot be trusted, so
+	 * no command may execute (TS 102 221 table 10.11: '6700' wrong length). */
+	if (apdu->malformed) {
+		apdu->sw = SS_SW_ERR_CHECKING_WRONG_LENGTH;
+		apdu->le = 0;
+		goto out;
+	}
+
 	if (((apdu->hdr.cla & 0x70) == 0x00) && apdu->hdr.ins == TS_102_221_INS_GET_RESPONSE) {
 		/* The GET RESPONSE command is of command case 2 (see also command.h) */
 		processed_length = 5;

@@ -84,6 +84,7 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 		apdu->lc = 0;
 		apdu->le = 0;
 		apdu->processed_bytes = 0;
+		apdu->malformed = true;
 		return;
 	}
 
@@ -134,6 +135,7 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 			SS_LOGP(SAPDU, LERROR, "APDU malformed. Extended length field truncated. Len: %u, apdu: %s\n",
 				(unsigned int)len, ss_hexdump(buffer, len));
 			processed_bytes = len;
+			apdu->malformed = true;
 			goto out;
 		}
 
@@ -169,6 +171,7 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 			le = 0;
 			SS_LOGP(SAPDU, LERROR, "APDU malformed. LE couldn't be derived. Len: %zu, lc: %d, apdu: %s\n",
 				len, lc, ss_hexdump(buffer, len));
+			apdu->malformed = true;
 			break;
 		}
 
@@ -211,6 +214,7 @@ out:
 			apdu->hdr.p3 = 0;
 			/* the count derived from the untrusted Lc is equally untrusted */
 			processed_bytes = len;
+			apdu->malformed = true;
 		}
 	}
 	apdu->lc = lc;
