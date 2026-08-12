@@ -12,3 +12,9 @@ cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 104
 
 cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 0
 
+cla: 00, ins: a4, p1: 00, p2: 00, p3: 00, lc: 0, le: 0
+
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 104
+
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 3, le: 0
+

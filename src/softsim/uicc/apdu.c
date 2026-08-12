@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-#include <assert.h>
 #include <string.h>
 #include <onomondo/softsim/log.h>
 #include <onomondo/softsim/mem.h>
@@ -31,15 +30,18 @@ struct ss_apdu *ss_apdu_new(struct ss_context *ctx)
  *  \param[in] apdu to toss. */
 void ss_apdu_toss(struct ss_apdu *apdu)
 {
-	/*! NOTE: By calling this function the APDU struct is not freed
-	 *  immediately. It is kept for another cycle for internal
-	 *  references. */
+	/*! NOTE: The APDU struct is either freed here or parked as
+	 *  lchan->last_apdu for one more cycle. The caller must not touch
+	 *  the pointer after this call. */
 
 	/* NOTE: An APDU without lchan may occur when it was impossible to
 	 * resolve a valid lchan. This may happen when a non existing lchan
-	 * is addressed. */
+	 * is addressed. Nothing can reference it later -- GET RESPONSE reaches
+	 * the previous APDU through lchan->last_apdu -- so free it now instead
+	 * of keeping it for another cycle. */
 	if (!apdu->lchan) {
-		SS_LOGP(SLCHAN, LERROR, "tossing APDU without lchan\n");
+		SS_LOGP(SLCHAN, LDEBUG, "tossing APDU %p without lchan\n", apdu);
+		SS_FREE(apdu);
 		return;
 	}
 
@@ -71,10 +73,19 @@ void ss_apdu_toss(struct ss_apdu *apdu)
  *  \param[in] len bytes in buffer */
 void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 {
-	assert(len >= APDU_HEADER_SIZE);
 	// resulting apdu is collected in the end
 	uint16_t le = 0, lc = 0, processed_bytes = 0;
 	uint8_t *data_start = NULL;
+
+	/* Not an assert: -DNDEBUG would strip it, and the header memcpy below
+	 * reads APDU_HEADER_SIZE bytes from a caller-supplied buffer. */
+	if (len < APDU_HEADER_SIZE) {
+		SS_LOGP(SAPDU, LERROR, "APDU malformed. Shorter than the header. Len: %u\n", (unsigned int)len);
+		apdu->lc = 0;
+		apdu->le = 0;
+		apdu->processed_bytes = 0;
+		return;
+	}
 
 	SS_LOGP(SAPDU, LDEBUG, "Parsing APDU %s\n", ss_hexdump(buffer, len));
 
@@ -115,6 +126,14 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 
 			processed_bytes = len;
 			SS_LOGP(SAPDU, LDEBUG, "APDU is CASE 2 extended - le=%d\n", le);
+			goto out;
+		}
+
+		/* P3 == 0 promises two length bytes; here the second one is missing. */
+		if (len < APDU_HEADER_SIZE + 3) {
+			SS_LOGP(SAPDU, LERROR, "APDU malformed. Extended length field truncated. Len: %u, apdu: %s\n",
+				(unsigned int)len, ss_hexdump(buffer, len));
+			processed_bytes = len;
 			goto out;
 		}
 
@@ -178,13 +197,21 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 	apdu->hdr.p3 = lc;
 	processed_bytes = APDU_HEADER_SIZE + 1 + lc + 1;
 out:
-	// lc is externally supplied so we can't trust it at all
-	if (lc > len - APDU_HEADER_SIZE) {
-		SS_LOGP(SAPDU, LERROR,
-			"APDU malformed. LC is larger than the remaining buffer. Len: %zu, lc: %d, apdu: %s\n", len, lc,
-			ss_hexdump(buffer, len));
-		lc = 0;
-		apdu->hdr.p3 = 0;
+	/* lc is externally supplied so we can't trust it at all. It must fit both
+	 * the bytes that follow data_start and apdu->cmd, which bound the memcpy
+	 * below. */
+	if (lc) {
+		size_t available = len - (size_t)(data_start - buffer);
+
+		if (lc > available || lc > sizeof(apdu->cmd)) {
+			SS_LOGP(SAPDU, LERROR,
+				"APDU malformed. LC is larger than the remaining buffer. Len: %u, lc: %d, apdu: %s\n",
+				(unsigned int)len, lc, ss_hexdump(buffer, len));
+			lc = 0;
+			apdu->hdr.p3 = 0;
+			/* the count derived from the untrusted Lc is equally untrusted */
+			processed_bytes = len;
+		}
 	}
 	apdu->lc = lc;
 	apdu->le = le;

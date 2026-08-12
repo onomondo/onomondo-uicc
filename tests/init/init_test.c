@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "src/softsim/uicc/sw.h"
 
 /* init_test: Basic application APDU exchange smoke test
  *
@@ -24,7 +25,7 @@
 const char *apdus[] = {
 	"00a4000c023f00", "00a40804022f0500",
 	// "00b000000a",
-	"801000002337e9ffe3119c001fa500001fe260000043cb00000000400040000000080080011010", "00a40804022f0800",
+	"801000002237e9ffe3119c001fa500001fe260000043cb00000000400040000000080080011010", "00a40804022f0800",
 	// "00b0000005",
 	"00a40804022f0600",
 	// "00b2010428",
@@ -90,6 +91,54 @@ static void unknown_class_test(struct ss_context *ctx)
 	}
 }
 
+/* ss_transact() requires the full 5-byte header; every shorter prefix
+ * answers 6700. */
+static void transact_short_apdu_test(struct ss_context *ctx)
+{
+	/* 5 bytes of a plausible SELECT; only the first `len` are handed over. */
+	uint8_t cmd[] = { 0x00, 0xa4, 0x00, 0x0c, 0x02 };
+	uint8_t resp[300];
+
+	for (size_t len = 0; len < sizeof(cmd); len++) {
+		size_t cmd_len = len;
+		size_t resp_len;
+
+		memset(resp, 0, sizeof(resp));
+		resp_len = ss_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
+
+		assert(resp_len == 2);
+		assert(((resp[0] << 8) | resp[1]) == SS_SW_ERR_CHECKING_WRONG_LENGTH);
+	}
+}
+
+/* Both CLA rejections answer before a logical channel is resolved, so the APDU
+ * has no holder and must be freed rather than parked. First APDU, no auth. */
+static void transact_unresolved_lchan_test(struct ss_context *ctx)
+{
+	/* CLA 0x0c sets the secure-messaging bits; CLA 0x01 leaves them clear and
+	 * names logical channel 1, so each reaches a different rejection. */
+	struct {
+		uint8_t cla;
+		uint16_t sw;
+	} cases[] = {
+		{ 0x0c, SS_SW_ERR_FUNCTION_IN_CLA_NOT_SUPP_SM },
+		{ 0x01, SS_SW_ERR_FUNCTION_IN_CLA_NOT_SUPP_LCHAN },
+	};
+	uint8_t resp[300];
+
+	for (size_t i = 0; i < SS_ARRAY_SIZE(cases); i++) {
+		uint8_t cmd[] = { cases[i].cla, 0xa4, 0x00, 0x0c, 0x02 };
+		size_t cmd_len = sizeof(cmd);
+		size_t resp_len;
+
+		memset(resp, 0, sizeof(resp));
+		resp_len = ss_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
+
+		assert(resp_len == 2);
+		assert(((resp[0] << 8) | resp[1]) == cases[i].sw);
+	}
+}
+
 int main(void)
 {
 	struct ss_context *ctx;
@@ -98,6 +147,12 @@ int main(void)
 	ss_reset(ctx);
 
 	unknown_class_test(ctx);
+	ss_reset(ctx);
+
+	transact_short_apdu_test(ctx);
+	ss_reset(ctx);
+
+	transact_unresolved_lchan_test(ctx);
 	ss_reset(ctx);
 
 	size_t cmd_len = 0;
