@@ -81,11 +81,13 @@ int main(void)
 		cmd_len = ss_binary_from_hexstr(cmd, sizeof(cmd), cmd_string);
 		resp_len = sizeof(resp);
 
-		SS_LOGP(SAPDU, LINFO, ">>> Card APDU request %s >>>\n ", ss_hexdump(cmd, cmd_len));
+		/* stdout, not SS_LOGP: the log goes to stderr and carries heap
+		 * pointers, which cannot be compared against a golden file. */
+		printf(">>> Card APDU request %s >>>\n", ss_hexdump(cmd, cmd_len));
 
 		resp_len = ss_application_apdu_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
 
-		SS_LOGP(SAPDU, LINFO, "<<< Card APDU response %s <<< \n\n\n ", ss_hexdump(resp, resp_len));
+		printf("<<< Card APDU response %s <<<\n", ss_hexdump(resp, resp_len));
 	}
 	ss_free_ctx(ctx);
 
