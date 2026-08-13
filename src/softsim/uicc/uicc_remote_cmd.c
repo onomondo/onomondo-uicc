@@ -17,6 +17,7 @@
 #include <onomondo/softsim/softsim.h>
 #include <onomondo/softsim/crypto.h>
 
+#include "apdu.h"
 #include "context.h"
 #include "fcp.h"
 #include "fs.h"
@@ -81,6 +82,14 @@ struct cntr_record {
 /* Arbitrary limit for response sizes: "The limitation of 256 bytes does not
  * apply for the length of the response data." */
 #define SS_UICC_REMOTE_COMMAND_RESPONSE_MAXSIZE 4096
+
+/* ss_transact() refuses a response buffer that cannot hold a full R-APDU and
+ * returns 0; process_commands() below reads the SW back out of the buffer
+ * without checking for that, so the space left after the OTA response header
+ * has to clear the bar. */
+_Static_assert(SS_UICC_REMOTE_COMMAND_RESPONSE_MAXSIZE - (16 + OTA_INTEGRITY_LEN) - 3 >=
+		       sizeof(((struct ss_apdu *)0)->rsp) + sizeof(((struct ss_apdu *)0)->sw),
+	       "RFM response buffer too small for the ss_transact() contract");
 
 /* See also ETSI TS 102 225, section 5.1.1 */
 enum cntr_mgmnt {

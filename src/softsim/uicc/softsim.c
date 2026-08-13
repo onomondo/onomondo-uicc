@@ -438,7 +438,7 @@ out:
  *  \param[in] response_buf_len maxium length of the resulting response APDU.
  *  \param[in] request_buf user provided memory with request APDU.
  *  \param[inout] request_len length of the request APDU.
- *  \returns length of the resulting response APDU. */
+ *  \returns length of the resulting response APDU, 0 if response_buf is too small. */
 size_t ss_transact(struct ss_context *ctx, uint8_t *response_buf, size_t response_buf_len, uint8_t *request_buf,
 		   size_t *request_len)
 {
@@ -452,6 +452,16 @@ size_t ss_transact(struct ss_context *ctx, uint8_t *response_buf, size_t respons
 	int processed_length;
 	size_t _request_len = *request_len;
 
+	/* A card response can consume the whole response body plus the status
+	 * word, so a caller that provides less than that cannot be served. This
+	 * has to precede every write below, including the status word written on
+	 * the short-APDU path. */
+	if (response_buf_len < sizeof(apdu->rsp) + sizeof(apdu->sw)) {
+		SS_LOGP(SIFACE, LERROR, "response buffer holds %u bytes, %u are required\n",
+			(unsigned int)response_buf_len, (unsigned int)(sizeof(apdu->rsp) + sizeof(apdu->sw)));
+		return 0;
+	}
+
 	/* A T=0 TPDU carries at least the 5-byte header (CLA INS P1 P2 P3) that
 	 * is copied below; anything shorter is rejected. Header-only Case 1
 	 * APDUs are served by ss_application_apdu_transact(). */
@@ -463,10 +473,6 @@ size_t ss_transact(struct ss_context *ctx, uint8_t *response_buf, size_t respons
 		*request_len = _request_len;
 		return 2;
 	}
-
-	/* A card response can consume up to 255 bytes, it must be ensured that
-	 * the response buffer is large enough. */
-	assert(response_buf_len >= sizeof(apdu->rsp) + sizeof(apdu->sw));
 
 	/* Limit the request length to the maximum length of an APDU. It is
 	 * legal to call this function with a request lengths far longer than
@@ -532,7 +538,7 @@ size_t ss_transact(struct ss_context *ctx, uint8_t *response_buf, size_t respons
  *  \param[in] response_buf_len maximum length of the resulting response APDU.
  *  \param[in] request_buf user provided memory with request APDU.
  *  \param[in] request_len length of the request APDU, must not be longer than 5+265 bytes.
- *  \returns length of the resulting response APDU. */
+ *  \returns length of the resulting response APDU, 0 if response_buf is too small. */
 size_t ss_application_apdu_transact(struct ss_context *ctx, uint8_t *response_buf, size_t response_buf_len,
 				    uint8_t *request_buf, size_t *request_len)
 {
@@ -542,6 +548,16 @@ size_t ss_application_apdu_transact(struct ss_context *ctx, uint8_t *response_bu
 	size_t _request_len = *request_len;
 	uint16_t le = 0;
 
+	/* A card response can consume the whole response body plus the status
+	 * word, so a caller that provides less than that cannot be served. This
+	 * has to precede every write below, including the status word written on
+	 * the short-APDU path. */
+	if (response_buf_len < sizeof(apdu->rsp) + sizeof(apdu->sw)) {
+		SS_LOGP(SIFACE, LERROR, "response buffer holds %u bytes, %u are required\n",
+			(unsigned int)response_buf_len, (unsigned int)(sizeof(apdu->rsp) + sizeof(apdu->sw)));
+		return 0;
+	}
+
 	/* Allow 4-byte Case 1 APDUs (header only: CLA INS P1 P2)
 	 * The parser ss_apdu_parse_exhaustive supports this format */
 	if (_request_len < 4) {
@@ -550,10 +566,6 @@ size_t ss_application_apdu_transact(struct ss_context *ctx, uint8_t *response_bu
 		response_buf[response_len++] = SS_SW_ERR_CHECKING_WRONG_LENGTH & 0xff;
 		return 2;
 	}
-
-	/* A card response can consume up to 256 bytes, it must be ensured that
-	* the response buffer is large enough. */
-	assert(response_buf_len >= sizeof(apdu->rsp) + sizeof(apdu->sw));
 
 	if (_request_len > sizeof(apdu->cmd) + sizeof(apdu->hdr)) {
 		SS_LOGP(SIFACE, LINFO, "request exceeds maximum length %zu > %zu, will truncate.\n", _request_len,
