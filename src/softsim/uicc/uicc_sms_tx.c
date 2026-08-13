@@ -73,7 +73,7 @@ void ss_uicc_sms_tx_clear(struct ss_context *ctx)
 
 /* Encode a single short message TPDU */
 static int encode_sm(uint8_t *sm_enc, size_t sm_enc_len, const struct ss_sm_hdr *sm_hdr, const uint8_t *ud_hdr,
-	      size_t ud_hdr_len, const uint8_t *tp_ud, size_t tp_ud_len, bool recalc_tp_udl)
+		     size_t ud_hdr_len, const uint8_t *tp_ud, size_t tp_ud_len, bool recalc_tp_udl)
 {
 	int rc;
 	size_t bytes_used = 0;
