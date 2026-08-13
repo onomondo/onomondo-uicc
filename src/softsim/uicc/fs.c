@@ -39,7 +39,7 @@ static struct ss_file *path_add(struct ss_list *path, uint32_t fid)
 }
 
 /* Free a file struct and its contents. */
-void file_free(struct ss_file *file)
+static void file_free(struct ss_file *file)
 {
 	if (!file)
 		return;

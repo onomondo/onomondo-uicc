@@ -72,8 +72,8 @@ void ss_uicc_sms_tx_clear(struct ss_context *ctx)
 }
 
 /* Encode a single short message TPDU */
-int encode_sm(uint8_t *sm_enc, size_t sm_enc_len, const struct ss_sm_hdr *sm_hdr, const uint8_t *ud_hdr,
-	      size_t ud_hdr_len, const uint8_t *tp_ud, size_t tp_ud_len, bool recalc_tp_udl)
+static int encode_sm(uint8_t *sm_enc, size_t sm_enc_len, const struct ss_sm_hdr *sm_hdr, const uint8_t *ud_hdr,
+		     size_t ud_hdr_len, const uint8_t *tp_ud, size_t tp_ud_len, bool recalc_tp_udl)
 {
 	int rc;
 	size_t bytes_used = 0;
@@ -263,7 +263,7 @@ static uint8_t calc_message_parts(size_t ud_hdr_len, size_t tp_ud_len)
  * usually done to remove already scheduled parts of a concatenated SM from
  * the queue in case there is an error while generating and enqueing the
  * partial messages. */
-void cancel_sm(struct ss_uicc_sms_tx_state *state, uint8_t msg_id)
+static void cancel_sm(struct ss_uicc_sms_tx_state *state, uint8_t msg_id)
 {
 	struct ss_uicc_sms_tx_sm *sm;
 	struct ss_uicc_sms_tx_sm *sm_pre;

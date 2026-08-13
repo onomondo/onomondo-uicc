@@ -39,7 +39,7 @@ struct ss_cat_envelope_command {
 };
 
 /* Handler function to handle CAT SMS PP Download */
-int handle_sms_pp_dwnld(struct ss_apdu *apdu, struct ss_buf *cat_template)
+static int handle_sms_pp_dwnld(struct ss_apdu *apdu, struct ss_buf *cat_template)
 {
 	struct ss_list *ctlv_data = NULL;
 	struct cmp_tlv_ie *sms_tpdu_ie;
