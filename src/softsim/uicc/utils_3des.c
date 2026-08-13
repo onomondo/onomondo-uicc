@@ -11,7 +11,7 @@
 #include <onomondo/softsim/crypto.h>
 
 #ifndef CONFIG_EXTERNAL_CRYPTO_IMPL
-void setup_key(const uint8_t *src, struct des3_key_s *dest)
+static void setup_key(const uint8_t *src, struct des3_key_s *dest)
 {
 	/* The library wants keys in 24byte form, but we have the 16byte form */
 	/* If the compiler is smart, that doesn't really happen (but things re

@@ -42,7 +42,7 @@ const uint8_t FCP_TAG_SECURITY_ATTRIB_COMPACT = 0x8c;
 const uint8_t FCP_TAG_SECURITY_ATTRIB_EXTENDED = 0xab;
 
 /** Extract the access rule reference from the FCP as described in TS 102 221 v15.0.0 Section 9.2.7 */
-struct arr_ref arr_from_fcp(struct ss_list *fcp_decoded_envelope)
+static struct arr_ref arr_from_fcp(struct ss_list *fcp_decoded_envelope)
 {
 	struct ber_tlv_ie *fcp_decoded_arr;
 

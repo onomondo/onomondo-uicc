@@ -132,7 +132,7 @@ static int handle_request(struct ss_context *ctx, int socket_fd)
 
 /* Subtract timeval y from x, see also:
  * https://www.gnu.org/software/libc/manual/html_node/Calculating-Elapsed-Time.html */
-int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y)
+static int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y)
 {
 	if (x->tv_usec < y->tv_usec) {
 		int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
