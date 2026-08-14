@@ -10,11 +10,11 @@ target_link_libraries(init_test uicc milenage crypto storage $<$<TARGET_EXISTS:u
 
 add_test(NAME init_test COMMAND sh -c "$<TARGET_FILE:init_test> > ${CMAKE_CURRENT_BINARY_DIR}/init_test.out")
 
-# Ensure the test runs from the project root so relative storage-path './files'
-# resolves to the repository 'files' directory (where 3f00.def lives). This
-# avoids needing embedded static files or runtime environment changes for
-# tests that read the host filesystem.
-set_tests_properties(init_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+# The suite reads and writes ./files, so it runs on a private copy of the
+# filesystem instead of the one in the source tree.
+file(COPY ${CMAKE_SOURCE_DIR}/files DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+set_tests_properties(init_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_test(NAME init_test_compare
 	 COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
