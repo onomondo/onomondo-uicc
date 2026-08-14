@@ -24,6 +24,7 @@ add_subdirectory(utils)
 add_subdirectory(pin)
 add_subdirectory(read_binary)
 add_subdirectory(read_on_df)
+add_subdirectory(select)
 add_subdirectory(suspend)
 add_subdirectory(init)
 
