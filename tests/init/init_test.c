@@ -186,10 +186,14 @@ static void transact_short_response_buf_test(struct ss_context *ctx)
 }
 
 /* A READ BINARY response is bounded by apdu->rsp, whatever the file holds and
- * whatever Le asks for; Le='00' means 256 (ISO/IEC 7816-4 section 5.1). The EF
- * is grown past the buffer for the duration of the case. The file is tracked
- * in git and the conformance suite copies this tree, so the result is captured
- * and the file restored before anything is asserted -- an assert aborts. */
+ * whatever Le asks for. Two forms reach the unbounded length: Le='00' on the
+ * T=0 path, which apdu_transact turns into le=0 ("all available"), and a Case 1
+ * command with no Le byte at all, which is what the nRF91 modem sends.
+ *
+ * The EF is grown past the buffer for the duration of the case and restored
+ * before anything is asserted: an assert aborts, and the build directory's copy
+ * of files/ is made once at configure time, so a corrupted file would survive
+ * into every later ctest run. */
 #define BIG_EF_PATH "./files/3f00/7ff0/6f38"
 #define BIG_EF_BYTES 300
 
@@ -198,8 +202,8 @@ static void read_binary_bound_test(struct ss_context *ctx)
 	uint8_t resp[512];
 	char saved[2 * BIG_EF_BYTES + 1];
 	size_t saved_len;
-	size_t le0_len;
-	uint16_t le0_sw;
+	size_t le0_len, case1_len;
+	uint16_t le0_sw, case1_sw;
 	FILE *f;
 	size_t i;
 
@@ -210,7 +214,7 @@ static void read_binary_bound_test(struct ss_context *ctx)
 	};
 
 	f = fopen(BIG_EF_PATH, "r");
-	assert(f); /* ctest sets WORKING_DIRECTORY to the project root */
+	assert(f); /* ctest runs the suite in its own build directory */
 	saved_len = fread(saved, 1, sizeof(saved), f);
 	assert(saved_len < sizeof(saved) && feof(f)); /* whole file, or the restore truncates it */
 	fclose(f);
@@ -237,6 +241,17 @@ static void read_binary_bound_test(struct ss_context *ctx)
 		le0_sw = resp[le0_len - 2] << 8 | resp[le0_len - 1];
 	}
 
+	{
+		/* Case 1: no Le byte. ss_transact() requires the 5-byte TPDU
+		 * header, so this form arrives through the application entry. */
+		uint8_t cmd[] = { 0x00, 0xb0, 0x00, 0x00 };
+		size_t cmd_len = sizeof(cmd);
+
+		memset(resp, 0, sizeof(resp));
+		case1_len = ss_application_apdu_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
+		case1_sw = resp[case1_len - 2] << 8 | resp[case1_len - 1];
+	}
+
 	f = fopen(BIG_EF_PATH, "w");
 	assert(f);
 	fwrite(saved, 1, saved_len, f);
@@ -244,6 +259,8 @@ static void read_binary_bound_test(struct ss_context *ctx)
 
 	assert(le0_len == 256 + 2); /* 256 data bytes + SW */
 	assert(le0_sw == 0x9000);
+	assert(case1_len == 256 + 2);
+	assert(case1_sw == 0x9000);
 }
 
 int main(void)
