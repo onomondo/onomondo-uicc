@@ -185,6 +185,51 @@ static void transact_short_response_buf_test(struct ss_context *ctx)
 	}
 }
 
+/* A malformed length field is answered 6700 before any command executes
+ * (TS 102 221 table 10.11), and the card keeps serving well-formed APDUs. */
+static void transact_malformed_length_test(struct ss_context *ctx)
+{
+	/* TERMINAL PROFILE whose Lc declares one byte more than the body holds */
+	uint8_t term_profile[39] = { 0x80, 0x10, 0x00, 0x00, 0x23 };
+	/* P3 = 0 promises a two-byte extended length; only one byte follows */
+	uint8_t select_truncated[] = { 0x00, 0xa4, 0x00, 0x00, 0x00, 0x02 };
+	/* UPDATE BINARY whose Lc declares one byte more than the body holds */
+	uint8_t update_short[] = { 0x00, 0xd6, 0x00, 0x00, 0x08, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x11 };
+	uint8_t select_mf[] = { 0x00, 0xa4, 0x00, 0x0c, 0x02, 0x3f, 0x00 };
+	const struct {
+		const uint8_t *apdu;
+		size_t len;
+	} cases[] = {
+		{ select_truncated, sizeof(select_truncated) },
+		{ term_profile, sizeof(term_profile) },
+		{ update_short, sizeof(update_short) },
+	};
+	uint8_t cmd[64];
+	uint8_t resp[300];
+
+	for (size_t i = 0; i < SS_ARRAY_SIZE(cases); i++) {
+		size_t cmd_len = cases[i].len;
+		size_t resp_len;
+
+		memcpy(cmd, cases[i].apdu, cases[i].len);
+		memset(resp, 0, sizeof(resp));
+		resp_len = ss_application_apdu_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
+
+		assert(resp_len == 2);
+		assert(((resp[0] << 8) | resp[1]) == SS_SW_ERR_CHECKING_WRONG_LENGTH);
+	}
+
+	size_t cmd_len = sizeof(select_mf);
+	size_t resp_len;
+
+	memcpy(cmd, select_mf, sizeof(select_mf));
+	memset(resp, 0, sizeof(resp));
+	resp_len = ss_application_apdu_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
+
+	assert(resp_len == 2);
+	assert(((resp[0] << 8) | resp[1]) == SS_SW_NORMAL_ENDING);
+}
+
 int main(void)
 {
 	struct ss_context *ctx;
@@ -202,6 +247,9 @@ int main(void)
 	ss_reset(ctx);
 
 	transact_short_response_buf_test(ctx);
+	ss_reset(ctx);
+
+	transact_malformed_length_test(ctx);
 	ss_reset(ctx);
 
 	size_t cmd_len = 0;

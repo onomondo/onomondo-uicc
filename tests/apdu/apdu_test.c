@@ -110,6 +110,16 @@ void apdu_test_lc_exact_fit(void)
 	dump_apdu(&apdu);
 }
 
+/* Extended Lc of 320: it fits the request buffer, but not apdu->cmd. */
+void apdu_test_lc_over_cmd_buffer(void)
+{
+	fprintf(stderr, "apdu_test_lc_over_cmd_buffer\n");
+	struct ss_apdu apdu = { 0 };
+	uint8_t cmd[7 + 320] = { 0x00, 0xa4, 0x08, 0x04, 0x00, 0x01, 0x40 };
+	ss_apdu_parse_exhaustive(&apdu, cmd, SS_ARRAY_SIZE(cmd));
+	dump_apdu(&apdu);
+}
+
 int main(int argc, char **argv)
 {
 	apdu_test_select_extended();
@@ -122,5 +132,6 @@ int main(int argc, char **argv)
 	apdu_test_truncated_extended_len();
 	apdu_test_lc_boundary_reject();
 	apdu_test_lc_exact_fit();
+	apdu_test_lc_over_cmd_buffer();
 	return 0;
 }
