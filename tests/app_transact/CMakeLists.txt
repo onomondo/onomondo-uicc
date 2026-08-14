@@ -8,7 +8,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(app_apdu_test uicc milenage crypto storage $<$<TARGET_EXISTS:utils>:utils>)
 
 # Snapshot files/ at configure time, as tests/key_scrub does: suites that run
-# from the source root (tests/init, tests/pin) write into ${CMAKE_SOURCE_DIR}/files
+# from the source root (tests/pin, tests/utils) write into ${CMAKE_SOURCE_DIR}/files
 # during the run, so a copy taken while ctest is running can capture their edits.
 file(COPY ${CMAKE_SOURCE_DIR}/files DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/pristine)
 
