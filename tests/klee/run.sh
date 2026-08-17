@@ -34,7 +34,7 @@ CFLAGS=(-emit-llvm -c -g -O0 -Xclang -disable-O0-optnone
 KLEE_FLAGS=(--libc=none --search=dfs --only-output-states-covering-new
 	--warnings-only-to-file "--max-time=${KLEE_MAX_TIME:-120}s")
 
-LENGTHS=(4 5 6 7 8 9 10 261 264)
+LENGTHS=(4 5 6 7 8 9 10 261 262 263 264)
 
 # Compile the parser once; it does not depend on the length.
 build_apdu_lib() {
