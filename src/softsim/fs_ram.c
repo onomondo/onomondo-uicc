@@ -5,21 +5,13 @@
  *
  * In-memory ss_f* storage backend: a drop-in replacement for fs.c, selected
  * with -DCONFIG_NO_DEFAULT_IMPL=y (which drops fs.c from the build). It serves
- * the card image straight out of the ss_static_files_hex.c embedding instead
- * of the host filesystem, so there are no fopen/fread/mkdir syscalls at all.
+ * the card image straight out of the ss_static_files_hex.c embedding, so there
+ * are no syscalls to concretise KLEE's symbolic state, and writes are per-file
+ * copy-on-write so a forked path clones only the files it touches;
+ * ss_fs_ram_reset() restores the pristine image.
  *
- * Two callers want exactly this:
- *   - KLEE, where every real syscall would be an external call that concretises
- *     symbolic state, and where each forked path needs its own view of the
- *     filesystem. A mutable buffer is per-file and copy-on-write, so KLEE clones
- *     only the files a path actually writes.
- *   - the fuzzer, whose staged /tmp copy is shared between executions (see
- *     tests/fuzz/README.md "Known limits"); ss_fs_ram_reset() gives each input
- *     a pristine image with no disk involved.
- *
- * The files store ASCII hex: an N-byte EF is 2N characters. ss_fread/ss_fwrite
- * therefore move characters, and ss_fseek offsets and ss_file_size counts are
- * in characters -- the contract storage.c already relies on.
+ * The files store ASCII hex: an N-byte EF is 2N characters, so all offsets and
+ * counts here are in characters -- the contract storage.c already relies on.
  */
 
 #include <onomondo/softsim/fs.h>
@@ -58,7 +50,7 @@ char storage_path[SS_STORAGE_PATH_MAX] = "";
 
 int ss_storage_set_path(const char *path)
 {
-	if (!path || strlen(path) >= SS_STORAGE_PATH_MAX)
+	if (!path || !*path || strlen(path) >= SS_STORAGE_PATH_MAX)
 		return -1;
 	strncpy(storage_path, path, SS_STORAGE_PATH_MAX - 1);
 	storage_path[SS_STORAGE_PATH_MAX - 1] = '\0';

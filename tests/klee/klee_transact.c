@@ -3,24 +3,15 @@
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
- * KLEE harness for the full card path: ss_application_apdu_transact(), the
- * entry point the nRF modem glue calls. Unlike the parser harness this drives a
- * real card -- context, filesystem, command dispatch -- so it links the whole
- * library against the in-memory ss_f* backend (src/softsim/fs_ram.c) rather
- * than touching disk.
+ * KLEE harness for the full card path: ss_application_apdu_transact() linked
+ * against the in-memory backend (src/softsim/fs_ram.c). The command header is
+ * pinned per command (-DKLEE_CMD_*) and only the DATA field is left free, so
+ * one run is a directed exploration of one handler. Time-bounded, not
+ * exhaustive -- see README.md.
  *
- * A fully symbolic APDU would fork the 21-entry dispatcher 21 ways before doing
- * any useful work, so the class/instruction/P1/P2 header is pinned per command
- * (-DKLEE_CMD_*) and only the command DATA field is left free. That turns one
- * run into a directed exploration of one handler's body -- SELECT resolving a
- * symbolic file id, VERIFY PIN comparing a symbolic secret, ENVELOPE walking a
- * symbolic BER-TLV. The header is pinned with klee_assume() rather than written
- * after klee_make_symbolic(), so the whole request stays one symbolic object
- * (KLEE requires that) and the witness .ktest is the exact APDU verbatim.
- *
- * This is not exhaustive: reachable states are bounded by --max-time, so a
- * clean run means "no error found in the part of the tree explored", not "no
- * error exists". See README.md.
+ * The header is pinned with klee_assume() rather than written after
+ * klee_make_symbolic(): the request stays one symbolic object (KLEE requires
+ * that) and the witness .ktest is the exact APDU verbatim.
  */
 
 #include <onomondo/softsim/softsim.h>
@@ -48,7 +39,7 @@ static const uint8_t hdr[4] = { 0x80, 0xc2, 0x00, 0x00 };
 #endif
 
 #define REQ_LEN (5 + DATA_LEN) /* CLA INS P1 P2 Lc | DATA */
-#define RESP_LEN 512 /* the entry point asserts response_buf_len >= 258 */
+#define RESP_LEN 512 /* the entry point rejects response_buf_len < 258 */
 
 void ss_fs_ram_reset(void);
 
