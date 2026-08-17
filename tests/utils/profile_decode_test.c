@@ -208,11 +208,38 @@ static void decode_softsim_profile_test_err_length_no_overflow()
 	printf("Profile decode return value: %d\n", rc);
 }
 
+/* An input too short to hold one TAG(2) + LEN(2) record header is rejected without
+ * reading it. Fewer than four trailing characters are ignored regardless of their
+ * content, so a profile arriving with a line ending decodes; four or more are
+ * parsed as a record header. */
+static void decode_softsim_profile_test_short_input()
+{
+	char with_line_ending[256];
+	struct ss_profile profile = { 0 };
+	uint8_t rc;
+
+	printf("TEST: Decode a decrypted Onomondo SoftSIM profile that is too short\n");
+
+	rc = ss_profile_from_string(0, "", &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc != 0);
+
+	rc = ss_profile_from_string(2, "b0", &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc != 0);
+
+	snprintf(with_line_ending, sizeof(with_line_ending), "%s\r\n", decrypted_profile_ok);
+	rc = ss_profile_from_string(strlen(with_line_ending), with_line_ending, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+}
+
 int main(int argc, char **argv)
 {
 	decode_softsim_profile_test_ok();
 	decode_softsim_profile_test_err_imsi();
 	decode_softsim_profile_test_err_bad_length_encoding();
 	decode_softsim_profile_test_err_length_no_overflow();
+	decode_softsim_profile_test_short_input();
 	return 0;
 }

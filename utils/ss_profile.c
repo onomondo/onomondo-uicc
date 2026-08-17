@@ -10,10 +10,16 @@
 #include "onomondo/utils/ss_profile.h"
 
 static uint8_t ss_hex_to_uint8(const char *hex);
-static void ss_hex_string_to_bytes(const uint8_t *hex, size_t hex_len, uint8_t bytes[hex_len / 2]);
+static void ss_hex_string_to_bytes(const uint8_t *hex, size_t hex_len, uint8_t *bytes);
 
-uint8_t ss_profile_from_string(uint16_t len, const char input_string[len], struct ss_profile *profile)
+uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile)
 {
+	/* TAG(2) + LEN(2): the loop bound keeps the header inside the buffer, and the
+	 * data_end check below bounds the data field. Rejected before anything is
+	 * written into the output struct. */
+	if (len < 4)
+		return 1;
+
 	/* Stucture (a004): [TAR[3] | MSL | KIC_IND | KID_IND | KIC[32] | KID[32] | */
 	static const char a004_header[] = "b00011060101";
 	const size_t A004_RECORD_SIZE = A004_HEADER_SIZE + KEY_SIZE + KEY_SIZE;
@@ -30,7 +36,7 @@ uint8_t ss_profile_from_string(uint16_t len, const char input_string[len], struc
 	size_t pos = 0, data_end = 0, data_start = 0, next_pos = 0;
 	uint8_t tag = 0, data_len = 0;
 
-	while (pos < len - 2) {
+	while (pos + 4 <= len) {
 		data_start = pos + 4;
 		tag = ss_hex_to_uint8((char *)&input_string[pos]);
 		data_len = ss_hex_to_uint8((char *)&input_string[pos + 2]);
@@ -146,10 +152,10 @@ static uint8_t ss_hex_to_uint8(const char *hex)
 /** Hex string to bytes converter
  *  \param[in] hex a pointer to the hex string
  *  \param[in] hex_len the size of the string
- *  \param[inout] bytes the byte array to store the result in */
-static void ss_hex_string_to_bytes(const uint8_t *hex, size_t hex_len, uint8_t bytes[hex_len / 2])
+ *  \param[out] bytes the byte array to store the result in, hex_len / 2 bytes long */
+static void ss_hex_string_to_bytes(const uint8_t *hex, size_t hex_len, uint8_t *bytes)
 {
-	int i;
+	size_t i;
 
 	for (i = 0; i < hex_len / 2; i++) {
 		bytes[i] = ss_hex_to_uint8((char *)&hex[i * 2]);

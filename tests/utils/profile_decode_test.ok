@@ -23,3 +23,7 @@ TEST: Decode a decrypted Onomondo SoftSIM profile with expected decode error
 Profile decode return value: 13
 TEST: Decode a decrypted Onomondo SoftSIM profile with expected decode error
 Profile decode return value: 1
+TEST: Decode a decrypted Onomondo SoftSIM profile that is too short
+Profile decode return value: 1
+Profile decode return value: 1
+Profile decode return value: 0
