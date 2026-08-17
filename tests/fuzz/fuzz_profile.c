@@ -26,10 +26,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 		return 0;
 	}
 
-	/* An exact-length heap copy is the entire point of this harness. Both
-	 * production call sites and every existing test hand the parser a string
-	 * literal or an oversized buffer, so a read past the declared length hits
-	 * adjacent readable memory and goes unnoticed. */
+	/* Exact-length heap copy: a read past the declared length becomes an
+	 * ASan report instead of a silent read of adjacent memory. */
 	input = malloc(size ? size : 1); /* malloc(0) may be NULL, which would skip the empty seed */
 	if (!input) {
 		return 0;

@@ -12,11 +12,8 @@ including the STATUS with an extended Le that the nRF9151 sends. The profile
 seeds are built from the TLV layout documented in
 include/onomondo/utils/ss_profile.h.
 
-A seed corpus is not decoration: without one the fuzzer spends its budget
-rediscovering that APDUs start with a class byte, and never reaches the file
-operations behind SELECT. Extended length is keyed on a single zero byte at
-offset 4, so without an extended seed the fuzzer has to stumble onto that
-encoding before it can explore anything behind it.
+Without a seed corpus the fuzzer spends its budget rediscovering the wire
+format instead of exploring behind it; see README.md for the rationale.
 """
 
 import argparse
@@ -24,8 +21,9 @@ import hashlib
 import pathlib
 import re
 
-# Quoted, even-length, pure-hex string literals. In these transcripts that is
-# exactly the apdus[] arrays; format strings and byte arrays do not match.
+# Quoted, even-length, pure-hex string literals. In these transcripts those are
+# all APDU vectors (the apdus[] arrays plus init_test.c's short-APDU cases);
+# format strings and byte arrays do not match.
 HEX_LITERAL = re.compile(r'"((?:[0-9a-fA-F]{2})+)"')
 
 

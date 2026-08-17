@@ -8,8 +8,8 @@
 #           deterministic and sub-second, so it runs on every PR and turns a
 #           fixed crash into a permanent regression test.
 #   CI job  `<target> <corpus> -max_total_time=N` does the actual searching, and
-#           is gated to release branches, manual dispatch and the weekly cron.
-#           See the `fuzz` job in .github/workflows/ci_uicc.yml.
+#           is gated to the release-please PR and manual dispatch.
+#           See the `fuzz` job in .github/workflows/fuzz.yml.
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 

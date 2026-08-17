@@ -34,7 +34,7 @@
  * truncate anything longer, so larger inputs only cost the fuzzer time. */
 #define MAX_APDU 261
 
-/* Both entry points assert response_buf_len >= sizeof(apdu->rsp) + sizeof(apdu->sw), i.e. 258. */
+/* Both entry points reject response_buf_len < sizeof(apdu->rsp) + sizeof(apdu->sw), i.e. 258. */
 #define RESP_LEN 512
 
 static char storage_dir[] = "/tmp/ss_fuzz_XXXXXX";
@@ -80,11 +80,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 		return 0;
 	}
 
-	/* The entry points take a mutable buffer, so hand them a copy rather than
-	 * libFuzzer's. Heap, and exactly `size` bytes: a parser that reads one
-	 * byte past the request is then an ASan report rather than a silent read
-	 * of adjacent stack. That distinction is exactly what the existing tests
-	 * miss -- they pass string literals and oversized arrays. */
+	/* Exact-size heap copy (the entry points mutate the buffer): a one-byte
+	 * over-read becomes an ASan report instead of a silent read. */
 	req = malloc(size ? size : 1); /* malloc(0) may be NULL, which would skip the empty seed */
 	if (!req) {
 		return 0;
@@ -92,10 +89,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	memcpy(req, data, size);
 	req_len = size;
 
-	/* A fresh context per input keeps executions independent. The staged EF
-	 * tree is shared across them, so a crash that depends on an earlier input
-	 * having written to it does not replay standalone -- see "Known limits"
-	 * in README.md. */
+	/* Fresh context per input; the staged EF tree is shared across
+	 * executions -- see "Known limits" in README.md. */
 	ctx = ss_new_ctx();
 	if (ctx) {
 		ss_reset(ctx);
