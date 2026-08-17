@@ -85,7 +85,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	 * byte past the request is then an ASan report rather than a silent read
 	 * of adjacent stack. That distinction is exactly what the existing tests
 	 * miss -- they pass string literals and oversized arrays. */
-	req = malloc(size);
+	req = malloc(size ? size : 1); /* malloc(0) may be NULL, which would skip the empty seed */
 	if (!req) {
 		return 0;
 	}

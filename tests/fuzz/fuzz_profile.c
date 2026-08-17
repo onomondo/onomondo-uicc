@@ -30,7 +30,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	 * production call sites and every existing test hand the parser a string
 	 * literal or an oversized buffer, so a read past the declared length hits
 	 * adjacent readable memory and goes unnoticed. */
-	input = malloc(size);
+	input = malloc(size ? size : 1); /* malloc(0) may be NULL, which would skip the empty seed */
 	if (!input) {
 		return 0;
 	}
