@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <onomondo/softsim/mem.h>
 #include <onomondo/utils/ss_profile.h>
@@ -236,7 +237,7 @@ static void decode_softsim_profile_test_short_input()
 
 /* The same tags as decrypted_profile_ok, as one string so a CRC can be appended.
  * This is byte for byte what the exporter emits for its own test profile, so
- * 3016ba59 is the value both implementations have to agree on. */
+ * 610658d0 is the value both implementations have to agree on. */
 // clang-format off
 #define PROFILE_OK_TAGS \
 	"01" "12" "080910101032540636" \
@@ -251,13 +252,13 @@ static void decode_softsim_profile_test_short_input()
 static void decode_softsim_profile_test_crc()
 {
 	// clang-format off
-	static const char *profile_crc_ok = PROFILE_OK_TAGS "fe083016ba59";
-	static const char *profile_crc_upper = PROFILE_OK_TAGS "fe083016BA59";
+	static const char *profile_crc_ok = PROFILE_OK_TAGS "fe08610658d0";
+	static const char *profile_crc_upper = PROFILE_OK_TAGS "fe08610658D0";
 	static const char *profile_crc_short = PROFILE_OK_TAGS "fe06016ba5";
 	/* A CRC record with nothing in front of it, spelling crc32("") */
 	static const char *profile_crc_only = "fe0800000000";
 	/* A valid CRC, then an IMSI record the CRC does not cover. */
-	static const char *profile_crc_then_imsi = PROFILE_OK_TAGS "fe083016ba59"
+	static const char *profile_crc_then_imsi = PROFILE_OK_TAGS "fe08610658d0"
 						   "01" "12" "999999999999999999";
 	/* Same profile, one character of the Ki flipped. */
 	static const char *profile_crc_body_changed =
@@ -267,14 +268,18 @@ static void decode_softsim_profile_test_crc()
 		"04" "20" "000102030405060708090A0B0C0D0E0E"
 		"05" "20" "000102030405060708090A0B0C0D0E0F"
 		"06" "20" "000102030405060708090A0B0C0D0E0F"
-		"fe" "08" "3016ba59";
+		"fe" "08" "610658d0";
 	// clang-format on
 	struct ss_profile profile = { 0 };
+	char recased[sizeof(PROFILE_OK_TAGS) + CRC32_LEN + 4];
+	size_t i;
 	uint8_t rc;
 
 	printf("TEST: CRC32 known answer\n");
 	printf("CRC32 of \"123456789\": %08x\n", ss_profile_crc32("123456789", 9));
 	assert(ss_profile_crc32("123456789", 9) == 0xcbf43926);
+	/* The fold itself: both spellings must produce one CRC. */
+	assert(ss_profile_crc32("AbCdEf", 6) == ss_profile_crc32("abcdef", 6));
 
 	printf("TEST: Decode a decrypted Onomondo SoftSIM profile carrying a matching CRC32\n");
 	rc = ss_profile_from_string(strlen(profile_crc_ok), profile_crc_ok, &profile);
@@ -283,6 +288,15 @@ static void decode_softsim_profile_test_crc()
 
 	printf("TEST: The same profile with the CRC written in upper case\n");
 	rc = ss_profile_from_string(strlen(profile_crc_upper), profile_crc_upper, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+
+	/* A transport that re-cases the whole string must not invalidate it. */
+	printf("TEST: The same profile upper-cased in transit\n");
+	strcpy(recased, profile_crc_ok);
+	for (i = 0; recased[i]; i++)
+		recased[i] = (char)toupper((unsigned char)recased[i]);
+	rc = ss_profile_from_string(strlen(recased), recased, &profile);
 	printf("Profile decode return value: %d\n", rc);
 	assert(rc == 0);
 

@@ -72,9 +72,12 @@ struct ss_profile {
  * An optional CRC32 record (CRC32_TAG) covers every character before it, so it has to be
  * the last record and cannot be the only one -- the CRC32 of nothing is 0x00000000, which
  * a lone record would spell and thereby certify an empty profile. A profile without the
- * record decodes as before; one carrying it is rejected if the CRC does not match. The
- * characters are covered as they arrive, so a profile whose hex is re-cased in transit no
- * longer matches its own CRC. */
+ * record decodes as before; one carrying it is rejected if the CRC does not match.
+ * Characters are ASCII-case-folded before they are covered, so a profile re-cased in
+ * transit still matches its CRC. The record only guards what it covers: corruption that
+ * removes the record itself -- its own tag flipping to END_TAG, or a truncation at a
+ * record boundary -- leaves a profile that decodes cleanly unchecked. The record proves
+ * integrity when present; its absence proves nothing. */
 
 /** Parse an TLV encoded string and get back the decoded struct.
  *  This decoder is made specifically to fit the Onomondo SoftSIM
@@ -95,10 +98,11 @@ uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss
 /** Compute the CRC32 a profile's CRC record must carry.
  *
  *  CRC-32/ISO-HDLC, as used by zlib: reflected polynomial 0xedb88320, initial and
- *  final inversion. Exposed so a tool that builds a profile can append the record
- *  the decoder expects.
+ *  final inversion, computed over the ASCII-lowercased characters. Exposed so a
+ *  tool that builds a profile can append the record the decoder expects.
  *
- *  \param[in] data the characters to cover, i.e. the profile up to the CRC record.
+ *  \param[in] data the characters to cover, i.e. the profile up to the CRC record;
+ *             case is folded internally.
  *  \param[in] len number of characters.
  *  \returns the CRC32 of data. */
 uint32_t ss_profile_crc32(const char *data, size_t len);

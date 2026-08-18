@@ -195,7 +195,13 @@ uint32_t ss_profile_crc32(const char *data, size_t len)
 	/* Bitwise on purpose: a 256 entry table would cost more flash than this
 	 * loop costs time, and a profile is only a few hundred characters. */
 	for (i = 0; i < len; i++) {
-		crc ^= (uint8_t)data[i];
+		uint8_t c = (uint8_t)data[i];
+
+		/* Fold A-Z first (ASCII lowercasing): hex case carries no meaning
+		 * downstream, so re-casing in transit must not invalidate the profile. */
+		if (c >= 'A' && c <= 'Z')
+			c += 'a' - 'A';
+		crc ^= c;
 		for (bit = 0; bit < 8; bit++)
 			crc = (crc >> 1) ^ ((crc & 1) ? 0xedb88320u : 0u);
 	}

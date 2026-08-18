@@ -33,6 +33,8 @@ TEST: Decode a decrypted Onomondo SoftSIM profile carrying a matching CRC32
 Profile decode return value: 0
 TEST: The same profile with the CRC written in upper case
 Profile decode return value: 0
+TEST: The same profile upper-cased in transit
+Profile decode return value: 0
 TEST: Decode a profile whose body no longer matches its CRC32
 Profile decode return value: 19
 TEST: Decode a profile whose CRC32 record is the wrong length
