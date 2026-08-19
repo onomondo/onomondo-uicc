@@ -17,7 +17,7 @@ static const char _3f00_2fe2_def[] = "62178202412183022fe28a01058b032f0603800200
 static const char _3f00_5f100001[] = "ffff2fe2ffffffff2f052f06ffff2f08ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff2f00ffff";
 static const char _3f00_5f100001_def[] = "62108205022100021f83045f10000180013e";
 static const char _3f00_7ff0_def[] = "62228202782183027ff08410a0000000871002ffffffff89070900008a01058b032f060f";
-static const char _3f00_7ff0_5f100001[] = "6fb76f056fe3ffffffff6f786f076f086f09ffff6f7e6f736f7bffff6f5b6f5cffff6f31ffffffffffffffff6f066fe4ffffffffffffffffffffffffffff";
+static const char _3f00_7ff0_5f100001[] = "6fb76f056fadffffffff6f786f076f086f09ffff6f7e6f736f7bffff6f5b6f5cffff6f31ffffffffffffffff6f066fe4ffffffffffffffffffff6fe3ffff";
 static const char _3f00_7ff0_5f100001_def[] = "62108205022100021f83045f10000180013e";
 static const char _3f00_7ff0_6f05[] = "ffffffffffffffffffff";
 static const char _3f00_7ff0_6f05_def[] = "62178202412183026f058a01058b036f06018002000a880110";
@@ -48,13 +48,13 @@ static const char _3f00_7ff0_6f7b_def[] = "62178202412183026f7b8a01058b036f06048
 static const char _3f00_7ff0_6f7e[] = "ffffffffffffff0000ff01";
 static const char _3f00_7ff0_6f7e_def[] = "62178202412183026f7e8a01058b036f06048002000b880158";
 static const char _3f00_7ff0_6fad[] = "01000803";
-static const char _3f00_7ff0_6fad_def[] = "62168202412183026fad8a01058b036f0602800200048800";
+static const char _3f00_7ff0_6fad_def[] = "62178202412183026fad8a01058b036f060280020004880118";
 static const char _3f00_7ff0_6fb7[] = "ffffffffffffffffffffffffffffff00ffffffffffffffffffffffffffffff00ffffffffffffffffffffffffffffff00ffffffffffffffffffffffffffffff00ffffffffffffffffffffffffffffff00";
 static const char _3f00_7ff0_6fb7_def[] = "621a8205422100100583026fb78a01058b036f060280020050880108";
 static const char _3f00_7ff0_6fc4[] = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 static const char _3f00_7ff0_6fc4_def[] = "62168202412183026fc48a01058b036f0604800200408800";
 static const char _3f00_7ff0_6fe3[] = "ffffffffffffffffffffffffffffff000001";
-static const char _3f00_7ff0_6fe3_def[] = "62178202412183026fe38a01058b036f060480020012880118";
+static const char _3f00_7ff0_6fe3_def[] = "62178202412183026fe38a01058b036f0604800200128801f0";
 static const char _3f00_7ff0_6fe4[] = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 static const char _3f00_7ff0_6fe4_def[] = "621a8205422100360183026fe48a01058b036f0604800200368801c0";
 static const char _3f00_a001[] = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00";
@@ -147,7 +147,7 @@ const ss_file_t ss_files_arr[] = {
 {.name = "/3f00/7ff0/6f7e", .data = _3f00_7ff0_6f7e, .size = 22}, 
 {.name = "/3f00/7ff0/6f7e.def", .data = _3f00_7ff0_6f7e_def, .size = 50}, 
 {.name = "/3f00/7ff0/6fad", .data = _3f00_7ff0_6fad, .size = 8}, 
-{.name = "/3f00/7ff0/6fad.def", .data = _3f00_7ff0_6fad_def, .size = 48}, 
+{.name = "/3f00/7ff0/6fad.def", .data = _3f00_7ff0_6fad_def, .size = 50}, 
 {.name = "/3f00/7ff0/6fb7", .data = _3f00_7ff0_6fb7, .size = 160}, 
 {.name = "/3f00/7ff0/6fb7.def", .data = _3f00_7ff0_6fb7_def, .size = 56}, 
 {.name = "/3f00/7ff0/6fc4", .data = _3f00_7ff0_6fc4, .size = 128}, 

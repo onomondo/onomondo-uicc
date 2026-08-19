@@ -138,7 +138,7 @@ create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure tra
 #3GPP TS 31.102, section 4.2.18
 #Access conditions: 02 -- READ:ALW, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
 echo "create 6fad, EF.AD"
-create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 2 --structure transparent --file-size 4 6fad
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 2 --structure transparent --file-size 4 --short-file-id 3 6fad
 
 #3GPP TS 31.102, section 4.2.21
 #Access conditions: 02 -- READ:ALW, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
@@ -179,7 +179,7 @@ create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure tra
 #3GPP TS 31.102, section 4.2.91
 #Access conditions: 04 -- READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
 echo "create 6fe3, EF.EPSLOCI"
-create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure transparent --file-size 18 --short-file-id 3 6fe3
+create_ef --shareable --ef-arr-file-id 6f06 --ef-arr-record-nr 4 --structure transparent --file-size 18 --short-file-id 30 6fe3
 
 #3GPP TS 31.102, section 4.2.92
 #Access conditions: 04 -- READ:PIN, UPDATE:PIN, DEACTIVATE/ACTIVATE:ADM
