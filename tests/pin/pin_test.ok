@@ -1,2 +1,6 @@
 VERIFY PIN1 remaining tries: 63c3
 VERIFY PIN2 remaining tries: 63c3
+ENABLE PIN1: 9000
+CHANGE PIN1 with wrong old PIN: 63c2
+CHANGE PIN1 with correct old PIN: 9000
+VERIFY PIN1 remaining tries after CHANGE PIN: 63c3

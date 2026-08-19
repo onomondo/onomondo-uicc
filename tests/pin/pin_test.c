@@ -48,6 +48,26 @@ int main(void)
 	printf("VERIFY PIN2 remaining tries: %04x\n", sw);
 	assert((sw & 0xff00) == 0x6300);
 
+	/* CHANGE PIN must reset the retry counter on success, the same as
+	 * VERIFY PIN: a failed attempt followed by a successful change must
+	 * not leave the counter one attempt closer to blocked. PIN1 ships
+	 * disabled and CHANGE PIN refuses a disabled PIN, so enable it first. */
+	sw = transact(ctx, "002800010831323334ffffffff", NULL);
+	printf("ENABLE PIN1: %04x\n", sw);
+	assert(sw == 0x9000);
+
+	sw = transact(ctx, "002400011039393939ffffffff34333231ffffffff", NULL);
+	printf("CHANGE PIN1 with wrong old PIN: %04x\n", sw);
+	assert(sw == 0x63c2);
+
+	sw = transact(ctx, "002400011031323334ffffffff34333231ffffffff", NULL);
+	printf("CHANGE PIN1 with correct old PIN: %04x\n", sw);
+	assert(sw == 0x9000);
+
+	sw = transact(ctx, "0020000100", NULL);
+	printf("VERIFY PIN1 remaining tries after CHANGE PIN: %04x\n", sw);
+	assert(sw == 0x63c3);
+
 	ss_free_ctx(ctx);
 	return 0;
 }
