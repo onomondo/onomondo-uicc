@@ -53,6 +53,14 @@ def apdu_seeds(transcripts):
     # Boundary lengths around the fixed 5-byte header copy in ss_transact().
     # Cheap to include and they are where the length arithmetic goes wrong.
     seeds += [b"", b"\x00", b"\x00\xa4\x00\x0c", b"\x00\xa4\x00\x0c\x02"]
+
+    # Witnesses for fuzz_apdu_parse's post-conditions. Short Case 3/4 requests
+    # whose Lc over-claims the buffer pin the processed_bytes clamp (len 6-10);
+    # extended-Lc requests at the exact fit and one past it (Lc 255/256/257,
+    # len 262/263/264) pin the cmd[] bound. The entry-point targets truncate
+    # the long ones, which is harmless.
+    seeds += [b"\xff\xff\xff\xff" + bytes([lc]) + b"\xff" * (lc - 1) for lc in range(2, 7)]
+    seeds += [b"\x00\xa4\x00\x04\x00" + lc.to_bytes(2, "big") + b"\xff" * lc for lc in (255, 256, 257)]
     return seeds
 
 

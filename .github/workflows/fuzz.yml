@@ -104,9 +104,10 @@ jobs:
           # string carrying every tag is 326 characters (include/onomondo/utils/ss_profile.h).
           run() { "$F/$1" "$F/corpus/$2" -max_total_time="$3" -max_len="$4" \
                     -artifact_prefix="$PWD/artifacts/$1-"; }
-          run fuzz_apdu_t0  apdu    600 261
-          run fuzz_apdu_app apdu    600 261
-          run fuzz_profile  profile 120 512
+          run fuzz_apdu_t0    apdu    600 261
+          run fuzz_apdu_app   apdu    600 261
+          run fuzz_apdu_parse apdu    120 300
+          run fuzz_profile    profile 120 512
 
       - name: Upload reproducers
         if: ${{ failure() }}
