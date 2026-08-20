@@ -21,16 +21,6 @@ struct ss_buf {
 	size_t len;
 };
 
-/*! Generate a hexdump string from an ss_buf object.
- *  \param[in] buf pointer to ss_buf object.
- *  \returns pointer to generated human readable string. */
-static inline char *ss_buf_hexdump(const struct ss_buf *buf)
-{
-	if (!buf)
-		return "(null)";
-	return ss_hexdump(buf->data, buf->len);
-}
-
 /*! Allocate a new ss_buf object.
  *  \param[in] len number of bytes to allocate inside ss_buf.
  *  \returns pointer to newly allocated ss_buf object. */
