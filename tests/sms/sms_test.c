@@ -307,6 +307,39 @@ void ss_uicc_sms_tx_test_multi(void)
 	ss_uicc_sms_tx_clear(&ctx);
 }
 
+/* Regression test for an Address-Length value that would overflow
+ * addr_dec->digits[21]. Per TS 23.040 §9.1.2.5 the Address-Length
+ * octet is wire-controlled (0–255), and the decoder writes one ASCII
+ * char per BCD digit into a fixed 21-byte buffer. A malicious sender
+ * supplying Address-Length = 0xFF (255 digits) would overflow the
+ * buffer by ~234 bytes. The decoder must reject any length that does
+ * not fit. */
+void ss_sms_addr_length_overflow_test(void)
+{
+	/* Minimal SMS-DELIVER TPDU with TP-OA length = 21, which is one
+	 * over the 20-digit cap that fits in addr_dec->digits[21] (20 chars
+	 * plus a NUL terminator). 11 bytes of valid BCD follow. */
+	uint8_t sms_tpdu[] = {
+		0x00, /* TP-MTI = DELIVER */
+		21, /* TP-OA length: 21 digits — over limit */
+		0x91, /* TP-OA TOA: ext=1, TON=1, NPI=1 */
+		0x10, 0x32, 0x54, 0x76, 0x98, 0x10, 0x32, 0x54, 0x76, 0x98, 0xF0, /* 21 BCD digits */
+		0x00, /* TP-PID */
+		0x00, /* TP-DCS */
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* TP-SCTS */
+		0x00, /* TP-UDL */
+	};
+	struct ss_sm_hdr sm_hdr;
+	int rc;
+
+	printf("regression: reject SMS-DELIVER with oversized Address-Length\n");
+
+	rc = ss_sms_hdr_decode(&sm_hdr, sms_tpdu, sizeof(sms_tpdu));
+	printf(" rc=%i (expected < 0)\n", rc);
+	assert(rc < 0);
+	printf("\n");
+}
+
 int main(int argc, char **argv)
 {
 	ss_sms_hdr_decode_sms_deliver_test();
@@ -318,5 +351,6 @@ int main(int argc, char **argv)
 	ss_sms_hdr_encode_test_sms_submit();
 	ss_uicc_sms_tx_test_single();
 	ss_uicc_sms_tx_test_multi();
+	ss_sms_addr_length_overflow_test();
 	return 0;
 }
