@@ -66,6 +66,11 @@ foreach(entry IN ITEMS ss_transact ss_application_apdu_transact)
 	target_link_libraries(${target} PRIVATE uicc milenage crypto storage)
 endforeach()
 
+# The wire-format parser itself: both entry points truncate requests before
+# parsing, so the extended-Lc arithmetic past 260 bytes is only reachable here.
+add_fuzz_target(fuzz_apdu_parse fuzz_apdu_parse.c apdu)
+target_link_libraries(fuzz_apdu_parse PRIVATE uicc)
+
 # The profile parser lives in the utils library, which is optional.
 if(TARGET utils)
 	add_fuzz_target(fuzz_profile fuzz_profile.c profile)

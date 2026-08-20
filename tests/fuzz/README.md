@@ -58,11 +58,23 @@ keep replaying the generated seeds and nothing else.
 |---|---|---|
 | `fuzz_apdu_t0` | `ss_transact()` | The T=0 / VPCD path. Copies a fixed-size header. |
 | `fuzz_apdu_app` | `ss_application_apdu_transact()` | The path the nRF modem glue calls. Parses via `ss_apdu_parse_exhaustive()`. |
+| `fuzz_apdu_parse` | `ss_apdu_parse_exhaustive()` | The wire-format parser directly, no card behind it. |
 | `fuzz_profile` | `ss_profile_from_string()` | Needs `-DCONFIG_USE_UTILS=y`. |
 
 Both APDU harnesses share `fuzz_apdu.c`, compiled once per entry point with
 `-DFUZZ_ENTRY=<symbol>`; the two functions take the same arguments but do not
 share a parser.
+
+`fuzz_apdu_parse` exists because the entry points truncate requests to 260
+bytes before parsing, so no input driven through them can reach the parser's
+extended-Lc arithmetic past that limit -- `Lc = 257` (a 264-byte request) is
+the first length that clears the data-field bound and would overrun `cmd[]`.
+That overrun lands in `rsp[]`, the adjacent member of the same struct, so ASan
+never faults on it; the harness instead asserts two post-conditions after each
+parse: `lc` fits `cmd[]`, and `processed_bytes` does not exceed the request.
+The corpus pins witnesses at the boundary lengths (over-claiming short Lc at
+6-10 bytes, extended Lc 255/256/257 at 262-264 bytes), so weakening either
+guard in the parser fails the deterministic corpus replay on the next PR.
 
 The seed corpus is generated at build time by `gen_corpus.py` from two
 transcripts the suite already maintains, so it tracks them rather than drifting
