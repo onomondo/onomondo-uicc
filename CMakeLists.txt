@@ -80,6 +80,10 @@ elseif(CONFIG_ENABLE_SANITIZE)
 	add_link_options(-fsanitize=address -fsanitize=undefined)
 endif()
 
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+	add_compile_definitions(CONFIG_USE_SYSTEM_HEAP)
+endif()
+
 add_subdirectory(src)
 
 set(install_target_collection
@@ -110,7 +114,6 @@ install(TARGETS ${install_target_collection}
 )
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
-	add_compile_definitions(CONFIG_USE_SYSTEM_HEAP)
 	include(CTest)
 	add_subdirectory(tests)
 endif()
