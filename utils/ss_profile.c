@@ -11,8 +11,23 @@
 
 static uint8_t ss_hex_to_uint8(const char *hex);
 static void ss_hex_string_to_bytes(const uint8_t *hex, size_t hex_len, uint8_t *bytes);
+static uint32_t ss_profile_uint32_from_hex(const char *hex);
+static void ss_profile_wipe(void *ptr, size_t len);
+static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct ss_profile *profile);
 
 uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile)
+{
+	uint8_t rc = ss_profile_decode(len, input_string, profile);
+
+	/* Ki, OPc, KIC, KID, PINs and PUK are already in the struct by the time a
+	 * later record fails a check, and the caller frees without scrubbing. */
+	if (rc)
+		ss_profile_wipe(profile, sizeof *profile);
+	return rc;
+}
+
+/* The decode itself, factored out so every error return lands in the wipe above. */
+static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct ss_profile *profile)
 {
 	/* TAG(2) + LEN(2): the loop bound keeps the header inside the buffer, and the
 	 * data_end check below bounds the data field. Rejected before anything is
@@ -119,6 +134,23 @@ uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss
 			memcpy(&profile->_3F00_A003[1 * A003_RECORD_SIZE + PUK_OFFSET], &input_string[data_start],
 			       data_len);
 			break;
+		case CRC32_TAG:
+			if (data_len != CRC32_LEN)
+				return 18;
+			/* The CRC32 of nothing is 0x00000000, so a record covering no
+			 * characters would certify an empty profile as intact. */
+			if (pos == 0)
+				return 1;
+			/* The record covers every character in front of it, which is exactly
+			 * what the parser has walked past to get here. */
+			if (ss_profile_crc32(input_string, pos) !=
+			    ss_profile_uint32_from_hex(&input_string[data_start]))
+				return 19;
+			/* Nothing behind the record is covered by it, so the record ends the
+			 * profile. Older decoders skip it as an unknown tag, which is only
+			 * safe in this position too. */
+			next_pos = len;
+			break;
 		case END_TAG:
 			/* end of profile */
 			next_pos = len;
@@ -136,6 +168,54 @@ uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss
 	profile->_3F00_A001[KEY_SIZE + KEY_SIZE + 1] = '0';
 
 	return 0;
+}
+
+/** Clear a buffer that is about to be released.
+ *  Writes through a volatile pointer so the compiler keeps stores to storage it
+ *  can see is dead. The uicc library has ss_memzero() for this, but utils links
+ *  without it.
+ *  \param[out] ptr buffer to clear.
+ *  \param[in] len number of bytes. */
+static void ss_profile_wipe(void *ptr, size_t len)
+{
+	volatile char *clear_this = (volatile char *)ptr;
+	size_t i;
+
+	for (i = 0; i < len; i++)
+		clear_this[i] = 0;
+}
+
+/* See in ss_profile.h */
+uint32_t ss_profile_crc32(const char *data, size_t len)
+{
+	uint32_t crc = 0xffffffff;
+	size_t i;
+	unsigned int bit;
+
+	/* Bitwise on purpose: a 256 entry table would cost more flash than this
+	 * loop costs time, and a profile is only a few hundred characters. */
+	for (i = 0; i < len; i++) {
+		uint8_t c = (uint8_t)data[i];
+
+		/* Fold A-Z first (ASCII lowercasing): hex case carries no meaning
+		 * downstream, so re-casing in transit must not invalidate the profile. */
+		if (c >= 'A' && c <= 'Z')
+			c += 'a' - 'A';
+		crc ^= c;
+		for (bit = 0; bit < 8; bit++)
+			crc = (crc >> 1) ^ ((crc & 1) ? 0xedb88320u : 0u);
+	}
+
+	return ~crc;
+}
+
+/** Read a CRC record's value.
+ *  \param[in] hex CRC32_LEN characters, most significant byte first.
+ *  \returns the value they spell. */
+static uint32_t ss_profile_uint32_from_hex(const char *hex)
+{
+	return ((uint32_t)ss_hex_to_uint8(&hex[0]) << 24) | ((uint32_t)ss_hex_to_uint8(&hex[2]) << 16) |
+	       ((uint32_t)ss_hex_to_uint8(&hex[4]) << 8) | (uint32_t)ss_hex_to_uint8(&hex[6]);
 }
 
 /** Hex to uint8 converter
