@@ -30,8 +30,7 @@ whole call surface — eight functions. Headers under `src/` are internal.
   silent corruption — don't ship it unaudited.
 
 **No TX callback.** The card is strictly request/response: pending proactive data
-rewrites a successful SW to `91xx` and the terminal FETCHes
-([functionality.md](functionality.md#proactive-subset)).
+rewrites a successful SW to `91xx` and the terminal FETCHes it as a normal APDU.
 
 **Threading.** No locking anywhere. Serialize every call on a context — including
 `ss_poll()` — on one thread or under one lock.
