@@ -10,6 +10,11 @@ normally done in a phsical SIM/USIM, covering:
 * ETSI UICC (Universal Integrated Chip Card) multi-application card as described in ETSI TS 102 221
 * 3GPP USIM (UMTS Subscriber Identity Module) as described in 3GPP TS 31.102
 
+Documentation
+-------------
+
+[`docs/`](docs/README.md) has the API contracts, integration topologies and code
+architecture — start there when integrating the library or changing its source.
 
 Supported Features
 ------------------
