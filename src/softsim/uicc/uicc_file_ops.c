@@ -207,6 +207,13 @@ static int verify_file_struct(struct ss_apdu *apdu, struct ss_file *file, bool r
 		return SS_SW_ERR_CMD_NOT_ALLOWED_NO_EF_SELECTED;
 	}
 
+	/* A DF or ADF is not an EF at all, which is a different condition than
+	 * an EF whose structure does not fit the command. */
+	if (file->fcp_file_descr->type == SS_FCP_DF_OR_ADF) {
+		apdu->le = 0;
+		return SS_SW_ERR_CMD_NOT_ALLOWED_NO_EF_SELECTED;
+	}
+
 	if (file->fcp_file_descr->type != SS_FCP_WORKING_EF) {
 		apdu->le = 0;
 		return SS_SW_ERR_CMD_NOT_ALLOWED_INCOMP_FILE_STRUCT;
