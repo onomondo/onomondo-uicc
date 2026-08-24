@@ -5,6 +5,7 @@
 enable_testing()
 
 add_subdirectory(access)
+add_subdirectory(access_sw)
 add_subdirectory(aes)
 add_subdirectory(apdu)
 add_subdirectory(app_transact)
