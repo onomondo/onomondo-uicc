@@ -27,6 +27,15 @@
  * V5.9.0 Seciton 6.2 */
 #define IEI_CPI 0x70
 
+/* Concatenation cap, overridable at build time. TS 23.040 section 9.2.3.24.1
+ * allows up to 255 parts; each buffered part costs sizeof(struct
+ * ss_uicc_sms_rx_sm) of heap and the reassembled message up to 140 bytes per
+ * part, so a port on a small heap should lower this to what its remote-
+ * management traffic actually needs. */
+#ifndef SS_SMS_RX_MAX_PARTS
+#define SS_SMS_RX_MAX_PARTS 255
+#endif
+
 static void clear_state(struct ss_uicc_sms_rx_state *state)
 {
 	struct ss_uicc_sms_rx_sm *sm;
@@ -104,6 +113,16 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 	SS_LOGP(SSMS, LERROR, "receiving part %u/%u of message %u: %s\n", msg_part_no, msg_parts, msg_id,
 		ss_hexdump(tp_ud, tp_ud_len));
 
+	/* Refuse messages the part budget cannot hold: every buffered part
+	 * costs heap, so an over-long concatenation from the wire must not be
+	 * collected at all. */
+	if (msg_parts > SS_SMS_RX_MAX_PARTS) {
+		SS_LOGP(SSMS, LERROR, "message %u reports %u parts, refusing to buffer more than %u.\n", msg_id,
+			msg_parts, SS_SMS_RX_MAX_PARTS);
+		clear_state(state);
+		return NULL;
+	}
+
 	/* Clear state when a new message is detected */
 	if (state->msg_id != msg_id) {
 		SS_LOGP(SSMS, LERROR, "message %u is a new message, clearing state.\n", msg_id);
@@ -144,6 +163,12 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 
 	/* Store message in list */
 	sm = SS_ALLOC(struct ss_uicc_sms_rx_sm);
+	if (!sm) {
+		SS_LOGP(SSMS, LERROR, "no memory to buffer part %u/%u of message %u, dropping message.\n", msg_part_no,
+			msg_parts, msg_id);
+		clear_state(state);
+		return NULL;
+	}
 	memcpy(sm->tp_ud, tp_ud, tp_ud_len);
 	sm->tp_ud_len = tp_ud_len;
 	sm->msg_part_no = msg_part_no;
@@ -167,7 +192,13 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 	}
 
 	/* Concatenate message */
-	result = ss_buf_alloc(result_len);
+	result = ss_buf_try_alloc(result_len);
+	if (!result) {
+		SS_LOGP(SSMS, LERROR, "no memory to reassemble message %u (%zu bytes), dropping message.\n", msg_id,
+			result_len);
+		clear_state(state);
+		return NULL;
+	}
 	result_ptr = result->data;
 	for (i = 0; i < msg_parts; i++) {
 		sm = get_sm_part(state, i + 1);
