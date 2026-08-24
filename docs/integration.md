@@ -71,9 +71,7 @@ calling the API directly in place of its ISO 7816 driver, with storage in modem 
   character layer and hands complete TPDUs to `ss_transact` — the library is
   TPDU-level, not PHY. The modem drives the lines at class B/C levels (3 V / 1.8 V,
   modem-powered VCC), which rarely match the MCU's I/O bank: level shifting /
-  current-voltage adjustment between modem and MCU is normally required. Worked
-  examples: the `onomondo-softsim-esp32` and `onomondo-softsim-nrf52840` sample
-  projects.
+  current-voltage adjustment between modem and MCU is normally required.
 - A modem-vendor remote-SIM message protocol (UART/USB): APDUs arrive as messages
   and `ss_application_apdu_transact` fits directly.
 
@@ -195,4 +193,4 @@ as 8 hex digits; `CONFIG_ALT_FILE_SEPARATOR` flattens the separators to `_`).
   `CONFIG_USE_UTILS`) overwrites ICCID, IMSI, keys and SMSP in an existing tree.
 - ROM images: [`utils/files-c-array/toCArray.py`](../utils/files-c-array/toCArray.py)
   renders `files/` into C arrays (binary flavor for the compact backend, hex for the
-  default); CI keeps the checked-in arrays in sync with `files/`.
+  default).
