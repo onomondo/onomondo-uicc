@@ -72,18 +72,6 @@ as for example the MILENAGE implementation, which we can take from wpa_supplican
 BSD/GPL dual-licensed.
 
 
-Contributing
-------------
-
-Pull requests are welcome. CI enforces [Conventional Commit](https://www.conventionalcommits.org/)
-subjects, a `Signed-off-by:` trailer ([DCO](https://developercertificate.org/), `git commit -s`)
-on every commit, clang-format version 18 over the C sources in `src/`, `include/`, `tests/`
-and `utils/`, and a signed Contributor License Agreement (a bot prompts on the PR).
-
-Pull requests are squash merged, and GitHub credits the squashed commit to the author of the
-PR's first commit. External contributors who want to keep authorship should therefore submit
-a single commit.
-
 Testing
 -------
 
