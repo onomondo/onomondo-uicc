@@ -356,6 +356,119 @@ static void decode_softsim_profile_test_err_scrubs()
 	printf("Profile struct cleared\n");
 }
 
+/* The four tags the provisioner requires plus the optional OTA keys, see
+ * decode_softsim_profile_test_ok. */
+// clang-format off
+#define REQUIRED_TAGS \
+	"01" "12" "080910101032540636" \
+	"02" "14" "98001032547698103214" \
+	"03" "20" "00000000000000000000000000000000" \
+	"04" "20" "000102030405060708090A0B0C0D0E0F" \
+	"05" "20" "000102030405060708090A0B0C0D0E0F" \
+	"06" "20" "000102030405060708090A0B0C0D0E0F"
+// clang-format on
+
+static void check_pin_field(const struct ss_profile *profile, const char *what, size_t record, size_t offset,
+			    const char *expect)
+{
+	const uint8_t *field = &profile->_3F00_A003[record * A003_RECORD_SIZE + offset];
+
+	printf("%s: %.*s\n", what, PIN_SIZE, field);
+	assert(memcmp(field, expect, PIN_SIZE) == 0);
+}
+
+/* A value the PIN code file cannot hold is refused, so a card is never left on
+ * the shipped default while the profile says the value was rotated. The struct
+ * is cleared with it, as on every other error return. */
+static void check_pin_refused(const char *what, const char *profile_string)
+{
+	struct ss_profile profile = { 0 };
+	uint8_t zero[sizeof(struct ss_profile)] = { 0 };
+	uint8_t rc;
+
+	printf("TEST: Decode a decrypted Onomondo SoftSIM profile whose %s cannot be stored\n", what);
+	rc = ss_profile_from_string(strlen(profile_string), profile_string, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 20);
+	assert(memcmp(&profile, zero, sizeof(profile)) == 0);
+	printf("Profile struct cleared\n");
+}
+
+/* A profile carries a PIN as the hex encoded ASCII of its characters, so up to 8
+ * characters arrive as the 16 the record holds. A 16 character ADM arrives as 32
+ * and fits only because it is itself hex, naming the 8 bytes a VERIFY PIN can
+ * carry (TS 102 221 clause 11.1.9.3). */
+static void decode_softsim_profile_test_pins()
+{
+	// clang-format off
+	static const char *profile_pins =
+		REQUIRED_TAGS
+		"08" "08" "36383638"                          /* PIN 6868 */
+		"0b" "10" "3739373937393739"                  /* PUK 79797979 */
+		"0a" "20" "38303334323730323533313133383634"; /* ADM 8034270253113864 */
+	/* An ADM that is not hex cannot name 8 bytes. */
+	static const char *profile_adm_not_hex =
+		REQUIRED_TAGS
+		"0a" "20" "414143434545474749494b4b4d4d4f4f"; /* ADM AACCEEGGIIKKMMOO */
+	static const char *profile_pin_padded =
+		REQUIRED_TAGS
+		"08" "08" "35363738";                         /* PIN 5678 */
+	static const char *profile_pin_short =
+		REQUIRED_TAGS
+		"08" "04" "3132";                             /* PIN 12, under the four digit minimum */
+	/* The record is a hex string, so a character outside it names no byte. */
+	static const char *profile_pin_not_hex =
+		REQUIRED_TAGS
+		"08" "08" "3132zzzz";
+	// clang-format on
+	struct ss_profile profile = { 0 };
+	uint8_t rc;
+
+	printf("TEST: Decode a decrypted Onomondo SoftSIM profile carrying PIN, PUK and ADM\n");
+
+	rc = ss_profile_from_string(strlen(profile_pins), profile_pins, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+	check_pin_field(&profile, "PIN1", 0, PIN_OFFSET, "36383638ffffffff");
+	check_pin_field(&profile, "PUK1", 0, PUK_OFFSET, "3739373937393739");
+	check_pin_field(&profile, "PUK2", 1, PUK_OFFSET, "3739373937393739");
+	check_pin_field(&profile, "ADM ", 2, PIN_OFFSET, "8034270253113864");
+
+	printf("TEST: Decode a decrypted Onomondo SoftSIM profile with a PIN shorter than the field\n");
+
+	memset(&profile, 0, sizeof(profile));
+	rc = ss_profile_from_string(strlen(profile_pin_padded), profile_pin_padded, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+	check_pin_field(&profile, "PIN1", 0, PIN_OFFSET, "35363738ffffffff");
+
+	check_pin_refused("ADM", profile_adm_not_hex);
+	check_pin_refused("PIN", profile_pin_short);
+	check_pin_refused("PIN", profile_pin_not_hex);
+}
+
+/* Deciding which tags a profile must carry belongs to whoever consumes it: the
+ * provisioner refuses an incomplete profile, the decoder reports what it found.
+ * Keep it that way -- the profile source emits tags only for the fields it has. */
+static void decode_softsim_profile_test_partial_is_not_an_error()
+{
+	// clang-format off
+	static const char *profile_no_keys =
+		"01" "12" "080910101032540636"
+		"02" "14" "98001032547698103214"
+		"03" "20" "00000000000000000000000000000000"
+		"04" "20" "000102030405060708090A0B0C0D0E0F";
+	// clang-format on
+	struct ss_profile profile = { 0 };
+	uint8_t rc;
+
+	printf("TEST: Decode a decrypted Onomondo SoftSIM profile that carries only some tags\n");
+
+	rc = ss_profile_from_string(strlen(profile_no_keys), profile_no_keys, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+}
+
 int main(int argc, char **argv)
 {
 	decode_softsim_profile_test_ok();
@@ -365,5 +478,7 @@ int main(int argc, char **argv)
 	decode_softsim_profile_test_short_input();
 	decode_softsim_profile_test_crc();
 	decode_softsim_profile_test_err_scrubs();
+	decode_softsim_profile_test_partial_is_not_an_error();
+	decode_softsim_profile_test_pins();
 	return 0;
 }

@@ -54,6 +54,10 @@ struct ss_profile {
 	uint8_t k[16];
 	uint8_t kid[16];
 	uint8_t kic[16];
+	/* Set when the profile carried a PIN, PUK or ADM value. The PIN code file
+	 * holds state the card maintains, so it is written only for a profile that
+	 * has something to put in it. */
+	uint8_t pin_present;
 };
 
 /* Onomondo SoftSIM Profile Decoder
@@ -91,9 +95,16 @@ struct ss_profile {
  *              key material behind.
  *  \returns return 0 if valid profile is decoded. error code otherwise: 1 for a
  *  malformed blob, 10..17 for a tag of the wrong length, 18 for a CRC record of
- *  the wrong length and 19 for a CRC that does not match the profile.
+ *  the wrong length, 19 for a CRC that does not match the profile and 20 for a
+ *  PIN, PUK or ADM value no PIN code file record can hold.
  */
 uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile);
+
+/** Clear a decoded profile before its memory is released.
+ *  ss_profile_from_string() already clears on error; call this once the profile
+ *  has been consumed, so no key material outlives its use.
+ *  \param[out] profile the profile to clear. */
+void ss_profile_wipe(struct ss_profile *profile);
 
 /** Compute the CRC32 a profile's CRC record must carry.
  *
