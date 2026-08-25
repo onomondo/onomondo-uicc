@@ -169,6 +169,10 @@ int onomondo_profile_provisioning(const char *at_profile)
 	rc = write_profile_to_fs(profile);
 
 exit:
+	/* The struct holds Ki, OPc and the OTA keys; scrub before the allocator
+	 * reuses the memory. Already cleared on a decode error, but cheap to not
+	 * have to know that here. */
+	ss_profile_wipe(profile);
 	SS_FREE(profile);
 	return rc;
 }

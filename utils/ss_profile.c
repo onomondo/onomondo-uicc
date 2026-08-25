@@ -14,7 +14,6 @@
 static uint8_t ss_hex_to_uint8(const char *hex);
 static void ss_hex_string_to_bytes(const uint8_t *hex, size_t hex_len, uint8_t *bytes);
 static uint32_t ss_profile_uint32_from_hex(const char *hex);
-static void ss_profile_wipe(void *ptr, size_t len);
 static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct ss_profile *profile);
 static bool ss_profile_copy_pin(uint8_t *field, const char *data, uint8_t data_len);
 
@@ -25,7 +24,7 @@ uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss
 	/* Ki, OPc, KIC, KID, PINs and PUK are already in the struct by the time a
 	 * later record fails a check, and the caller frees without scrubbing. */
 	if (rc)
-		ss_profile_wipe(profile, sizeof *profile);
+		ss_profile_wipe(profile);
 	return rc;
 }
 
@@ -189,18 +188,15 @@ static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct 
 	return 0;
 }
 
-/** Clear a buffer that is about to be released.
- *  Writes through a volatile pointer so the compiler keeps stores to storage it
- *  can see is dead. The uicc library has ss_memzero() for this, but utils links
- *  without it.
- *  \param[out] ptr buffer to clear.
- *  \param[in] len number of bytes. */
-static void ss_profile_wipe(void *ptr, size_t len)
+/* See in ss_profile.h. Writes through a volatile pointer so the compiler keeps
+ * stores to storage it can see is dead. The uicc library has ss_memzero() for
+ * this, but utils links without it. */
+void ss_profile_wipe(struct ss_profile *profile)
 {
-	volatile char *clear_this = (volatile char *)ptr;
+	volatile char *clear_this = (volatile char *)profile;
 	size_t i;
 
-	for (i = 0; i < len; i++)
+	for (i = 0; i < sizeof *profile; i++)
 		clear_this[i] = 0;
 }
 

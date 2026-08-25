@@ -100,6 +100,12 @@ struct ss_profile {
  */
 uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile);
 
+/** Clear a decoded profile before its memory is released.
+ *  ss_profile_from_string() already clears on error; call this once the profile
+ *  has been consumed, so no key material outlives its use.
+ *  \param[out] profile the profile to clear. */
+void ss_profile_wipe(struct ss_profile *profile);
+
 /** Compute the CRC32 a profile's CRC record must carry.
  *
  *  CRC-32/ISO-HDLC, as used by zlib: reflected polynomial 0xedb88320, initial and
