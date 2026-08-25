@@ -65,6 +65,9 @@ static int decode_tag(uint16_t *tag, enum ber_tlv_cls *cls, bool *constr, uint32
 	return 0;
 }
 
+/* Logging only: compiled out so log-less builds do not keep ss_hexdump and
+ * its static buffers alive. */
+#ifdef CONFIG_USE_LOGS
 static void dump_ie(const struct ber_tlv_ie *ie, uint8_t indent, enum log_subsys subsys, enum log_level level)
 {
 	char indent_str[256];
@@ -115,6 +118,15 @@ void ss_btlv_dump(const struct ss_list *list, uint8_t indent, enum log_subsys lo
 		}
 	}
 }
+#else
+void ss_btlv_dump(const struct ss_list *list, uint8_t indent, enum log_subsys log_subsys, enum log_level log_level)
+{
+	(void)list;
+	(void)indent;
+	(void)log_subsys;
+	(void)log_level;
+}
+#endif
 
 static void free_ie(struct ber_tlv_ie *ie)
 {

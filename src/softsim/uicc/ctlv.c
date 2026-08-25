@@ -147,6 +147,9 @@ struct ss_list *ss_ctlv_decode(const uint8_t *enc, size_t len)
 	return list;
 }
 
+/* Logging only: compiled out so log-less builds do not keep ss_hexdump and
+ * its static buffers alive. */
+#ifdef CONFIG_USE_LOGS
 static void dump_ie(const struct cmp_tlv_ie *ie, uint8_t indent, enum log_subsys subsys, enum log_level level)
 {
 	char indent_str[256];
@@ -194,6 +197,15 @@ void ss_ctlv_dump(const struct ss_list *list, uint8_t indent, enum log_subsys lo
 		dump_ie(ie, indent, log_subsys, log_level);
 	}
 }
+#else
+void ss_ctlv_dump(const struct ss_list *list, uint8_t indent, enum log_subsys log_subsys, enum log_level log_level)
+{
+	(void)list;
+	(void)indent;
+	(void)log_subsys;
+	(void)log_level;
+}
+#endif
 
 static void free_ie(struct cmp_tlv_ie *ie)
 {
