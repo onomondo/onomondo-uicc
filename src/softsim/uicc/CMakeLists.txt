@@ -38,6 +38,21 @@ set(uicc_collection
 	uicc_suspend.c
 )
 
+# Drop opted-out subsystems entirely so their code and data leave the library.
+# utils_aes.c stays: the crypto library uses ss_utils_aes_encrypt.
+if(CONFIG_DISABLE_OTA)
+	list(REMOVE_ITEM uicc_collection uicc_remote_cmd.c utils_ota.c utils_3des.c)
+endif()
+if(CONFIG_DISABLE_SMS)
+	list(REMOVE_ITEM uicc_collection sms.c uicc_sms_rx.c uicc_sms_tx.c)
+endif()
+if(CONFIG_DISABLE_REFRESH)
+	list(REMOVE_ITEM uicc_collection fs_chg.c uicc_refresh.c)
+endif()
+if(CONFIG_DISABLE_PROACTIVE)
+	list(REMOVE_ITEM uicc_collection proactive.c uicc_cat.c)
+endif()
+
 # Add log.c to get fcp_test working with CTest. It has otherwise been removed from the
 # uicc_collection to allow users to implement log.c themselves by default.
 if(BUILD_TESTING)
@@ -54,3 +69,6 @@ target_include_directories(uicc
 	PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../
 )
+
+# Other half of the uicc <-> crypto static-library cycle (see crypto/CMakeLists.txt).
+target_link_libraries(uicc PRIVATE crypto)

@@ -38,6 +38,7 @@ struct ss_cat_envelope_command {
 	int (*handler)(struct ss_apdu *apdu, struct ss_buf *cat_template);
 };
 
+#ifndef CONFIG_DISABLE_SMS
 /* Handler function to handle CAT SMS PP Download */
 static int handle_sms_pp_dwnld(struct ss_apdu *apdu, struct ss_buf *cat_template)
 {
@@ -77,6 +78,7 @@ const struct ss_cat_envelope_command cat_envelope_commands[] = {
 		.minlen = 3,
 	},
 };
+#endif // CONFIG_DISABLE_SMS
 
 /*! TERMINAL PROFILE (TS 102 221 Section 11.2.1) */
 int ss_uicc_cat_cmd_term_profile(struct ss_apdu *apdu)
@@ -109,8 +111,10 @@ int ss_uicc_cat_cmd_envelope(struct ss_apdu *apdu)
 	struct ss_list *envelope = NULL;
 	int rc = 0;
 
+#ifndef CONFIG_DISABLE_SMS
 	unsigned int i;
 	struct ber_tlv_ie *cat_template;
+#endif
 
 	size_t data_len = apdu->lc;
 	SS_LOGP(SPROACT, LDEBUG, "Data fed into BTLV: %s\n", ss_hexdump(apdu->cmd, data_len));
@@ -122,6 +126,7 @@ int ss_uicc_cat_cmd_envelope(struct ss_apdu *apdu)
 	ss_btlv_dump(envelope, 2, SPROACT, LDEBUG);
 
 	rc = SS_SW_ERR_WRONG_PARAM_FUNCTION_NOT_SUPPORTED;
+#ifndef CONFIG_DISABLE_SMS
 	for (i = 0; i < SS_ARRAY_SIZE(cat_envelope_commands); i++) {
 		cat_template =
 			ss_btlv_get_ie_minlen(envelope, cat_envelope_commands[i].iei, cat_envelope_commands[i].minlen);
@@ -131,6 +136,7 @@ int ss_uicc_cat_cmd_envelope(struct ss_apdu *apdu)
 			rc = cat_envelope_commands[i].handler(apdu, cat_template->value);
 		}
 	}
+#endif
 
 	ss_btlv_free(envelope);
 	return rc;

@@ -17,3 +17,9 @@ target_include_directories(crypto
 	PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+# aes-encblock.c calls ss_utils_aes_encrypt, implemented in the uicc library,
+# which in turn uses the AES core from this library. Declaring the cycle makes
+# CMake repeat the two archives on consumer link lines, so member extraction
+# works no matter which side the linker meets first.
+target_link_libraries(crypto PRIVATE uicc)
