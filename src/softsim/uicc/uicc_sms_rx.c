@@ -342,6 +342,21 @@ int ss_uicc_sms_rx(struct ss_context *ctx, struct ss_buf *sms_tpdu, size_t *resp
 				/* Part of a concatencated SM received, collect partial messages */
 				concat_sm_desc_ie = ss_tlv8_get_ie_minlen(ud_hdr_dec, TS_23_040_IEI_CONCAT_SMS, 3);
 				if (concat_sm_desc_ie) {
+					uint8_t msg_parts = concat_sm_desc_ie->value->data[1];
+					uint8_t msg_part_no = concat_sm_desc_ie->value->data[2];
+
+					/* TS 23.040 section 9.2.3.24.1: when the part count
+					 * is zero, or the sequence number is zero or exceeds
+					 * the part count, the receiver shall ignore the IE
+					 * and handle the SM as a single short message. */
+					if (msg_parts == 0 || msg_part_no == 0 || msg_part_no > msg_parts) {
+						SS_LOGP(SSMS, LERROR,
+							"ignoring invalid concatenation IE (part %u/%u), handling as single SM\n",
+							msg_part_no, msg_parts);
+						concat_sm_desc_ie = NULL;
+					}
+				}
+				if (concat_sm_desc_ie) {
 					concat_sm_buf = concat_sm(state, tp_ud, tp_ud_len, concat_sm_desc_ie);
 					if (concat_sm_buf) {
 						rc = handle_sm(ctx, &sm_hdr, ud_hdr, ud_hdr_len, concat_sm_buf->data,
