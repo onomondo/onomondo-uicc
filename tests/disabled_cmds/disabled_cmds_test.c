@@ -6,7 +6,7 @@
 
 /* Built only with CONFIG_DISABLE_PROACTIVE: the CAT commands are compiled
  * out, so the card must answer their instruction codes with 6D00
- * ("instruction code not supported", TS 102 221 section 10.2.1.1). */
+ * ("instruction code not supported", TS 102 221 section 10.2.1.5.0). */
 
 #include <assert.h>
 #include <stdint.h>
