@@ -1,5 +1,43 @@
 # Changelog
 
+## [2.3.0](https://github.com/onomondo/onomondo-uicc/compare/v2.2.1...v2.3.0) (2026-08-25)
+
+
+### Features
+
+* verify an optional profile CRC32 ([#131](https://github.com/onomondo/onomondo-uicc/issues/131)) ([d0fdbff](https://github.com/onomondo/onomondo-uicc/commit/d0fdbff2553b205b625363e6c2e300f8e9b1995a))
+
+
+### Bug Fixes
+
+* add missing CONFIG_ALT_FILE_SEPARATOR option to CMakeLists.txt ([#129](https://github.com/onomondo/onomondo-uicc/issues/129)) ([6e0fd57](https://github.com/onomondo/onomondo-uicc/commit/6e0fd57276d61c5d81fb6d19828753631c33f5d5))
+* bound APDU reads, free rejected APDUs ([#127](https://github.com/onomondo/onomondo-uicc/issues/127)) ([78bc7e9](https://github.com/onomondo/onomondo-uicc/commit/78bc7e9669e1cbbb49a999978296a8a3717986e2))
+* bound the profile parser ([#126](https://github.com/onomondo/onomondo-uicc/issues/126)) ([b1e3ac3](https://github.com/onomondo/onomondo-uicc/commit/b1e3ac355d1f63ac1b472bde89ab45e5c8f7ea76))
+* bound the READ BINARY response ([#128](https://github.com/onomondo/onomondo-uicc/issues/128)) ([cf5d267](https://github.com/onomondo/onomondo-uicc/commit/cf5d267f728ba6fee685483684ad7fc8b26ef963))
+* check the response buffer before writing the first byte ([#134](https://github.com/onomondo/onomondo-uicc/issues/134)) ([f16ea38](https://github.com/onomondo/onomondo-uicc/commit/f16ea38951da65a058e1dde1e10633421f1b0366))
+* check the SEARCH RECORD data length before reading the search mode ([#118](https://github.com/onomondo/onomondo-uicc/issues/118)) ([d56bcef](https://github.com/onomondo/onomondo-uicc/commit/d56bcef9176b0ed5a67c8bb5bcded474c6824edf))
+* clear Milenage key material before releasing buffers ([#123](https://github.com/onomondo/onomondo-uicc/issues/123)) ([ade81c2](https://github.com/onomondo/onomondo-uicc/commit/ade81c2d03af5233f2d268fe8b97b79d7e9c47bb))
+* correct SFI assignments for EF_AD and EF_EPSLOCI ([#151](https://github.com/onomondo/onomondo-uicc/issues/151)) ([ce5c70f](https://github.com/onomondo/onomondo-uicc/commit/ce5c70fcf6a1dfe5e3f4b02fa78a1a0b2fe0b867))
+* enforce the MF check in ss_access_check_command() at runtime ([#119](https://github.com/onomondo/onomondo-uicc/issues/119)) ([292e198](https://github.com/onomondo/onomondo-uicc/commit/292e198f2c2a10d6fae07e97222ff3ac881c0bf3))
+* free the COMPREHENSION-TLV and TLV8 list heads when the list decodes empty ([#120](https://github.com/onomondo/onomondo-uicc/issues/120)) ([1e85f87](https://github.com/onomondo/onomondo-uicc/commit/1e85f8753b876cd0841fb9ab04f23dad16569448))
+* free the FID record read while resolving an SFI ([#102](https://github.com/onomondo/onomondo-uicc/issues/102)) ([82a1e09](https://github.com/onomondo/onomondo-uicc/commit/82a1e09d4a5dc7b68f0157eec2cb6ff65efdf8b9))
+* guard NULL apdu-&gt;lchan on unsuccessful response to prevent segfault ([#96](https://github.com/onomondo/onomondo-uicc/issues/96)) ([02de906](https://github.com/onomondo/onomondo-uicc/commit/02de906af4b6e2d24db2fcb6b1f39e1fb5da6191))
+* guard NULL lifecycle status IE in active ACTIVATE FILE ([#121](https://github.com/onomondo/onomondo-uicc/issues/121)) ([4c888ba](https://github.com/onomondo/onomondo-uicc/commit/4c888ba69556ea824bcc9829d942c2c55b1a7572))
+* provision the whole profile, or none of it ([#132](https://github.com/onomondo/onomondo-uicc/issues/132)) ([fe2b606](https://github.com/onomondo/onomondo-uicc/commit/fe2b6066586efc6433480e496dbf97dbd1dc9993))
+* report an unknown class as 6e00 instead of 6d00 ([#125](https://github.com/onomondo/onomondo-uicc/issues/125)) ([65ba0fe](https://github.com/onomondo/onomondo-uicc/commit/65ba0fefab75f06cf532d10b445ec8441b632608))
+* report failure from ss_fs_utils_create_record_file ([#117](https://github.com/onomondo/onomondo-uicc/issues/117)) ([cfa4972](https://github.com/onomondo/onomondo-uicc/commit/cfa49727c1fd02bf1bc726cf18d4e77abfe9eecb))
+* reset the PIN retry counter after a successful CHANGE PIN ([#150](https://github.com/onomondo/onomondo-uicc/issues/150)) ([e1cc9bc](https://github.com/onomondo/onomondo-uicc/commit/e1cc9bcd042f377461117dfb6e16b0a6235bd34b))
+* scrub OTA key material on every exit and bound the ciphertext header ([#116](https://github.com/onomondo/onomondo-uicc/issues/116)) ([bfddc1d](https://github.com/onomondo/onomondo-uicc/commit/bfddc1d5e5d8476a2fb8691e4a15580670b11b3a))
+* survive out-of-memory during SMS reassembly ([#154](https://github.com/onomondo/onomondo-uicc/issues/154)) ([70c8387](https://github.com/onomondo/onomondo-uicc/commit/70c8387f26c823fb8b39b0666ecfe129df9e6e20))
+* update only the selected file with the SEQ_MS ([#95](https://github.com/onomondo/onomondo-uicc/issues/95)) ([f3de7b0](https://github.com/onomondo/onomondo-uicc/commit/f3de7b0b2938e34771bf286539ae3d824eea40d6))
+* verify AUTN MAC before SQN and report incorrect MAC as 9862 ([#103](https://github.com/onomondo/onomondo-uicc/issues/103)) ([60ff570](https://github.com/onomondo/onomondo-uicc/commit/60ff570c2d295315092ad75f31e6f97c438dbc7d))
+
+
+### Performance Improvements
+
+* compile the TLV dump helpers out when logging is off ([#155](https://github.com/onomondo/onomondo-uicc/issues/155)) ([506ae2f](https://github.com/onomondo/onomondo-uicc/commit/506ae2fc058f7f5eda7eacff93a09af5feb5923c))
+* make the REFRESH file-list sizing overridable ([#156](https://github.com/onomondo/onomondo-uicc/issues/156)) ([768f920](https://github.com/onomondo/onomondo-uicc/commit/768f920e9c57860c317abe2418e39fa51ec79f69))
+
 ## [2.2.1](https://github.com/onomondo/onomondo-uicc/compare/v2.2.0...v2.2.1) (2026-07-06)
 
 
