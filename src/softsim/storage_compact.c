@@ -47,10 +47,11 @@ static int gen_abs_host_path(char *def_path, const struct ss_list *path, bool de
 
 	SS_LIST_FOR_EACH(path, path_cursor, struct ss_file, list) {
 		size_t remaining = sizeof(host_fs_path) - (host_fs_path_ptr - host_fs_path);
-		rc = snprintf(host_fs_path_ptr, remaining,
-			      path_cursor->fid > 0xffff ? PATH_SEPARATOR "%08x" : PATH_SEPARATOR "%04x",
-			      /* Legacy per-slot SEQ files (0xa1xx) share the a100 FCP; kept readable for the migration into a002. */
-			      (path_cursor->fid & 0xff00) == 0xa100 && def ? 0xa100 : path_cursor->fid);
+		rc = snprintf(
+			host_fs_path_ptr, remaining,
+			path_cursor->fid > 0xffff ? PATH_SEPARATOR "%08x" : PATH_SEPARATOR "%04x",
+			/* Legacy per-slot SEQ files (0xa1xx) share the a100 FCP; kept readable for the migration into a002. */
+			(path_cursor->fid & 0xff00) == 0xa100 && def ? 0xa100 : path_cursor->fid);
 		if (rc < 0 || (size_t)rc >= remaining) {
 			SS_LOGP(SSTORAGE, LERROR, "%s: host path buffer overflow while building path -- abort\n",
 				division);
