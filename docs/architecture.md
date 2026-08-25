@@ -92,11 +92,15 @@ Proprietary files use 32-bit FIDs, unreachable by SELECT (which takes 16-bit FID
 | `a003` | PIN records: state + retry counters | [`uicc_pin.c`](../src/softsim/uicc/uicc_pin.c) |
 | `a004` | OTA key records: `TAR(3) MSL(1) KIC-ind(1) KID-ind(1) KIC(16) KID(16)` | header comment in [`uicc_remote_cmd.c`](../src/softsim/uicc/uicc_remote_cmd.c) |
 | `a005` | OTA counters: 5-byte CNTR per TAR | `get_cntr_from_tar()` in `uicc_remote_cmd.c` |
-| `a100`–`a11f`, `a120` | 32 SEQ buckets (8 B big-endian each) + delta | `get_seq_data()` in `uicc_auth.c` |
+| `a002` | 32 SEQ buckets (8 B big-endian each) + delta (8 B, last) | `get_seq_data()` in `uicc_auth.c` |
 | `5f100001` | per-DF SFI→FID registry, 31 × 2-byte records, record index = SFI | [`sfi.c`](../src/softsim/uicc/sfi.c) |
 
-Quirk: every `0xa1xx` file resolves to the single `a100.def`
-(`gen_abs_host_path()` in [`storage.c`](../src/softsim/storage.c)).
+Legacy: file systems written before the collapse into `a002` carry one file
+per SEQ bucket (`a100`–`a11f`) plus the delta (`a120`), all sharing the single
+`a100.def` (the `0xa1xx` alias in `gen_abs_host_path()`,
+[`storage.c`](../src/softsim/storage.c)). `get_seq_data()` migrates such a
+tree into `a002` on the first AUTHENTICATE; the legacy files stay behind for
+the storage owner to reclaim.
 
 ## The RFM inner context
 

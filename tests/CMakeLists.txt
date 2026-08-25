@@ -23,6 +23,7 @@ add_subdirectory(pin)
 add_subdirectory(read_binary)
 add_subdirectory(suspend)
 add_subdirectory(init)
+add_subdirectory(seq_migration)
 
 add_test(NAME sfi_check COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/sfi_check.sh)
 add_subdirectory(key_scrub)

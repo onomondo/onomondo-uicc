@@ -59,46 +59,14 @@ static const char _3f00_7ff0_6fe4[] = "fffffffffffffffffffffffffffffffffffffffff
 static const char _3f00_7ff0_6fe4_def[] = "621a8205422100360183026fe48a01058b036f0604800200368801c0";
 static const char _3f00_a001[] = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00";
 static const char _3f00_a001_def[] = "6216820241218302a0018a01058b032f0606800200218800";
+static const char _3f00_a002[] = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000";
+static const char _3f00_a002_def[] = "6216820241218302a0028a01058b032f0606800201088800";
 static const char _3f00_a003[] = "0003000a000131323334ffffffff31323334353637380003000a008131323334ffffffff313233343536373801030000000a31323334ffffffffffffffffffffffff";
 static const char _3f00_a003_def[] = "6219820542210016038302a0038a01058b032f0606800200428800";
 static const char _3f00_a004[] = "b0001106030300112233445566778899aabbccddeeff0123456789abcdef0123456701234567ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 static const char _3f00_a004_def[] = "6219820542210026038302a0048a01058b032f0606800200728800";
 static const char _3f00_a005[] = "b00011ffffff0000000000ffffffffffffffffffffffffffffffffffffffffffff";
 static const char _3f00_a005_def[] = "621982054221000b038302a0058a01058b032f0606800200218800";
-static const char _3f00_a100[] = "0000000000000000";
-static const char _3f00_a100_def[] = "6216820241218302a1008a01058b032f0606800200088800";
-static const char _3f00_a101[] = "0000000000000000";
-static const char _3f00_a102[] = "0000000000000000";
-static const char _3f00_a103[] = "0000000000000000";
-static const char _3f00_a104[] = "0000000000000000";
-static const char _3f00_a105[] = "0000000000000000";
-static const char _3f00_a106[] = "0000000000000000";
-static const char _3f00_a107[] = "0000000000000000";
-static const char _3f00_a108[] = "0000000000000000";
-static const char _3f00_a109[] = "0000000000000000";
-static const char _3f00_a10a[] = "0000000000000000";
-static const char _3f00_a10b[] = "0000000000000000";
-static const char _3f00_a10c[] = "0000000000000000";
-static const char _3f00_a10d[] = "0000000000000000";
-static const char _3f00_a10e[] = "0000000000000000";
-static const char _3f00_a10f[] = "0000000000000000";
-static const char _3f00_a110[] = "0000000000000000";
-static const char _3f00_a111[] = "0000000000000000";
-static const char _3f00_a112[] = "0000000000000000";
-static const char _3f00_a113[] = "0000000000000000";
-static const char _3f00_a114[] = "0000000000000000";
-static const char _3f00_a115[] = "0000000000000000";
-static const char _3f00_a116[] = "0000000000000000";
-static const char _3f00_a117[] = "0000000000000000";
-static const char _3f00_a118[] = "0000000000000000";
-static const char _3f00_a119[] = "0000000000000000";
-static const char _3f00_a11a[] = "0000000000000000";
-static const char _3f00_a11b[] = "0000000000000000";
-static const char _3f00_a11c[] = "0000000000000000";
-static const char _3f00_a11d[] = "0000000000000000";
-static const char _3f00_a11e[] = "0000000000000000";
-static const char _3f00_a11f[] = "0000000000000000";
-static const char _3f00_a120[] = "0000000010000000";
 static const char _3f00_a1df1d01[] = "a0000000871002ffffffff89070900007ff0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 static const char _3f00_a1df1d01_def[] = "6211820502210012108304a1df1d0180020120";
 const ss_file_t ss_files_arr[] = {
@@ -158,50 +126,18 @@ const ss_file_t ss_files_arr[] = {
 {.name = "/3f00/7ff0/6fe4.def", .data = _3f00_7ff0_6fe4_def, .size = 56}, 
 {.name = "/3f00/a001", .data = _3f00_a001, .size = 66}, 
 {.name = "/3f00/a001.def", .data = _3f00_a001_def, .size = 48}, 
+{.name = "/3f00/a002", .data = _3f00_a002, .size = 528}, 
+{.name = "/3f00/a002.def", .data = _3f00_a002_def, .size = 48}, 
 {.name = "/3f00/a003", .data = _3f00_a003, .size = 132}, 
 {.name = "/3f00/a003.def", .data = _3f00_a003_def, .size = 54}, 
 {.name = "/3f00/a004", .data = _3f00_a004, .size = 228}, 
 {.name = "/3f00/a004.def", .data = _3f00_a004_def, .size = 54}, 
 {.name = "/3f00/a005", .data = _3f00_a005, .size = 66}, 
 {.name = "/3f00/a005.def", .data = _3f00_a005_def, .size = 54}, 
-{.name = "/3f00/a100", .data = _3f00_a100, .size = 16}, 
-{.name = "/3f00/a100.def", .data = _3f00_a100_def, .size = 48}, 
-{.name = "/3f00/a101", .data = _3f00_a101, .size = 16}, 
-{.name = "/3f00/a102", .data = _3f00_a102, .size = 16}, 
-{.name = "/3f00/a103", .data = _3f00_a103, .size = 16}, 
-{.name = "/3f00/a104", .data = _3f00_a104, .size = 16}, 
-{.name = "/3f00/a105", .data = _3f00_a105, .size = 16}, 
-{.name = "/3f00/a106", .data = _3f00_a106, .size = 16}, 
-{.name = "/3f00/a107", .data = _3f00_a107, .size = 16}, 
-{.name = "/3f00/a108", .data = _3f00_a108, .size = 16}, 
-{.name = "/3f00/a109", .data = _3f00_a109, .size = 16}, 
-{.name = "/3f00/a10a", .data = _3f00_a10a, .size = 16}, 
-{.name = "/3f00/a10b", .data = _3f00_a10b, .size = 16}, 
-{.name = "/3f00/a10c", .data = _3f00_a10c, .size = 16}, 
-{.name = "/3f00/a10d", .data = _3f00_a10d, .size = 16}, 
-{.name = "/3f00/a10e", .data = _3f00_a10e, .size = 16}, 
-{.name = "/3f00/a10f", .data = _3f00_a10f, .size = 16}, 
-{.name = "/3f00/a110", .data = _3f00_a110, .size = 16}, 
-{.name = "/3f00/a111", .data = _3f00_a111, .size = 16}, 
-{.name = "/3f00/a112", .data = _3f00_a112, .size = 16}, 
-{.name = "/3f00/a113", .data = _3f00_a113, .size = 16}, 
-{.name = "/3f00/a114", .data = _3f00_a114, .size = 16}, 
-{.name = "/3f00/a115", .data = _3f00_a115, .size = 16}, 
-{.name = "/3f00/a116", .data = _3f00_a116, .size = 16}, 
-{.name = "/3f00/a117", .data = _3f00_a117, .size = 16}, 
-{.name = "/3f00/a118", .data = _3f00_a118, .size = 16}, 
-{.name = "/3f00/a119", .data = _3f00_a119, .size = 16}, 
-{.name = "/3f00/a11a", .data = _3f00_a11a, .size = 16}, 
-{.name = "/3f00/a11b", .data = _3f00_a11b, .size = 16}, 
-{.name = "/3f00/a11c", .data = _3f00_a11c, .size = 16}, 
-{.name = "/3f00/a11d", .data = _3f00_a11d, .size = 16}, 
-{.name = "/3f00/a11e", .data = _3f00_a11e, .size = 16}, 
-{.name = "/3f00/a11f", .data = _3f00_a11f, .size = 16}, 
-{.name = "/3f00/a120", .data = _3f00_a120, .size = 16}, 
 {.name = "/3f00/a1df1d01", .data = _3f00_a1df1d01, .size = 576}, 
 {.name = "/3f00/a1df1d01.def", .data = _3f00_a1df1d01_def, .size = 38}
 };
-const uint32_t ss_files_len = 98;
+const uint32_t ss_files_len = 66;
 const uint32_t ss_dirs_len = 2;
 const ss_file_t *ss_files = ss_files_arr;
 const ss_dir_t *ss_dirs = ss_dirs_arr;

@@ -49,7 +49,17 @@ struct auth_res_success_3g {
 } __attribute__((packed));
 
 #define KEY_DATA_FID 0xA001
+#define SEQ_DATA_FID 0xA002
+#define MF_FID 0x3F00
+/* Legacy layout (before the collapse into SEQ_DATA_FID): one 8-byte file per
+ * SEQ slot at 0xA100..0xA11F plus the delta at 0xA120. Still read so that
+ * fielded file systems migrate on their first AUTHENTICATE. */
 #define SEQ_DATA_FID_BASE 0xA100
+
+/* FCP of the SEQ data file: transparent, shareable, 264 bytes (32 x 8-byte
+ * SEQ values followed by the 8-byte delta), ARR 2f06 record 6, no SFI. */
+static const uint8_t seq_data_fcp[] = { 0x62, 0x16, 0x82, 0x02, 0x41, 0x21, 0x83, 0x02, 0xa0, 0x02, 0x8a, 0x01,
+					0x05, 0x8b, 0x03, 0x2f, 0x06, 0x06, 0x80, 0x02, 0x01, 0x08, 0x88, 0x00 };
 
 /* Populate key data from file */
 static int get_key_data(struct milenage_key_data *key_data)
@@ -103,28 +113,27 @@ static int get_key_data(struct milenage_key_data *key_data)
 	return 0;
 }
 
-/* Populate SEQ data from file */
-static int get_seq_data(struct milenage_seq_data *seq_data)
+/* Populate SEQ data from the legacy per-slot files (pre-collapse layout) */
+static int get_seq_data_legacy(struct milenage_seq_data *seq_data)
 {
 	struct ss_list seq_data_path;
 	struct ss_buf *seq_data_raw;
 	int rc;
 	int file_offset = 0;
 
-	/* File format:
-	 * | 64-bit SEQ_M values ]
-   * [ 64-bit delta ]
-	 * (all big endian)
+	/* File format (one file per value):
+	 * | 64-bit SEQ_MS value or 64-bit delta |
+	 * (big endian)
 	 * */
 
 	ss_fs_init(&seq_data_path);
-	seq_data->dirty_ind = NO_IND_UPDATE;
 
 	for (file_offset = 0; file_offset < SS_ARRAY_SIZE(seq_data->seq) + 1; file_offset++) {
 		rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID_BASE + file_offset);
 
 		if (rc < 0) {
-			SS_LOGP(SAUTH, LERROR, "seq data file (%04x) not found -- abort\n", KEY_DATA_FID);
+			SS_LOGP(SAUTH, LERROR, "seq data file (%04x) not found -- abort\n",
+				SEQ_DATA_FID_BASE + file_offset);
 			ss_path_reset(&seq_data_path);
 			return -EINVAL;
 		}
@@ -164,11 +173,107 @@ static int get_seq_data(struct milenage_seq_data *seq_data)
 	return 0;
 }
 
+/* One-time coalescing of the legacy per-slot files into the SEQ data file.
+ * The delta is written last and doubles as the commit mark: a valid delta is
+ * never zero, so get_seq_data() treats a zero delta as an incomplete
+ * migration and reloads from the legacy files. The legacy files themselves
+ * stay in place (they share one definition file, which makes deleting them
+ * through the storage API unsafe here); the storage owner may reclaim them
+ * once the SEQ data file exists. On any failure we keep authenticating from
+ * the legacy layout and retry on the next AUTHENTICATE. */
+static void migrate_seq_data(const struct milenage_seq_data *seq_data)
+{
+	struct ss_list seq_data_path;
+	uint8_t buffer[sizeof(seq_data->seq) + sizeof(seq_data->delta)];
+	unsigned int i;
+	int rc;
+
+	ss_fs_init(&seq_data_path);
+
+	rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID);
+	if (rc < 0) {
+		rc = ss_fs_select(&seq_data_path, MF_FID);
+		if (rc < 0)
+			goto leave;
+		rc = ss_fs_create(&seq_data_path, seq_data_fcp, sizeof(seq_data_fcp));
+		if (rc < 0)
+			goto leave;
+		rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID);
+		if (rc < 0)
+			goto leave;
+	}
+
+	for (i = 0; i < SS_ARRAY_SIZE(seq_data->seq); i++)
+		ss_uint64_store_to_be(&buffer[i * sizeof(uint64_t)], seq_data->seq[i]);
+	ss_uint64_store_to_be(&buffer[sizeof(seq_data->seq)], seq_data->delta);
+
+	/* SEQ values first, the delta (commit mark) last */
+	rc = ss_storage_write_file(&seq_data_path, buffer, 0, sizeof(seq_data->seq));
+	if (rc < 0)
+		goto leave;
+	rc = ss_storage_write_file(&seq_data_path, &buffer[sizeof(seq_data->seq)], sizeof(seq_data->seq),
+				   sizeof(seq_data->delta));
+
+leave:
+	if (rc < 0)
+		SS_LOGP(SAUTH, LERROR, "seq data not migrated to single file (%04x), keeping legacy layout\n",
+			SEQ_DATA_FID);
+	else
+		SS_LOGP(SAUTH, LINFO, "seq data migrated to single file (%04x)\n", SEQ_DATA_FID);
+	ss_path_reset(&seq_data_path);
+}
+
+/* Populate SEQ data from file */
+static int get_seq_data(struct milenage_seq_data *seq_data)
+{
+	struct ss_list seq_data_path;
+	struct ss_buf *seq_data_raw = NULL;
+	unsigned int i;
+	int rc;
+
+	/* File format:
+	 * | 32 x 64-bit SEQ_MS values | 64-bit delta |
+	 * (all big endian)
+	 * */
+
+	ss_fs_init(&seq_data_path);
+	seq_data->dirty_ind = NO_IND_UPDATE;
+
+	rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID);
+	if (rc == 0)
+		seq_data_raw = ss_storage_read_file(&seq_data_path, 0, ss_storage_get_file_len(&seq_data_path));
+	ss_path_reset(&seq_data_path);
+
+	if (seq_data_raw && seq_data_raw->len >= sizeof(seq_data->seq) + sizeof(seq_data->delta)) {
+		for (i = 0; i < SS_ARRAY_SIZE(seq_data->seq); i++)
+			seq_data->seq[i] = ss_uint64_load_from_be(&seq_data_raw->data[i * sizeof(uint64_t)]);
+		seq_data->delta = ss_uint64_load_from_be(&seq_data_raw->data[sizeof(seq_data->seq)]);
+		ss_buf_free(seq_data_raw);
+
+		/* A zero delta marks an incomplete migration (see
+		 * migrate_seq_data()), fall through to the legacy layout. */
+		if (seq_data->delta != 0) {
+			SS_LOGP(SAUTH, LDEBUG, "seq data file (%04x) loaded\n", SEQ_DATA_FID);
+			return 0;
+		}
+	} else if (seq_data_raw) {
+		ss_buf_free(seq_data_raw);
+	}
+
+	/* No usable SEQ data file: load the legacy layout and migrate. */
+	rc = get_seq_data_legacy(seq_data);
+	if (rc < 0)
+		return rc;
+	migrate_seq_data(seq_data);
+	return 0;
+}
+
 /* Sync SEQ data back to file */
 static int update_seq_data(struct milenage_seq_data *seq_data)
 {
 	struct ss_list seq_data_path;
 	uint8_t write_buffer[sizeof(seq_data->delta)]; // 8 bytes
+	size_t write_offset = 0;
 
 	int rc;
 
@@ -180,17 +285,26 @@ static int update_seq_data(struct milenage_seq_data *seq_data)
 		return -EINVAL;
 	}
 
-	rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID_BASE + seq_data->dirty_ind);
+	rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID);
+	if (rc == 0) {
+		write_offset = seq_data->dirty_ind * sizeof(uint64_t);
+	} else {
+		/* No SEQ data file (the migration in get_seq_data() could not
+		 * run): persist into the legacy per-slot file so SQN freshness
+		 * keeps surviving restarts. */
+		rc = ss_fs_select(&seq_data_path, SEQ_DATA_FID_BASE + seq_data->dirty_ind);
+	}
 
 	if (rc < 0) {
-		SS_LOGP(SAUTH, LERROR, "seq data file (%04x) not found -- abort\n", KEY_DATA_FID);
+		SS_LOGP(SAUTH, LERROR, "seq data file (%04x) not found -- abort\n",
+			SEQ_DATA_FID_BASE + seq_data->dirty_ind);
 		ss_path_reset(&seq_data_path);
 		return -EINVAL;
 	}
 
 	ss_uint64_store_to_be(write_buffer, seq_data->seq[seq_data->dirty_ind]);
 
-	rc = ss_storage_write_file(&seq_data_path, write_buffer, 0, sizeof(write_buffer));
+	rc = ss_storage_write_file(&seq_data_path, write_buffer, write_offset, sizeof(write_buffer));
 
 	if (rc < 0) {
 		SS_LOGP(SAUTH, LERROR, "seq data file (%s) not writeable -- abort\n",
