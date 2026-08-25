@@ -21,17 +21,30 @@ struct ss_buf {
 	size_t len;
 };
 
+/*! Allocate a new ss_buf object, tolerating allocation failure.
+ *  \param[in] len number of bytes to allocate inside ss_buf.
+ *  \returns pointer to newly allocated ss_buf object, NULL when out of memory. */
+static inline struct ss_buf *ss_buf_try_alloc(size_t len)
+{
+	struct ss_buf *sb = SS_ALLOC_N(sizeof(*sb) + len);
+
+	if (!sb)
+		return NULL;
+
+	sb->data = (uint8_t *)sb + sizeof(*sb);
+	sb->len = len;
+
+	return sb;
+}
+
 /*! Allocate a new ss_buf object.
  *  \param[in] len number of bytes to allocate inside ss_buf.
  *  \returns pointer to newly allocated ss_buf object. */
 static inline struct ss_buf *ss_buf_alloc(size_t len)
 {
-	struct ss_buf *sb = SS_ALLOC_N(sizeof(*sb) + len);
+	struct ss_buf *sb = ss_buf_try_alloc(len);
+
 	assert(sb);
-
-	sb->data = (uint8_t *)sb + sizeof(*sb);
-	sb->len = len;
-
 	return sb;
 }
 
