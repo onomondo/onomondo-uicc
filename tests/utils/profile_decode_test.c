@@ -356,7 +356,7 @@ static void decode_softsim_profile_test_err_scrubs()
 	printf("Profile struct cleared\n");
 }
 
-/* The six tags every profile the provisioner accepts must carry, see
+/* The four tags the provisioner requires plus the optional OTA keys, see
  * decode_softsim_profile_test_ok. */
 // clang-format off
 #define REQUIRED_TAGS \
