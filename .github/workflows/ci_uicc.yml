@@ -44,6 +44,7 @@ jobs:
       matrix:
         flags: ["", "-DCONFIG_EXTERNAL_KEY_LOAD=y", "-DCONFIG_USE_UTILS=y", "-DCONFIG_BUILD_LIB_ONLY=y",
                 "-DCONFIG_DISABLE_OTA=y",
+                "-DCONFIG_DISABLE_REFRESH=y",
                 "-DCONFIG_DISABLE_OTA=y -DCONFIG_DISABLE_SMS=y",
                 "-DCONFIG_DISABLE_OTA=y -DCONFIG_DISABLE_SMS=y -DCONFIG_DISABLE_REFRESH=y -DCONFIG_DISABLE_PROACTIVE=y"]
         compiler: [gcc, clang]
