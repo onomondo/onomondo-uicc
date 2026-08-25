@@ -10,13 +10,25 @@
 #include "proactive.h"
 #include "fs_chg.h"
 
+/* The CONFIG_DISABLE_* opt-outs follow the reachability graph: OTA commands
+ * arrive over SMS, and SMS as well as REFRESH run on the proactive machinery.
+ * Catch impossible combinations here for builds that bypass CMakeLists.txt. */
+#if defined(CONFIG_DISABLE_SMS) && !defined(CONFIG_DISABLE_OTA)
+#error CONFIG_DISABLE_SMS requires CONFIG_DISABLE_OTA
+#endif
+#if defined(CONFIG_DISABLE_PROACTIVE) && !(defined(CONFIG_DISABLE_SMS) && defined(CONFIG_DISABLE_REFRESH))
+#error CONFIG_DISABLE_PROACTIVE requires CONFIG_DISABLE_SMS and CONFIG_DISABLE_REFRESH
+#endif
+
 /* Context for one softsim instance. */
 struct ss_context {
 	/* context holding the state for the (one and only) logical channel */
 	struct ss_lchan lchan;
 
+#ifndef CONFIG_DISABLE_PROACTIVE
 	/* context holding the state for proactive SIM commands */
 	struct ss_proactive_ctx proactive;
+#endif
 
 	/* pointer to an array of size SS_FS_CHG_BUF_SIZE */
 	uint8_t *fs_chg_filelist;
