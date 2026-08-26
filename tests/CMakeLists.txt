@@ -21,6 +21,7 @@ add_subdirectory(tlv8)
 add_subdirectory(utils)
 add_subdirectory(pin)
 add_subdirectory(read_binary)
+add_subdirectory(read_on_df)
 add_subdirectory(suspend)
 add_subdirectory(init)
 

@@ -1,0 +1,8 @@
+READ BINARY with the MF selected: 6986
+READ RECORD with the MF selected: 6986
+SELECT ADF.USIM: 9000
+READ BINARY with the ADF selected: 6986
+SELECT MF: 9000
+SELECT EF.ICCID: 9000
+READ RECORD on a transparent EF: 6981
+READ BINARY with an EF selected: 9000
