@@ -141,7 +141,6 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 	char host_path[SS_STORAGE_PATH_MAX + 1];
 	int rc;
 	ss_FILE fd;
-	uint8_t *line_buf;
 	size_t fgets_rc;
 	struct ss_buf *result;
 
@@ -151,18 +150,20 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 		return NULL;
 	}
 
-	line_buf = SS_ALLOC_N(read_len);
-	if (!line_buf) {
+	/* Read straight into the result buffer, so the content (key files
+	 * included) never exists in a second heap copy. */
+	result = ss_buf_try_alloc(read_len);
+	if (!result) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to allocate read buffer (read_len=%u) for file: %s\n",
 			(unsigned int)read_len, host_path);
 		return NULL;
 	}
-	memset(line_buf, 0, read_len);
+	memset(result->data, 0, read_len);
 
 	fd = ss_fopen(host_path, "r");
 	if (!fd) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to open content file: %s\n", host_path);
-		SS_FREE(line_buf);
+		ss_buf_free(result);
 		return NULL;
 	}
 
@@ -170,34 +171,24 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 	if (rc != 0) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to seek (read_offset=%u) requested data in content file: %s\n",
 			(unsigned int)read_offset, host_path);
-		SS_FREE(line_buf);
+		ss_buf_free(result);
 		ss_fclose(fd);
 		return NULL;
 	}
 
-	fgets_rc = ss_fread(line_buf, 1, read_len, fd);
+	fgets_rc = ss_fread(result->data, 1, read_len, fd);
 	if (fgets_rc != read_len) {
 		SS_LOGP(SSTORAGE, LERROR,
 			"unable to load content (read_offset=%u, read_len=%u) from file: "
 			"%s\n",
 			(unsigned int)read_offset, (unsigned int)read_len, host_path);
-		ss_memzero(line_buf, read_len);
-		SS_FREE(line_buf);
+		ss_memzero(result->data, read_len);
+		ss_buf_free(result);
 		ss_fclose(fd);
 		return NULL;
 	}
 
 	ss_fclose(fd);
-
-	result = ss_buf_alloc_and_cpy(line_buf, fgets_rc);
-	/* Holds the file content, key files included. */
-	ss_memzero(line_buf, read_len);
-	SS_FREE(line_buf);
-	if (!result) {
-		SS_LOGP(SSTORAGE, LERROR, "unable to allocate result buffer (len=%u) for file: %s\n",
-			(unsigned int)fgets_rc, host_path);
-		return NULL;
-	}
 	return result;
 }
 
