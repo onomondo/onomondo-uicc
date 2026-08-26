@@ -454,7 +454,16 @@ static int calc_record_number(uint8_t *record_number_new, uint8_t *record_number
 		*record_number_new = *record_number;
 		break;
 	case 0x04:
-		*record_number = apdu->hdr.p1;
+		/* P1 = '00' denotes the current record, see also ETSI TS 102 221,
+		 * table 11.11 */
+		*record_number = apdu->hdr.p1 ? apdu->hdr.p1 : apdu->lchan->current_record;
+		if (*record_number == 0) {
+			SS_LOGP(SFILE, LERROR,
+				"current record of file (%04x) requested, but the record pointer "
+				"is not set yet\n",
+				selected_file->fid);
+			return SS_SW_ERR_WRONG_PARAM_RECORD_NOT_FOUND;
+		}
 
 		/* Keep record number as it is */
 		*record_number_new = apdu->lchan->current_record;
@@ -745,6 +754,16 @@ int ss_uicc_file_ops_cmd_search_record(struct ss_apdu *apdu)
 			search_record_number = apdu->lchan->current_record;
 		else
 			search_record_number = apdu->hdr.p1;
+
+		/* P1 = '00' names the current record (ETSI TS 102 221, table
+		 * 11.11), which does not exist before the record pointer is set. */
+		if (search_record_number == 0) {
+			SS_LOGP(SFILE, LERROR,
+				"current record of file (%04x) requested, but the record pointer "
+				"is not set yet\n",
+				selected_file->fid);
+			return SS_SW_ERR_WRONG_PARAM_RECORD_NOT_FOUND;
+		}
 
 		if (search_mode == SEARCH_SIMPLE_FORWARD)
 			search_dir_forward = true;
