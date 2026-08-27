@@ -2,9 +2,7 @@
   "packages": {
     ".": {
       "release-type": "simple",
-      "extra-files": [
-        { "type": "generic", "path": "CMakeLists.txt" }
-      ]
+      "extra-files": ["CMakeLists.txt"]
     }
   }
 }
