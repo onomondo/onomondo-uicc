@@ -1,0 +1,13 @@
+SELECT EF.DIR: sw=9000 data=
+READ RECORD current, pointer unset: sw=6a83 data=
+SEARCH RECORD from current, pointer unset: sw=6a83 data=
+READ RECORD next (1): sw=9000 data=61194f10a0000000871002ffffffff890709000050055553696d31ffffffffffffffffffffff
+READ RECORD current (1): sw=9000 data=61194f10a0000000871002ffffffff890709000050055553696d31ffffffffffffffffffffff
+READ RECORD next (2): sw=9000 data=ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+READ RECORD current (2): sw=9000 data=ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+SEARCH RECORD from current: sw=9000 data=
+SEARCH RECORD from record 1: sw=9000 data=01
+SELECT ADF.USIM: sw=9000 data=
+SELECT EF.EPSNSC: sw=9000 data=
+READ RECORD current after SELECT: sw=6a83 data=
+UPDATE RECORD current, pointer unset: sw=6a83 data=
