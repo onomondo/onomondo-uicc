@@ -11,6 +11,11 @@
 * report 6982 (not 6900) on access-condition denial, gate SEARCH RECORD by READ access ([#161](https://github.com/onomondo/onomondo-uicc/issues/161)) ([6d1d6f4](https://github.com/onomondo/onomondo-uicc/commit/6d1d6f49d268866066944f3be0c12e7156ac5775))
 * report 6986 (not 6981) when a DF is selected for a file-structure command ([#163](https://github.com/onomondo/onomondo-uicc/issues/163)) ([41b7f24](https://github.com/onomondo/onomondo-uicc/commit/41b7f24dcc5f3a52b98851560b90c8d0f78121fc))
 
+
+### Performance Improvements
+
+* drop the duplicate SEQ_MS lookup in milenage_usim_check ([#157](https://github.com/onomondo/onomondo-uicc/issues/157)) ([6bcf1b8](https://github.com/onomondo/onomondo-uicc/commit/6bcf1b80ff0dfee3c7725bf6cbcadcba7ee92dfc))
+
 ## [2.3.0](https://github.com/onomondo/onomondo-uicc/compare/v2.2.1...v2.3.0) (2026-08-25)
 
 
