@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 struct ss_context;
@@ -39,6 +40,7 @@ struct ss_apdu {
 	size_t rsp_len; /*< actual length of of rsp */
 	uint16_t sw; /*< status word */
 	uint16_t processed_bytes;
+	bool malformed; /*< length fields inconsistent with the buffer; the dispatcher answers 6700 */
 };
 
 struct ss_apdu *ss_apdu_new(struct ss_context *ctx);
