@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.3.1](https://github.com/onomondo/onomondo-uicc/compare/v2.3.0...v2.3.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* address the current record when P1 is zero in absolute/current mode ([#165](https://github.com/onomondo/onomondo-uicc/issues/165)) ([a1d19ad](https://github.com/onomondo/onomondo-uicc/commit/a1d19ade181726d84a7c9fb3715a378511fc8971))
+* refuse to execute an APDU with malformed length fields ([#142](https://github.com/onomondo/onomondo-uicc/issues/142)) ([d010c0a](https://github.com/onomondo/onomondo-uicc/commit/d010c0a6d186affe4272cbf90cae5906e63fa6f4))
+* reject out-of-range record numbers in READ/UPDATE/SEARCH RECORD ([#162](https://github.com/onomondo/onomondo-uicc/issues/162)) ([c410b84](https://github.com/onomondo/onomondo-uicc/commit/c410b849f88702fae478fcb4fea86b8c42fc9ac6))
+* report 6982 (not 6900) on access-condition denial, gate SEARCH RECORD by READ access ([#161](https://github.com/onomondo/onomondo-uicc/issues/161)) ([6d1d6f4](https://github.com/onomondo/onomondo-uicc/commit/6d1d6f49d268866066944f3be0c12e7156ac5775))
+* report 6986 (not 6981) when a DF is selected for a file-structure command ([#163](https://github.com/onomondo/onomondo-uicc/issues/163)) ([41b7f24](https://github.com/onomondo/onomondo-uicc/commit/41b7f24dcc5f3a52b98851560b90c8d0f78121fc))
+
 ## [2.3.0](https://github.com/onomondo/onomondo-uicc/compare/v2.2.1...v2.3.0) (2026-08-25)
 
 
