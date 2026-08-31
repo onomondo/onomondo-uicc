@@ -218,7 +218,9 @@ static void concat_sm_missing_cpi_test(void)
 			       "62408011934280" /* TP-SCTS */
 			       "0b" /* TP-UDL = 11 */
 			       "05" /* TP-UD: UDHL = 5 */
-			       "0003" "0602" "01" /* concat SM IE: ref=06, parts=2, part=1 -- no CPI IE */
+			       "0003"
+			       "0602"
+			       "01" /* concat SM IE: ref=06, parts=2, part=1 -- no CPI IE */
 			       "00090d0001", /* part 1 payload (5 of 11 bytes) */
 			       resp, sizeof(resp), &resp_len);
 	printf("ENVELOPE concatenated SM, part 1 without CPI: %04x\n", sw);
@@ -262,7 +264,9 @@ static void concat_sm_reassembly_test(void)
 			       "0d" /* TP-UDL = 13 */
 			       "07" /* TP-UD: UDHL = 7 */
 			       "7000" /* CPI IE, part 1 only */
-			       "0003" "0502" "01" /* concat SM IE: ref=05, parts=2, part=1 */
+			       "0003"
+			       "0502"
+			       "01" /* concat SM IE: ref=05, parts=2, part=1 */
 			       "00090d0001", /* part 1 payload */
 			       resp, sizeof(resp), &resp_len);
 	printf("ENVELOPE concatenated SM, part 1 with CPI: %04x\n", sw);
@@ -280,7 +284,9 @@ static void concat_sm_reassembly_test(void)
 			       "62408011934280"
 			       "0c" /* TP-UDL = 12 */
 			       "05" /* TP-UD: UDHL = 5 */
-			       "0003" "0502" "02" /* concat SM IE: ref=05, parts=2, part=2 */
+			       "0003"
+			       "0502"
+			       "02" /* concat SM IE: ref=05, parts=2, part=2 */
 			       "0000b00011aa", /* part 2 payload, completes the message */
 			       resp, sizeof(resp), &resp_len);
 	printf("ENVELOPE concatenated SM, part 2 completes: %04x\n", sw);
