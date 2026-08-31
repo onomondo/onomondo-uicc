@@ -33,8 +33,8 @@ update_record_decoded 6 '[[{"access_mode": ["read_search_compare"]}, {"control_r
 # semantics when applied to an EF, but are meant as their equivalent rules for
 # DFs (see <https://osmocom.org/issues/5550>)
 
-# 15: No access checked access at all. (Ie. no creating child files or DFs, no
+# 7: No access checked access at all. (Ie. no creating child files or DFs, no
 # activating or deactivating the DF; deleting files can still be allowed as TS
 # 102 222 cards only check for the rules on self for file deletion, not on the
 # parent)
-update_record_decoded 15 '[]'
+update_record_decoded 7 '[]'

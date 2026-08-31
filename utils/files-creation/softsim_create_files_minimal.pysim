@@ -12,8 +12,8 @@
 # disabled.
 
 echo "create 3f00, MF"
-#Access conditions: 15 -- nothing allowed
-apdu 00E000001D621B8202782183023f00A5098001F18701008801008a01038b032f060f --expect-sw 9000
+#Access conditions: 07 -- nothing allowed
+apdu 00E000001D621B8202782183023f00A5098001F18701008801008a01038b032f0607 --expect-sw 9000
 
 #ETSI TS 102 221, section 13.1
 #Access conditions: 02 -- READ:ALW, UPDATE:ADM, DEACTIVATE/ACTIVATE:ADM
