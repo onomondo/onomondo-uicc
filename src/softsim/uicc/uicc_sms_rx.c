@@ -104,8 +104,7 @@ static int put_sm_part(struct ss_uicc_sms_rx_state *state, struct ss_uicc_sms_rx
  * was rejected outright; *out_result is left NULL in that case too, and any
  * state buffered so far for the message is freed. */
 static int concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_ud, size_t tp_ud_len,
-		     struct tlv8_ie *concat_sm_desc_ie, uint8_t *ud_hdr, size_t ud_hdr_len,
-		     struct ss_buf **out_result)
+		     struct tlv8_ie *concat_sm_desc_ie, uint8_t *ud_hdr, size_t ud_hdr_len, struct ss_buf **out_result)
 {
 	struct ss_uicc_sms_rx_sm *sm;
 	uint8_t i;
@@ -256,8 +255,7 @@ static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *
 
 	assert(sm_hdr->tp_mti == SMS_MTI_DELIVER);
 
-	rc = ss_uicc_remote_cmd_receive(tp_ud_len, tp_ud, response_len, response, &sms_response,
-					ctx->fs_chg_filelist);
+	rc = ss_uicc_remote_cmd_receive(tp_ud_len, tp_ud, response_len, response, &sms_response, ctx->fs_chg_filelist);
 
 	if (sms_response != NULL) {
 		struct ss_sm_hdr response_hdr;
@@ -265,8 +263,7 @@ static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *
 
 		response_hdr.tp_mti = SMS_MTI_SUBMIT;
 		response_hdr.u.sms_submit.tp_da.extension = true;
-		memcpy(&response_hdr.u.sms_submit.tp_da, &sm_hdr->u.sms_deliver.tp_oa,
-		       sizeof(struct ss_sms_addr));
+		memcpy(&response_hdr.u.sms_submit.tp_da, &sm_hdr->u.sms_deliver.tp_oa, sizeof(struct ss_sms_addr));
 		/* TP-Protocol-Identifier: unsure */
 		response_hdr.u.sms_submit.tp_pid = 127;
 		/* data coding scheme: 8-bit data */
@@ -378,6 +375,10 @@ int ss_uicc_sms_rx(struct ss_context *ctx, struct ss_buf *sms_tpdu, size_t *resp
 						ss_buf_free(concat_sm_buf);
 						if (rc < 0)
 							*response_len = 0;
+					} else {
+						/* Part accepted and buffered, message still incomplete:
+						 * no response data of our own to report yet. */
+						*response_len = 0;
 					}
 				}
 
@@ -393,7 +394,8 @@ int ss_uicc_sms_rx(struct ss_context *ctx, struct ss_buf *sms_tpdu, size_t *resp
 		/* Normal SM received, forward directly */
 		if (!concat_sm_desc_ie) {
 			SS_LOGP(SSMS, LDEBUG, "received sms TP-UD: %s\n", ss_hexdump(tp_ud, tp_ud_len));
-			rc = handle_single_sm(ctx, &sm_hdr, ud_hdr, ud_hdr_len, tp_ud, tp_ud_len, response_len, response);
+			rc = handle_single_sm(ctx, &sm_hdr, ud_hdr, ud_hdr_len, tp_ud, tp_ud_len, response_len,
+					      response);
 			if (rc < 0)
 				*response_len = 0;
 		}
