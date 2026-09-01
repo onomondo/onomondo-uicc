@@ -115,7 +115,7 @@ static int encode_addr(uint8_t *addr, size_t addr_len, const struct ss_sms_addr 
 	addr[bytes_used] |= addr_dec->numbering_plan & 0x0F;
 	bytes_used++;
 
-	if (addr_len < bytes_used + n_digits + 1 / 2)
+	if (addr_len < bytes_used + (n_digits + 1) / 2)
 		return -ENOMEM;
 
 	/* Encode digits */

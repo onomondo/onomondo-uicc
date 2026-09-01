@@ -63,3 +63,6 @@ test ss_uicc_sms_tx (message that needs to be splitted over multiple SM)
 regression: reject SMS-DELIVER with oversized Address-Length
  rc=-22 (expected < 0)
 
+regression: encode SMS-COMMAND with 20-digit TP-DA into exact-fit buffer
+ rc=18 (expected 18)
+
