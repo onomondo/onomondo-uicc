@@ -9,3 +9,5 @@ ENVELOPE empty user data header: 6f00
 ENVELOPE concatenated SM, part 1 without CPI: 6a80
 ENVELOPE concatenated SM, part 1 with CPI: 9000
 ENVELOPE concatenated SM, part 2 completes: 6700
+ENVELOPE concatenated SM, part 1 with CPI after concat IE (Table 7 order): 9000
+ENVELOPE concatenated SM, part 2 completes: 6700

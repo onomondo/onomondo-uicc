@@ -295,6 +295,71 @@ static void concat_sm_reassembly_test(void)
 	ss_free_ctx(ctx);
 }
 
+/* Same reassembly as concat_sm_reassembly_test(), but with part 1's UDH
+ * elements in the order TS 23.048 section 6.3's own Table 7 example uses:
+ * concatenation IE first, then CPI -- the reverse of the order used above.
+ * TS 23.048 section 6.3 is explicit that "the ordering of the various
+ * elements of the UDH is not important", so this must be accepted exactly
+ * like the CPI-first case; uicc_sms_rx used to check only ud_hdr[0] for the
+ * CPI tag, which rejected this ordering with 0x6a80. */
+static void concat_sm_table7_ie_order_test(void)
+{
+	struct ss_context *ctx;
+	uint8_t resp[300];
+	size_t resp_len;
+	uint16_t sw;
+
+	ss_log_mask = 0;
+	ctx = ss_new_ctx();
+	ss_reset(ctx);
+	ss_log_mask = 0;
+
+	relax_tar_msl();
+
+	sw = transact_hex_apdu(ctx,
+			       "80c200002b" /* ENVELOPE, Lc=43 */
+			       "d129" /* SMS-PP download CAT template */
+			       "82028381"
+			       "860510426587f9"
+			       "8b1c" /* SMS-TPDU IE, 28 bytes */
+			       "60"
+			       "03912143"
+			       "7ff6"
+			       "62408011934280"
+			       "0d" /* TP-UDL = 13 */
+			       "07" /* TP-UD: UDHL = 7 */
+			       "0003"
+			       "0a02"
+			       "01" /* concat SM IE: ref=0a, parts=2, part=1 -- Table 7 order: before CPI */
+			       "7000" /* CPI IE, part 1 only -- after the concat IE this time */
+			       "00090d0001", /* part 1 payload */
+			       resp, sizeof(resp), &resp_len);
+	printf("ENVELOPE concatenated SM, part 1 with CPI after concat IE (Table 7 order): %04x\n", sw);
+	assert(sw == 0x9000);
+
+	sw = transact_hex_apdu(ctx,
+			       "80c200002a" /* ENVELOPE, Lc=42 */
+			       "d128"
+			       "82028381"
+			       "860510426587f9"
+			       "8b1b" /* SMS-TPDU IE, 27 bytes */
+			       "60"
+			       "03912143"
+			       "7ff6"
+			       "62408011934280"
+			       "0c" /* TP-UDL = 12 */
+			       "05" /* TP-UD: UDHL = 5 */
+			       "0003"
+			       "0a02"
+			       "02" /* concat SM IE: ref=0a, parts=2, part=2 */
+			       "0000b00011aa", /* part 2 payload, completes the message */
+			       resp, sizeof(resp), &resp_len);
+	printf("ENVELOPE concatenated SM, part 2 completes: %04x\n", sw);
+	assert(sw == 0x6700);
+
+	ss_free_ctx(ctx);
+}
+
 int main(void)
 {
 	command_packet_test();
@@ -303,6 +368,7 @@ int main(void)
 	empty_user_data_header_test();
 	concat_sm_missing_cpi_test();
 	concat_sm_reassembly_test();
+	concat_sm_table7_ie_order_test();
 
 	return 0;
 }

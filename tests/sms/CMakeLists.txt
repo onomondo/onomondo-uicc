@@ -15,3 +15,9 @@ add_test(NAME sms_test_compare
 				 ${CMAKE_CURRENT_BINARY_DIR}/sms_test.out
 				 ${CMAKE_CURRENT_SOURCE_DIR}/sms_test.ok
 )
+
+add_executable(sms_concat_ignore_test sms_concat_ignore_test.c)
+
+target_link_libraries(sms_concat_ignore_test uicc milenage crypto storage $<$<TARGET_EXISTS:utils>:utils>)
+
+add_test(NAME sms_concat_ignore_test COMMAND sms_concat_ignore_test)
