@@ -49,6 +49,10 @@ static int decode_addr(struct ss_sms_addr *addr_dec, const uint8_t *addr, size_t
 
 	/* Decode number of digits */
 	n_digits = addr[0];
+	/* Wire-controlled (0-255); reject any count whose decoded ASCII
+	 * digits would not fit in addr_dec->digits with a trailing NUL. */
+	if (n_digits >= sizeof(addr_dec->digits))
+		return -EINVAL;
 	n_bytes = n_digits / 2;
 	if (n_digits % 2)
 		n_bytes++;

@@ -307,6 +307,32 @@ void ss_uicc_sms_tx_test_multi(void)
 	ss_uicc_sms_tx_clear(&ctx);
 }
 
+/* Regression test: an Address-Length whose decoded digits would overflow
+ * addr_dec->digits must be rejected (TS 23.040 section 9.1.2.5). */
+void ss_sms_addr_length_overflow_test(void)
+{
+	/* SMS-DELIVER with TP-OA length 21, one over the 20-digit cap. */
+	uint8_t sms_tpdu[] = {
+		0x00, /* TP-MTI = DELIVER */
+		21, /* TP-OA length: 21 digits — over limit */
+		0x91, /* TP-OA TOA: ext=1, TON=1, NPI=1 */
+		0x10, 0x32, 0x54, 0x76, 0x98, 0x10, 0x32, 0x54, 0x76, 0x98, 0xF0, /* 21 BCD digits */
+		0x00, /* TP-PID */
+		0x00, /* TP-DCS */
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* TP-SCTS */
+		0x00, /* TP-UDL */
+	};
+	struct ss_sm_hdr sm_hdr;
+	int rc;
+
+	printf("regression: reject SMS-DELIVER with oversized Address-Length\n");
+
+	rc = ss_sms_hdr_decode(&sm_hdr, sms_tpdu, sizeof(sms_tpdu));
+	printf(" rc=%i (expected < 0)\n", rc);
+	assert(rc < 0);
+	printf("\n");
+}
+
 int main(int argc, char **argv)
 {
 	ss_sms_hdr_decode_sms_deliver_test();
@@ -318,5 +344,6 @@ int main(int argc, char **argv)
 	ss_sms_hdr_encode_test_sms_submit();
 	ss_uicc_sms_tx_test_single();
 	ss_uicc_sms_tx_test_multi();
+	ss_sms_addr_length_overflow_test();
 	return 0;
 }
