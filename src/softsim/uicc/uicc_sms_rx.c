@@ -160,8 +160,9 @@ static int concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_ud, size_t 
 		return SS_SW_ERR_WRONG_PARAM_INCORRECT_DATA;
 	}
 
-	/* Clear state when a new message is detected */
-	if (state->msg_id != msg_id) {
+	/* Clear state when a new message is detected. Idle is msg_parts == 0 (a
+	 * latched part count is never 0); the reference number may legally be 0. */
+	if (state->msg_parts == 0 || state->msg_id != msg_id) {
 		SS_LOGP(SSMS, LERROR, "message %u is a new message, clearing state.\n", msg_id);
 		clear_state(state);
 		state->msg_id = msg_id;
