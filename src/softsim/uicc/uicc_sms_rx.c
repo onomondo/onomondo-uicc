@@ -113,6 +113,18 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 	SS_LOGP(SSMS, LERROR, "receiving part %u/%u of message %u: %s\n", msg_part_no, msg_parts, msg_id,
 		ss_hexdump(tp_ud, tp_ud_len));
 
+	/* TS 23.040 section 9.2.3.24.1: when the part count is zero, or the
+	 * sequence number is zero or exceeds the part count, ignore the IE and
+	 * handle the SM as a single short message. */
+	if (msg_parts == 0 || msg_part_no == 0 || msg_part_no > msg_parts) {
+		SS_LOGP(SSMS, LERROR, "ignoring invalid concatenation IE (part %u/%u), handling as single SM\n",
+			msg_part_no, msg_parts);
+		result = ss_buf_try_alloc(tp_ud_len);
+		if (result)
+			memcpy(result->data, tp_ud, tp_ud_len);
+		return result;
+	}
+
 	/* Refuse messages the part budget cannot hold: every buffered part
 	 * costs heap, so an over-long concatenation from the wire must not be
 	 * collected at all. */
@@ -137,16 +149,6 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 		SS_LOGP(SSMS, LERROR,
 			"message part %u of message %u reports invalid number of message parts expected %u, got %u\n",
 			msg_part_no, msg_id, state->msg_parts, msg_parts);
-		clear_state(state);
-		return NULL;
-	}
-
-	/* Make sure that the message id cannot be larger than the expected number of
-	 * messages. The message id also mut not be 0 */
-	if (msg_part_no > state->msg_parts) {
-		SS_LOGP(SSMS, LERROR,
-			"message %u reports invalid message part number %u, expecting id in range 1-%u.\n", msg_id,
-			msg_part_no, state->msg_parts);
 		clear_state(state);
 		return NULL;
 	}
