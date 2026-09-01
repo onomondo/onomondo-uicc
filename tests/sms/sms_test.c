@@ -333,6 +333,26 @@ void ss_sms_addr_length_overflow_test(void)
 	printf("\n");
 }
 
+/* Regression test: an exact-fit buffer must be enough for the address
+ * encoder (its length check used to demand one byte per digit). */
+void ss_sms_addr_encode_exact_fit_test(void)
+{
+	uint8_t result[18]; /* 5 hdr + 12 addr (20 digits) + 1 TP-CDL */
+	struct ss_sm_hdr sm_hdr;
+	int rc;
+
+	printf("regression: encode SMS-COMMAND with 20-digit TP-DA into exact-fit buffer\n");
+
+	memset(&sm_hdr, 0, sizeof(sm_hdr));
+	sm_hdr.tp_mti = SMS_MTI_COMMAND;
+	strcpy(sm_hdr.u.sms_command.tp_da.digits, "12345678901234567890");
+
+	rc = ss_sms_hdr_encode(result, sizeof(result), &sm_hdr);
+	printf(" rc=%i (expected 18)\n", rc);
+	assert(rc == 18);
+	printf("\n");
+}
+
 int main(int argc, char **argv)
 {
 	ss_sms_hdr_decode_sms_deliver_test();
@@ -345,5 +365,6 @@ int main(int argc, char **argv)
 	ss_uicc_sms_tx_test_single();
 	ss_uicc_sms_tx_test_multi();
 	ss_sms_addr_length_overflow_test();
+	ss_sms_addr_encode_exact_fit_test();
 	return 0;
 }
