@@ -8,3 +8,4 @@ Multiple path changes test passed
 Special characters in path test passed
 Empty path rejection test passed
 Create record file failure propagation test passed
+Failed write closes before delete test passed

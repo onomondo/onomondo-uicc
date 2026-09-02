@@ -336,8 +336,8 @@ int ss_storage_update_def(const struct ss_list *path)
 
 	if (fwrite_rc != 1) {
 		SS_LOGP(SSTORAGE, LERROR, "unable to write file definition: %s\n", host_path);
-		ss_storage_delete(path);
 		ss_fclose(fd);
+		ss_storage_delete(path);
 		return -EINVAL;
 	}
 	ss_fclose(fd);
@@ -374,8 +374,8 @@ int ss_storage_create_file(const struct ss_list *path, size_t file_len)
 	for (i = 0; i < file_len; i++) {
 		if (ss_fwrite(&f, 1, 1, fd) != 1) {
 			SS_LOGP(SSTORAGE, LERROR, "unable to prefill content file: %s\n", host_path);
-			ss_storage_delete(path);
 			ss_fclose(fd);
+			ss_storage_delete(path);
 			return -EINVAL;
 		}
 	}
