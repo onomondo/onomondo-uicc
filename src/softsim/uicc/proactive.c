@@ -131,17 +131,15 @@ const struct ber_tlv_desc *ss_proactive_get_cat_descr(void)
 	return bertlv_cat_descr;
 }
 
-/* Guarded as a whole: with both SMS and REFRESH compiled out the array would
- * be empty, which ISO C does not allow. */
-#if !defined(CONFIG_DISABLE_SMS) || !defined(CONFIG_DISABLE_REFRESH)
-const struct ss_proactive_task proactive_tasks[] = {
+/* Guarded as a whole: without SMS (and so without OTA and REFRESH) the array
+ * would be empty, which ISO C does not allow. */
 #ifndef CONFIG_DISABLE_SMS
+const struct ss_proactive_task proactive_tasks[] = {
 	{
 		.name = "SM QUEUE",
 		.handler = ss_uicc_sms_tx_poll,
 	},
-#endif
-#ifndef CONFIG_DISABLE_REFRESH
+#ifndef CONFIG_DISABLE_OTA
 	{
 		.name = "REFRESH",
 		.handler = ss_uicc_refresh_poll,
@@ -178,7 +176,7 @@ leave:
  *  \param[inout] ctx softsim context. */
 void ss_proactive_poll(struct ss_context *ctx)
 {
-#if !defined(CONFIG_DISABLE_SMS) || !defined(CONFIG_DISABLE_REFRESH)
+#ifndef CONFIG_DISABLE_SMS
 	size_t i;
 
 	/* Go through all proactive tasks and call their handler functions. */

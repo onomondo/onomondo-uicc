@@ -119,6 +119,8 @@ Options (root `CMakeLists.txt`; echoed at compile time by
 | `CONFIG_USE_UTILS` | Adds the `utils` lib: profile decode + provisioning |
 | `CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND` | SUSPEND UICC support |
 | `CONFIG_BUILD_LIB_ONLY` | Skips the unix `softsim` demo executable |
+| `CONFIG_DISABLE_OTA` | Drops RFM/OTA remote commands, 3DES and the REFRESH they drive (incl. both changed-file lists). An OTA short message then ends in `6F00`, logged at error level |
+| `CONFIG_DISABLE_SMS` | Drops the SMS codec and rx/tx; implies `CONFIG_DISABLE_OTA`. CAT stays: TERMINAL PROFILE answers `9000`, ENVELOPE (SMS-PP) answers `6A81` and logs an error. Pair it with a profile whose EF.UST clears service n°28 so the terminal never sends SMS-PP (the shipped `files/` tree has it set) |
 | `CONFIG_ENABLE_SANITIZE` / `CONFIG_BUILD_FUZZERS` | Development builds only |
 | `CONFIG_SS_STORAGE_PATH_DEFAULT` (`"./files"`), `CONFIG_SS_STORAGE_PATH_MAX` (`100`) | Storage root and path-length cap |
 
@@ -162,7 +164,8 @@ Software AES/DES is built in (vendored hostap primitives). Two swap points:
 
 - `CONFIG_EXTERNAL_CRYPTO_IMPL` — provide exactly the five functions of
   [`crypto.h`](../include/onomondo/softsim/crypto.h): `ss_utils_aes_encrypt/decrypt`,
-  `ss_utils_3des_encrypt/decrypt`, `ss_utils_ota_calc_cc`.
+  `ss_utils_3des_encrypt/decrypt`, `ss_utils_ota_calc_cc`. With `CONFIG_DISABLE_OTA` only
+  the two AES functions are referenced.
 - `CONFIG_EXTERNAL_KEY_LOAD` — keep the software crypto, resolve key material through
   the weak `ss_load_key_external()`
   ([`ss_crypto_extension.h`](../include/onomondo/utils/ss_crypto_extension.h)) so the

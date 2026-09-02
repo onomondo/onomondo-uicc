@@ -43,7 +43,7 @@ struct ss_context *ss_new_ctx(void)
 	 * defined state (all-zero). */
 	memset(ctx, 0, sizeof(*ctx));
 
-#ifndef CONFIG_DISABLE_REFRESH
+#ifndef CONFIG_DISABLE_OTA
 	ctx->fs_chg_filelist = SS_ALLOC(uint8_t[SS_FS_CHG_BUF_SIZE]);
 	if (ctx->fs_chg_filelist == NULL) {
 		SS_FREE(ctx);
@@ -56,6 +56,7 @@ struct ss_context *ss_new_ctx(void)
 	return ctx;
 }
 
+#ifndef CONFIG_DISABLE_OTA
 /*! Create a new softsim context that is recording into the file list of
  *  another context given in @p fs_chg_filelist.
  *  \returns allocated softsim context. */
@@ -77,6 +78,7 @@ struct ss_context *ss_new_reporting_ctx(uint8_t *fs_chg_filelist)
 
 	return ctx;
 }
+#endif
 
 /*! Free a new softsim context. */
 void ss_free_ctx(struct ss_context *ctx)
@@ -112,9 +114,7 @@ void ss_reset(struct ss_context *ctx)
 	ss_uicc_sms_rx_clear(ctx);
 	ss_uicc_sms_tx_clear(ctx);
 #endif
-#ifndef CONFIG_DISABLE_PROACTIVE
 	memset(&ctx->proactive, 0, sizeof(ctx->proactive));
-#endif
 
 	return;
 }
@@ -123,12 +123,8 @@ void ss_reset(struct ss_context *ctx)
  *  \param[inout] ctx softsim context. */
 void ss_poll(struct ss_context *ctx)
 {
-#ifndef CONFIG_DISABLE_PROACTIVE
 	if (ctx->proactive.enabled)
 		ss_proactive_poll(ctx);
-#else
-	(void)ctx;
-#endif
 	return;
 }
 
@@ -392,11 +388,9 @@ out:
 		}
 	}
 
-#ifndef CONFIG_DISABLE_PROACTIVE
 	/* Add length of proactive sim data */
 	if (ctx->proactive.enabled && apdu->sw == 0x9000 && ctx->proactive.data_len)
 		apdu->sw = 0x9100 | ctx->proactive.data_len;
-#endif
 
 	if (apdu->rsp_len) {
 		SS_LOGP(SLCHAN, LDEBUG, "Tx R-APDU SW=%04x %s (%zu bytes)\n", apdu->sw,
@@ -438,7 +432,7 @@ out:
 
 	if (apdu->lchan)
 		ss_uicc_lchan_dump(apdu->lchan);
-#ifndef CONFIG_DISABLE_REFRESH
+#ifndef CONFIG_DISABLE_OTA
 	if (ctx->fs_chg_record) {
 		SS_LOGP(SLCHAN, LDEBUG, "file changes since last refresh:\n");
 		if (ctx->fs_chg_filelist[0] != 0x00)
@@ -447,9 +441,7 @@ out:
 			SS_LOGP(SLCHAN, LDEBUG, " (none)\n");
 	}
 #endif
-#ifndef CONFIG_DISABLE_PROACTIVE
 	SS_LOGP(SPROACT, LDEBUG, "proactive sim: %s\n", ctx->proactive.enabled ? "active" : "inactive");
-#endif
 
 	SS_LOGP(SLCHAN, LDEBUG, "------------------------- transaction ended -------------------------\n");
 	return processed_length;

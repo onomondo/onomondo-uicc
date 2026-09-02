@@ -39,18 +39,13 @@ set(uicc_collection
 )
 
 # Drop opted-out subsystems entirely so their code and data leave the library.
-# utils_aes.c stays: the crypto library uses ss_utils_aes_encrypt.
+# utils_aes.c stays: the crypto library uses ss_utils_aes_encrypt. REFRESH goes
+# with OTA: only remote commands ever record file changes.
 if(CONFIG_DISABLE_OTA)
-	list(REMOVE_ITEM uicc_collection uicc_remote_cmd.c utils_ota.c utils_3des.c)
+	list(REMOVE_ITEM uicc_collection uicc_remote_cmd.c utils_ota.c utils_3des.c fs_chg.c uicc_refresh.c)
 endif()
 if(CONFIG_DISABLE_SMS)
 	list(REMOVE_ITEM uicc_collection sms.c uicc_sms_rx.c uicc_sms_tx.c)
-endif()
-if(CONFIG_DISABLE_REFRESH)
-	list(REMOVE_ITEM uicc_collection fs_chg.c uicc_refresh.c)
-endif()
-if(CONFIG_DISABLE_PROACTIVE)
-	list(REMOVE_ITEM uicc_collection proactive.c uicc_cat.c)
 endif()
 
 # Add log.c to get fcp_test working with CTest. It has otherwise been removed from the

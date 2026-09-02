@@ -152,7 +152,6 @@ const struct ss_command commands[] = {
 		.case_ = SS_COMMAND_CASE_3,
 	},
 
-#ifndef CONFIG_DISABLE_PROACTIVE
 	/* CAT commands */
 	{
 		.name = "TERMINAL PROFILE",
@@ -186,7 +185,6 @@ const struct ss_command commands[] = {
 		.handler = ss_uicc_cat_cmd_term_resp,
 		.case_ = SS_COMMAND_CASE_3,
 	},
-#endif // CONFIG_DISABLE_PROACTIVE
 
 	/* logical channels */
 	{

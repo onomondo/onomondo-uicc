@@ -120,11 +120,13 @@ Tests never build when the repo is consumed via `add_subdirectory` (project-name
 | Suite(s) | Covers |
 |---|---|
 | `init`, `app_transact` | End-to-end APDU transcripts (modem boot; extended-length encodings) |
-| `apdu`, `fcp`, `btlv`, `ctlv`, `tlv8`, `sms` | Wire-format codecs |
+| `apdu`, `fcp`, `btlv`, `ctlv`, `tlv8` | Wire-format codecs |
 | `access` | Access rules, incl. a guard against an `-DNDEBUG` bootstrap-bypass regression |
 | `pin`, `read_binary` | Command behavior over the real APDU path |
-| `ota`, `envelope` | OTA padding counts; end-to-end ENVELOPE → remote command |
-| `aes`, `des` | Crypto vectors |
+| `ota`, `envelope`, `des` | OTA padding counts; end-to-end ENVELOPE → remote command; DES vectors. Skipped with `CONFIG_DISABLE_OTA` |
+| `sms` | Skipped with `CONFIG_DISABLE_SMS` |
+| `opt_out` | Only with `CONFIG_DISABLE_OTA` / `CONFIG_DISABLE_SMS`: CAT alive, OTA short message answered per TS 31.111 |
+| `aes` | Crypto vectors |
 | `utils`, `storage`, `list` | Helpers, storage-path edge cases, intrusive list |
 | `suspend` | Only with `CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND=y` |
 | `key_scrub` | Linux-only; wraps `free()` to prove K/OPc never reach the allocator in the clear |
