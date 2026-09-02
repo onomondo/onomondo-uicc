@@ -126,7 +126,11 @@ int ss_uicc_cat_cmd_envelope(struct ss_apdu *apdu)
 	ss_btlv_dump(envelope, 2, SPROACT, LDEBUG);
 
 	rc = SS_SW_ERR_WRONG_PARAM_FUNCTION_NOT_SUPPORTED;
-#ifndef CONFIG_DISABLE_SMS
+#ifdef CONFIG_DISABLE_SMS
+	if (ss_btlv_get_ie_minlen(envelope, TS_101_220_IEI_SMS_PP_DWNLD, 3))
+		SS_LOGP(SPROACT, LERROR,
+			"SMS-PP DOWNLOAD received but SMS is compiled out, clear EF.UST service 28 in the profile\n");
+#else
 	for (i = 0; i < SS_ARRAY_SIZE(cat_envelope_commands); i++) {
 		cat_template =
 			ss_btlv_get_ie_minlen(envelope, cat_envelope_commands[i].iei, cat_envelope_commands[i].minlen);

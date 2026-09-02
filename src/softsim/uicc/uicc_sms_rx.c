@@ -272,7 +272,7 @@ static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *
 	(void)response_len;
 	(void)response;
 
-	SS_LOGP(SSMS, LDEBUG, "received sms command packet but OTA is compiled out:%s\n", ss_hexdump(tp_ud, tp_ud_len));
+	SS_LOGP(SSMS, LERROR, "OTA command packet received but OTA is compiled out:%s\n", ss_hexdump(tp_ud, tp_ud_len));
 	return -1;
 #else
 	int rc;
