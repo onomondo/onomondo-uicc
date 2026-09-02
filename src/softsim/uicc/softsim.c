@@ -31,7 +31,7 @@
 struct ss_context *ss_new_ctx(void)
 {
 	struct ss_context *ctx;
-#ifndef CONFIG_DISABLE_OTA
+#ifndef CONFIG_DISABLE_SMS
 	uint8_t *fs_chg_filelist;
 #endif
 
@@ -39,7 +39,7 @@ struct ss_context *ss_new_ctx(void)
 	if (ctx == NULL) {
 		return NULL;
 	}
-#ifndef CONFIG_DISABLE_OTA
+#ifndef CONFIG_DISABLE_SMS
 	fs_chg_filelist = SS_ALLOC(uint8_t[SS_FS_CHG_BUF_SIZE]);
 
 	if (fs_chg_filelist == NULL) {
@@ -54,7 +54,7 @@ struct ss_context *ss_new_ctx(void)
 	 * defined state (all-zero). */
 	memset(ctx, 0, sizeof(*ctx));
 
-#ifndef CONFIG_DISABLE_OTA
+#ifndef CONFIG_DISABLE_SMS
 	ctx->fs_chg_filelist = fs_chg_filelist;
 	/* Set length indicator; the rest may stay uninitialized */
 	ctx->fs_chg_filelist[0] = 0;
@@ -63,7 +63,7 @@ struct ss_context *ss_new_ctx(void)
 	return ctx;
 }
 
-#ifndef CONFIG_DISABLE_OTA
+#ifndef CONFIG_DISABLE_SMS
 /*! Create a new softsim context that is recording into the file list of
  *  another context given in @p fs_chg_filelist.
  *  \returns allocated softsim context. */
@@ -439,7 +439,7 @@ out:
 
 	if (apdu->lchan)
 		ss_uicc_lchan_dump(apdu->lchan);
-#ifndef CONFIG_DISABLE_OTA
+#ifndef CONFIG_DISABLE_SMS
 	if (ctx->fs_chg_record) {
 		SS_LOGP(SLCHAN, LDEBUG, "file changes since last refresh:\n");
 		if (ctx->fs_chg_filelist[0] != 0x00)

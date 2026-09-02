@@ -37,7 +37,7 @@
  * (e.g. REFRESH after RFM operation) */
 static void record_file_change(struct ss_apdu *apdu)
 {
-#ifndef CONFIG_DISABLE_OTA
+#ifndef CONFIG_DISABLE_SMS
 	int rc = 0;
 
 	if (apdu->ctx->fs_chg_record)

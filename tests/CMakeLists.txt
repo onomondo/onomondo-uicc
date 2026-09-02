@@ -11,12 +11,11 @@ add_subdirectory(apdu)
 add_subdirectory(app_transact)
 add_subdirectory(btlv)
 add_subdirectory(ctlv)
-if(NOT CONFIG_DISABLE_OTA)
+if(NOT CONFIG_DISABLE_SMS)
 	add_subdirectory(des)
 	add_subdirectory(ota)
 	# exercises the whole ENVELOPE -> SMS -> remote command -> REFRESH chain
 	add_subdirectory(envelope)
-	# its reassembly case expects the remote command handler's status word
 	add_subdirectory(sms)
 else()
 	add_subdirectory(opt_out)

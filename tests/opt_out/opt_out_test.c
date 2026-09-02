@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-/* Built with CONFIG_DISABLE_OTA (which CONFIG_DISABLE_SMS implies): the card
- * stays a working card with CAT alive, and an OTA short message ends in a
- * status word that TS 31.111 clause 7.1.1 accounts for. */
+/* Built with CONFIG_DISABLE_SMS: the card stays a working card with CAT alive,
+ * and an SMS-PP DOWNLOAD ends in 6F00, one of the answers TS 31.111 clause
+ * 7.1.1.1 maps to an RP-ACK. */
 
 #include <assert.h>
 #include <stdint.h>
@@ -45,11 +45,7 @@ int main(void)
 			       "9342803d02700000381516393232b00011d5cbcbd7ad00edcae5"
 			       "fb251618e04ed8502924dbad65b15be802a9d9e28267110d433c"
 			       "06103268db6a2a9d618fe8ab74");
-#ifdef CONFIG_DISABLE_SMS
-	assert(sw == 0x6a81);
-#else
 	assert(sw == 0x6f00);
-#endif
 
 	ss_free_ctx(ctx);
 	printf("ok\n");

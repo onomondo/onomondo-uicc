@@ -266,10 +266,6 @@ static int concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_ud, size_t 
 static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *tp_ud, size_t tp_ud_len,
 		     size_t *response_len, uint8_t response[*response_len])
 {
-#ifdef CONFIG_DISABLE_OTA
-	SS_LOGP(SSMS, LERROR, "OTA command packet received but OTA is compiled out:%s\n", ss_hexdump(tp_ud, tp_ud_len));
-	return -1;
-#else
 	int rc;
 	struct ss_buf *sms_response = NULL;
 
@@ -304,7 +300,6 @@ static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *
 	}
 
 	return rc;
-#endif // CONFIG_DISABLE_OTA
 }
 
 /* Check a single (non-concatenated) SM for the CPI IE and, if present, hand

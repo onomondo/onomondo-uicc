@@ -37,13 +37,11 @@ set(uicc_collection
 	uicc_suspend.c
 )
 
-# Drop opted-out subsystems entirely so their code and data leave the library.
-# REFRESH goes with OTA: only remote commands ever record file changes.
-if(CONFIG_DISABLE_OTA)
-	list(REMOVE_ITEM uicc_collection uicc_remote_cmd.c utils_ota.c utils_3des.c fs_chg.c uicc_refresh.c)
-endif()
+# Drop the SMS subsystem entirely so its code and data leave the library. OTA
+# only ever arrives over SMS and REFRESH is only fed by OTA, so they go with it.
 if(CONFIG_DISABLE_SMS)
-	list(REMOVE_ITEM uicc_collection sms.c uicc_sms_rx.c uicc_sms_tx.c)
+	list(REMOVE_ITEM uicc_collection sms.c uicc_sms_rx.c uicc_sms_tx.c uicc_remote_cmd.c utils_ota.c
+					 utils_3des.c fs_chg.c uicc_refresh.c)
 endif()
 
 # Add log.c to get fcp_test working with CTest. It has otherwise been removed from the

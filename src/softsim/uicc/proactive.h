@@ -231,8 +231,6 @@ struct ss_proactive_ctx {
 	struct ss_uicc_sms_rx_state sms_rx_state;
 	/*! state to handle the sending of short messages (SMS) */
 	struct ss_uicc_sms_tx_state sms_tx_state;
-#endif
-#ifndef CONFIG_DISABLE_OTA
 	/*! state to handle the sending of refresh information (file chnages) */
 	struct ss_uicc_refresh_state refresh_state;
 #endif
