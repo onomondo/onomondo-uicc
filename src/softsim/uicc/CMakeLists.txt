@@ -33,14 +33,12 @@ set(uicc_collection
 	utils.c
 	utils_ota.c
 	utils_3des.c
-	utils_aes.c
 	proactive.c
 	uicc_suspend.c
 )
 
 # Drop opted-out subsystems entirely so their code and data leave the library.
-# utils_aes.c stays: the crypto library uses ss_utils_aes_encrypt. REFRESH goes
-# with OTA: only remote commands ever record file changes.
+# REFRESH goes with OTA: only remote commands ever record file changes.
 if(CONFIG_DISABLE_OTA)
 	list(REMOVE_ITEM uicc_collection uicc_remote_cmd.c utils_ota.c utils_3des.c fs_chg.c uicc_refresh.c)
 endif()
@@ -64,6 +62,3 @@ target_include_directories(uicc
 	PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../
 )
-
-# Other half of the uicc <-> crypto static-library cycle (see crypto/CMakeLists.txt).
-target_link_libraries(uicc PRIVATE crypto)
