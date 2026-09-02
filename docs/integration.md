@@ -119,6 +119,7 @@ Options (root `CMakeLists.txt`; echoed at compile time by
 | `CONFIG_USE_UTILS` | Adds the `utils` lib: profile decode + provisioning |
 | `CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND` | SUSPEND UICC support |
 | `CONFIG_BUILD_LIB_ONLY` | Skips the unix `softsim` demo executable |
+| `CONFIG_DISABLE_SMS` | Drops the SMS codec and rx/tx and, with them, RFM/OTA remote commands, 3DES and the REFRESH they drive (incl. both changed-file lists). CAT stays: TERMINAL PROFILE answers `9000`; an SMS-PP DOWNLOAD envelope answers `6F00`, which TS 31.111 clause 7.1.1.1 maps to an RP-ACK, and logs an error. Leave EF.UST service n°28 set: clearing it makes the terminal store class-2 messages in EF.SMS, which the shipped `files/` tree does not have |
 | `CONFIG_ENABLE_SANITIZE` / `CONFIG_BUILD_FUZZERS` | Development builds only |
 | `CONFIG_SS_STORAGE_PATH_DEFAULT` (`"./files"`), `CONFIG_SS_STORAGE_PATH_MAX` (`100`) | Storage root and path-length cap |
 
@@ -162,7 +163,8 @@ Software AES/DES is built in (vendored hostap primitives). Two swap points:
 
 - `CONFIG_EXTERNAL_CRYPTO_IMPL` — provide exactly the five functions of
   [`crypto.h`](../include/onomondo/softsim/crypto.h): `ss_utils_aes_encrypt/decrypt`,
-  `ss_utils_3des_encrypt/decrypt`, `ss_utils_ota_calc_cc`.
+  `ss_utils_3des_encrypt/decrypt`, `ss_utils_ota_calc_cc`. With `CONFIG_DISABLE_SMS` only
+  the two AES functions are referenced.
 - `CONFIG_EXTERNAL_KEY_LOAD` — keep the software crypto, resolve key material through
   the weak `ss_load_key_external()`
   ([`ss_crypto_extension.h`](../include/onomondo/utils/ss_crypto_extension.h)) so the

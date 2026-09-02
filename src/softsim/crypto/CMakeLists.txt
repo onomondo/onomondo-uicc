@@ -9,11 +9,13 @@ add_library(crypto
 		aes-internal.c
 		aes-wrap.c
 		des-internal.c
+		# aes-encblock.c calls back into this OTA wrapper, so it lives in the same archive
+		../uicc/utils_aes.c
 )
 
 target_include_directories(crypto
 	PUBLIC
 		${PROJECT_SOURCE_DIR}/include
 	PRIVATE
-		${CMAKE_CURRENT_SOURCE_DIR}
+		${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_CURRENT_SOURCE_DIR}/../uicc
 )

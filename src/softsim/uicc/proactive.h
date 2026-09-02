@@ -226,12 +226,14 @@ struct ss_proactive_ctx {
 	term_resp_cb term_resp_cb;
 	/*! counter to count the poll cycles until a TERMINAL RESPONSE arrives */
 	unsigned int term_resp_poll_ctr;
+#ifndef CONFIG_DISABLE_SMS
 	/*! state to handle the reception of short messages (SMS) */
 	struct ss_uicc_sms_rx_state sms_rx_state;
 	/*! state to handle the sending of short messages (SMS) */
 	struct ss_uicc_sms_tx_state sms_tx_state;
 	/*! state to handle the sending of refresh information (file chnages) */
 	struct ss_uicc_refresh_state refresh_state;
+#endif
 };
 
 void ss_proactive_poll(struct ss_context *ctx);

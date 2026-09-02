@@ -42,7 +42,8 @@ jobs:
     
     strategy:
       matrix:
-        flags: ["", "-DCONFIG_EXTERNAL_KEY_LOAD=y", "-DCONFIG_USE_UTILS=y", "-DCONFIG_BUILD_LIB_ONLY=y"]
+        flags: ["", "-DCONFIG_EXTERNAL_KEY_LOAD=y", "-DCONFIG_USE_UTILS=y", "-DCONFIG_BUILD_LIB_ONLY=y",
+                "-DCONFIG_DISABLE_SMS=y"]
         compiler: [gcc, clang]
 
     steps:

@@ -31,18 +31,22 @@
 struct ss_context *ss_new_ctx(void)
 {
 	struct ss_context *ctx;
+#ifndef CONFIG_DISABLE_SMS
 	uint8_t *fs_chg_filelist;
+#endif
 
 	ctx = SS_ALLOC(struct ss_context);
 	if (ctx == NULL) {
 		return NULL;
 	}
+#ifndef CONFIG_DISABLE_SMS
 	fs_chg_filelist = SS_ALLOC(uint8_t[SS_FS_CHG_BUF_SIZE]);
 
 	if (fs_chg_filelist == NULL) {
 		SS_FREE(ctx);
 		return NULL;
 	}
+#endif
 
 	/* Note: filling the entire context struct with zeros at the beginning
 	 * is important since the softsim code relies on the fact that in the
@@ -50,13 +54,16 @@ struct ss_context *ss_new_ctx(void)
 	 * defined state (all-zero). */
 	memset(ctx, 0, sizeof(*ctx));
 
+#ifndef CONFIG_DISABLE_SMS
 	ctx->fs_chg_filelist = fs_chg_filelist;
 	/* Set length indicator; the rest may stay uninitialized */
 	ctx->fs_chg_filelist[0] = 0;
+#endif
 	ctx->is_suspended = 0;
 	return ctx;
 }
 
+#ifndef CONFIG_DISABLE_SMS
 /*! Create a new softsim context that is recording into the file list of
  *  another context given in @p fs_chg_filelist.
  *  \returns allocated softsim context. */
@@ -78,13 +85,16 @@ struct ss_context *ss_new_reporting_ctx(uint8_t *fs_chg_filelist)
 
 	return ctx;
 }
+#endif
 
 /*! Free a new softsim context. */
 void ss_free_ctx(struct ss_context *ctx)
 {
+#ifndef CONFIG_DISABLE_SMS
 	/* Clear all proactive sim related state (cat) */
 	ss_uicc_sms_rx_clear(ctx);
 	ss_uicc_sms_tx_clear(ctx);
+#endif
 
 	ss_uicc_lchan_free(ctx);
 
@@ -107,8 +117,10 @@ void ss_reset(struct ss_context *ctx)
 	/* NOTE: we clear the cat_sms_state before the memset since this struct
 	 * may hold a linked list, which needs to be freed first. After that it
 	 * is safe to wipe out everythig with zeros. */
+#ifndef CONFIG_DISABLE_SMS
 	ss_uicc_sms_rx_clear(ctx);
 	ss_uicc_sms_tx_clear(ctx);
+#endif
 	memset(&ctx->proactive, 0, sizeof(ctx->proactive));
 
 	return;
@@ -427,6 +439,7 @@ out:
 
 	if (apdu->lchan)
 		ss_uicc_lchan_dump(apdu->lchan);
+#ifndef CONFIG_DISABLE_SMS
 	if (ctx->fs_chg_record) {
 		SS_LOGP(SLCHAN, LDEBUG, "file changes since last refresh:\n");
 		if (ctx->fs_chg_filelist[0] != 0x00)
@@ -434,6 +447,7 @@ out:
 		else
 			SS_LOGP(SLCHAN, LDEBUG, " (none)\n");
 	}
+#endif
 	SS_LOGP(SPROACT, LDEBUG, "proactive sim: %s\n", ctx->proactive.enabled ? "active" : "inactive");
 
 	SS_LOGP(SLCHAN, LDEBUG, "------------------------- transaction ended -------------------------\n");
