@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.3.2](https://github.com/onomondo/onomondo-uicc/compare/v2.3.1...v2.3.2) (2026-09-02)
+
+
+### Bug Fixes
+
+* demand only the encoded octets in the SMS address length check ([#173](https://github.com/onomondo/onomondo-uicc/issues/173)) ([7899dff](https://github.com/onomondo/onomondo-uicc/commit/7899dff0111b2f8f5110820958da25f04fd11a33))
+* ignore invalid SMS concatenation IEs ([#158](https://github.com/onomondo/onomondo-uicc/issues/158)) ([e8d5457](https://github.com/onomondo/onomondo-uicc/commit/e8d545711fbec94936302947abca5384a6937793))
+* reject concatenated SMS without CPI in part 1 before buffering ([#171](https://github.com/onomondo/onomondo-uicc/issues/171)) ([1da758e](https://github.com/onomondo/onomondo-uicc/commit/1da758ecdfc424c1f299f48de801072f7ffc5cfb))
+* reject oversized Address-Length in SMS address decoder ([#149](https://github.com/onomondo/onomondo-uicc/issues/149)) ([355f48c](https://github.com/onomondo/onomondo-uicc/commit/355f48cf98d3dbfd825d2535ec5cc747cab99026))
+
 ## [2.3.1](https://github.com/onomondo/onomondo-uicc/compare/v2.3.0...v2.3.1) (2026-08-27)
 
 
