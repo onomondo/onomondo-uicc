@@ -267,11 +267,6 @@ static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *
 		     size_t *response_len, uint8_t response[*response_len])
 {
 #ifdef CONFIG_DISABLE_OTA
-	(void)ctx;
-	(void)sm_hdr;
-	(void)response_len;
-	(void)response;
-
 	SS_LOGP(SSMS, LERROR, "OTA command packet received but OTA is compiled out:%s\n", ss_hexdump(tp_ud, tp_ud_len));
 	return -1;
 #else

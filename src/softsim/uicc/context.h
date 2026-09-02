@@ -6,11 +6,6 @@
 
 #pragma once
 
-/* OTA commands arrive over SMS, so compiling out SMS compiles out OTA too. */
-#if defined(CONFIG_DISABLE_SMS) && !defined(CONFIG_DISABLE_OTA)
-#define CONFIG_DISABLE_OTA
-#endif
-
 #include "uicc_lchan.h"
 #include "proactive.h"
 #include "fs_chg.h"
@@ -36,6 +31,4 @@ struct ss_context {
 	bool is_suspended;
 };
 
-#ifndef CONFIG_DISABLE_OTA
 struct ss_context *ss_new_reporting_ctx(uint8_t *fs_chg_filelist);
-#endif
