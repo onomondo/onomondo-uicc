@@ -127,9 +127,11 @@ int ss_uicc_cat_cmd_envelope(struct ss_apdu *apdu)
 
 	rc = SS_SW_ERR_WRONG_PARAM_FUNCTION_NOT_SUPPORTED;
 #ifdef CONFIG_DISABLE_SMS
-	if (ss_btlv_get_ie_minlen(envelope, TS_101_220_IEI_SMS_PP_DWNLD, 3))
-		SS_LOGP(SPROACT, LERROR,
-			"SMS-PP DOWNLOAD received but SMS is compiled out, clear EF.UST service 28 in the profile\n");
+	/* 6F00 is one of the answers TS 31.111 clause 7.1.1.1 maps to an RP-ACK */
+	if (ss_btlv_get_ie_minlen(envelope, TS_101_220_IEI_SMS_PP_DWNLD, 3)) {
+		SS_LOGP(SPROACT, LERROR, "SMS-PP DOWNLOAD received but SMS is compiled out, answering 6F00\n");
+		rc = SS_SW_ERR_CHECKING_NO_PRECISE_DIAG;
+	}
 #else
 	for (i = 0; i < SS_ARRAY_SIZE(cat_envelope_commands); i++) {
 		cat_template =

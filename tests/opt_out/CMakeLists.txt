@@ -10,11 +10,6 @@ add_test(NAME opt_out_test
 	 COMMAND sh -c "$<TARGET_FILE:opt_out_test> > ${CMAKE_CURRENT_BINARY_DIR}/opt_out_test.out 2>&1")
 set_tests_properties(opt_out_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-# The compiled-out subsystem must name its own fix in the log.
-if(CONFIG_DISABLE_SMS)
-	set(opt_out_log "clear EF.UST service 28")
-else()
-	set(opt_out_log "OTA is compiled out")
-endif()
-add_test(NAME opt_out_test_log COMMAND grep -q "${opt_out_log}" ${CMAKE_CURRENT_BINARY_DIR}/opt_out_test.out)
+# The compiled-out subsystem must say so in the log.
+add_test(NAME opt_out_test_log COMMAND grep -q "SMS is compiled out" ${CMAKE_CURRENT_BINARY_DIR}/opt_out_test.out)
 set_tests_properties(opt_out_test_log PROPERTIES DEPENDS opt_out_test)

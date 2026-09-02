@@ -139,12 +139,10 @@ const struct ss_proactive_task proactive_tasks[] = {
 		.name = "SM QUEUE",
 		.handler = ss_uicc_sms_tx_poll,
 	},
-#ifndef CONFIG_DISABLE_OTA
 	{
 		.name = "REFRESH",
 		.handler = ss_uicc_refresh_poll,
 	},
-#endif
 };
 #endif
 
