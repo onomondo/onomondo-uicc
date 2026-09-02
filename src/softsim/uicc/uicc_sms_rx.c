@@ -135,8 +135,7 @@ static int concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_ud, size_t 
 		 * Table 7 example has the concatenation IE before CPI), so
 		 * this looks the IE up by tag rather than checking position 0. */
 		if (!ss_tlv8_get_ie(ud_hdr_dec, IEI_CPI)) {
-			SS_LOGP(SSMS, LDEBUG, "received sms TP-UD with no CPI IE: %s\n",
-				ss_hexdump(tp_ud, tp_ud_len));
+			SS_LOGP(SSMS, LDEBUG, "received sms TP-UD with no CPI IE: %s\n", ss_hexdump(tp_ud, tp_ud_len));
 			return -1;
 		}
 
