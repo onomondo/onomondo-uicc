@@ -3,9 +3,6 @@
 
 add_executable(opt_out_test opt_out_test.c)
 
-include_directories(${PROJECT_SOURCE_DIR})
-include_directories(${PROJECT_SOURCE_DIR}/include)
-
 target_link_libraries(opt_out_test uicc milenage crypto storage $<$<TARGET_EXISTS:utils>:utils>)
 
 file(COPY ${CMAKE_SOURCE_DIR}/files DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

@@ -105,12 +105,7 @@ int main(void)
 	 * ss_uicc_remote_cmd_receive(); the 4-byte reassembled payload is too
 	 * short to be a command packet, same as envelope_test.c's
 	 * concat_sm_reassembly_test(). */
-#ifdef CONFIG_DISABLE_OTA
-	/* No remote command handler to forward to: handle_sm() rejects it. */
-	assert(rx(ctx, 9, 2, 2, false) == -1);
-#else
 	assert(rx(ctx, 9, 2, 2, false) == SS_SW_ERR_CHECKING_WRONG_LENGTH);
-#endif
 	assert(state->msg_parts == 0 && ss_list_empty(&state->sm));
 
 	ss_free_ctx(ctx);

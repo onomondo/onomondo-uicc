@@ -31,11 +31,22 @@
 struct ss_context *ss_new_ctx(void)
 {
 	struct ss_context *ctx;
+#ifndef CONFIG_DISABLE_OTA
+	uint8_t *fs_chg_filelist;
+#endif
 
 	ctx = SS_ALLOC(struct ss_context);
 	if (ctx == NULL) {
 		return NULL;
 	}
+#ifndef CONFIG_DISABLE_OTA
+	fs_chg_filelist = SS_ALLOC(uint8_t[SS_FS_CHG_BUF_SIZE]);
+
+	if (fs_chg_filelist == NULL) {
+		SS_FREE(ctx);
+		return NULL;
+	}
+#endif
 
 	/* Note: filling the entire context struct with zeros at the beginning
 	 * is important since the softsim code relies on the fact that in the
@@ -44,11 +55,7 @@ struct ss_context *ss_new_ctx(void)
 	memset(ctx, 0, sizeof(*ctx));
 
 #ifndef CONFIG_DISABLE_OTA
-	ctx->fs_chg_filelist = SS_ALLOC(uint8_t[SS_FS_CHG_BUF_SIZE]);
-	if (ctx->fs_chg_filelist == NULL) {
-		SS_FREE(ctx);
-		return NULL;
-	}
+	ctx->fs_chg_filelist = fs_chg_filelist;
 	/* Set length indicator; the rest may stay uninitialized */
 	ctx->fs_chg_filelist[0] = 0;
 #endif
