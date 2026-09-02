@@ -96,19 +96,27 @@ static int put_sm_part(struct ss_uicc_sms_rx_state *state, struct ss_uicc_sms_rx
 	return 0;
 }
 
-/* Collect and when complete concatenate all SM parts to one large SM */
-static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_ud, size_t tp_ud_len,
-				struct tlv8_ie *concat_sm_desc_ie)
+/* Collect and when complete concatenate all SM parts to one large SM.
+ *
+ * On success (return 0), *out_result is set to the reassembled message once
+ * the last outstanding part has arrived, and is left NULL while parts are
+ * still outstanding. A non-zero return is the SW to report for a part that
+ * was rejected outright; *out_result is left NULL in that case too, and any
+ * state buffered so far for the message is freed. */
+static int concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_ud, size_t tp_ud_len,
+		     struct tlv8_ie *concat_sm_desc_ie, struct ss_list *ud_hdr_dec, struct ss_buf **out_result)
 {
 	struct ss_uicc_sms_rx_sm *sm;
 	uint8_t i;
 	size_t result_len = 0;
-	struct ss_buf *result = NULL;
+	struct ss_buf *result;
 	uint8_t *result_ptr;
 	int rc;
 	uint8_t msg_id = concat_sm_desc_ie->value->data[0];
 	uint8_t msg_parts = concat_sm_desc_ie->value->data[1];
 	uint8_t msg_part_no = concat_sm_desc_ie->value->data[2];
+
+	*out_result = NULL;
 
 	SS_LOGP(SSMS, LERROR, "receiving part %u/%u of message %u: %s\n", msg_part_no, msg_parts, msg_id,
 		ss_hexdump(tp_ud, tp_ud_len));
@@ -119,10 +127,27 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 	if (msg_parts == 0 || msg_part_no == 0 || msg_part_no > msg_parts) {
 		SS_LOGP(SSMS, LERROR, "ignoring invalid concatenation IE (part %u/%u), handling as single SM\n",
 			msg_part_no, msg_parts);
+
+		/* Mirror handle_single_sm()'s gate: a "single SM" is only a
+		 * command packet, and thus only worth handing to handle_sm(),
+		 * if its UDH actually carries the CPI IE. TS 23.048 section 6.3
+		 * puts no requirement on the order of UDH elements (its own
+		 * Table 7 example has the concatenation IE before CPI), so
+		 * this looks the IE up by tag rather than checking position 0. */
+		if (!ss_tlv8_get_ie(ud_hdr_dec, IEI_CPI)) {
+			SS_LOGP(SSMS, LDEBUG, "received sms TP-UD with no CPI IE: %s\n", ss_hexdump(tp_ud, tp_ud_len));
+			return -1;
+		}
+
 		result = ss_buf_try_alloc(tp_ud_len);
-		if (result)
-			memcpy(result->data, tp_ud, tp_ud_len);
-		return result;
+		if (!result) {
+			SS_LOGP(SSMS, LERROR, "no memory to copy message (%zu bytes) handled as single SM.\n",
+				tp_ud_len);
+			return SS_SW_ERR_WRONG_PARAM_ENOMEM;
+		}
+		memcpy(result->data, tp_ud, tp_ud_len);
+		*out_result = result;
+		return 0;
 	}
 
 	/* Refuse messages the part budget cannot hold: every buffered part
@@ -132,7 +157,7 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 		SS_LOGP(SSMS, LERROR, "message %u reports %u parts, refusing to buffer more than %u.\n", msg_id,
 			msg_parts, SS_SMS_RX_MAX_PARTS);
 		clear_state(state);
-		return NULL;
+		return SS_SW_ERR_WRONG_PARAM_INCORRECT_DATA;
 	}
 
 	/* Clear state when a new message is detected */
@@ -143,6 +168,18 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 		state->msg_parts = msg_parts;
 	}
 
+	/* Only part 1 of a concatenated SM carries the CPI IE (TS 23.048). If
+	 * it is missing there, this concatenation is not a command packet we
+	 * can process, so reject it now rather than buffering parts for a
+	 * message that could never complete into anything handle_sm accepts. */
+	if (msg_part_no == 1) {
+		if (!ss_tlv8_get_ie(ud_hdr_dec, IEI_CPI)) {
+			SS_LOGP(SSMS, LDEBUG, "part 1 of message %u has no CPI IE, not a command packet\n", msg_id);
+			clear_state(state);
+			return SS_SW_ERR_WRONG_PARAM_INCORRECT_DATA;
+		}
+	}
+
 	/* Make sure that each message reports the same number of message
 	 * parts */
 	if (msg_parts != state->msg_parts) {
@@ -150,7 +187,7 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 			"message part %u of message %u reports invalid number of message parts expected %u, got %u\n",
 			msg_part_no, msg_id, state->msg_parts, msg_parts);
 		clear_state(state);
-		return NULL;
+		return SS_SW_ERR_WRONG_PARAM_INCORRECT_DATA;
 	}
 
 	/* NOTE: In reality, the message cannot be longer than 140 octets,
@@ -160,7 +197,7 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 		SS_LOGP(SSMS, LERROR,
 			"receiving part %u/%u of message %u exceeds size of a normal SMS, expected < %zu octets, got %zu octets.\n",
 			msg_part_no, msg_parts, msg_id, sizeof(sm->tp_ud), tp_ud_len);
-		return NULL;
+		return SS_SW_ERR_WRONG_PARAM_INCORRECT_DATA;
 	}
 
 	/* Store message in list */
@@ -169,7 +206,7 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 		SS_LOGP(SSMS, LERROR, "no memory to buffer part %u/%u of message %u, dropping message.\n", msg_part_no,
 			msg_parts, msg_id);
 		clear_state(state);
-		return NULL;
+		return SS_SW_ERR_WRONG_PARAM_ENOMEM;
 	}
 	memcpy(sm->tp_ud, tp_ud, tp_ud_len);
 	sm->tp_ud_len = tp_ud_len;
@@ -177,8 +214,10 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 	sm->msg_id = msg_id;
 	rc = put_sm_part(state, sm);
 	if (rc < 0) {
+		/* Duplicate part: harmless, ignore it and keep waiting for the
+		 * parts still missing. */
 		SS_FREE(sm);
-		return NULL;
+		return 0;
 	}
 
 	/* Check if we got the complete message */
@@ -187,7 +226,7 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 		if (!sm) {
 			SS_LOGP(SSMS, LDEBUG, "message %u is not complete yet, still waiting for message part %u/%u.\n",
 				msg_id, msg_parts, i + 1);
-			return NULL;
+			return 0;
 		}
 
 		result_len += sm->tp_ud_len;
@@ -199,7 +238,7 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 		SS_LOGP(SSMS, LERROR, "no memory to reassemble message %u (%zu bytes), dropping message.\n", msg_id,
 			result_len);
 		clear_state(state);
-		return NULL;
+		return SS_SW_ERR_WRONG_PARAM_ENOMEM;
 	}
 	result_ptr = result->data;
 	for (i = 0; i < msg_parts; i++) {
@@ -214,73 +253,68 @@ static struct ss_buf *concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_
 
 	SS_LOGP(SSMS, LDEBUG, "message %u complete: %s\n", msg_id, ss_hexdump(result->data, result->len));
 	clear_state(state);
-	return result;
+	*out_result = result;
+	return 0;
 }
 
-/* Process the tp_ud data we have received from either single SM or multiple
- * concatenated delivered SMs
+/* Process the tp_ud data of a command packet (IEI_CPI) we have received from
+ * either a single SM or multiple concatenated delivered SMs. The caller is
+ * responsible for confirming the CPI IE was present before calling this.
  *
  * The response arguments behave like those of @ref ss_uicc_sms_rx.
  * */
-static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *ud_hdr, size_t ud_hdr_len,
-		     uint8_t *tp_ud, size_t tp_ud_len, size_t *response_len, uint8_t response[*response_len])
+static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *tp_ud, size_t tp_ud_len,
+		     size_t *response_len, uint8_t response[*response_len])
 {
 	int rc;
+	struct ss_buf *sms_response = NULL;
 
 	assert(sm_hdr->tp_mti == SMS_MTI_DELIVER);
 
-	/* IEIa -- first information element identifier; typically 0x70 = CPI
-	 *
-	 * Left at 0 if UDHI is unset; that case can be treated like any unknown
-	 * IEIOa */
-	uint8_t ieia = 0;
+	rc = ss_uicc_remote_cmd_receive(tp_ud_len, tp_ud, response_len, response, &sms_response, ctx->fs_chg_filelist);
 
-	if (ud_hdr_len >= 2) {
-		ieia = ud_hdr[0];
-		/* Ignoring both IEIDa (data for IE a) and any further IEs, as
-		 * none of them are used in the currently only implemented case */
-	}
+	if (sms_response != NULL) {
+		struct ss_sm_hdr response_hdr;
+		memset(&response_hdr, 0, sizeof(response_hdr));
 
-	switch (ieia) {
-	case IEI_CPI:;
-		struct ss_buf *sms_response = NULL;
-		rc = ss_uicc_remote_cmd_receive(tp_ud_len, tp_ud, response_len, response, &sms_response,
-						ctx->fs_chg_filelist);
+		response_hdr.tp_mti = SMS_MTI_SUBMIT;
+		response_hdr.u.sms_submit.tp_da.extension = true;
+		memcpy(&response_hdr.u.sms_submit.tp_da, &sm_hdr->u.sms_deliver.tp_oa, sizeof(struct ss_sms_addr));
+		/* TP-Protocol-Identifier: unsure */
+		response_hdr.u.sms_submit.tp_pid = 127;
+		/* data coding scheme: 8-bit data */
+		response_hdr.u.sms_submit.tp_dcs = 246;
+		/* UDHI gets set automatically when encode_sm gets its hands on it */
 
-		if (sms_response != NULL) {
-			struct ss_sm_hdr response_hdr;
-			memset(&response_hdr, 0, sizeof(response_hdr));
-
-			response_hdr.tp_mti = SMS_MTI_SUBMIT;
-			response_hdr.u.sms_submit.tp_da.extension = true;
-			memcpy(&response_hdr.u.sms_submit.tp_da, &sm_hdr->u.sms_deliver.tp_oa,
-			       sizeof(struct ss_sms_addr));
-			/* TP-Protocol-Identifier: unsure */
-			response_hdr.u.sms_submit.tp_pid = 127;
-			/* data coding scheme: 8-bit data */
-			response_hdr.u.sms_submit.tp_dcs = 246;
-			/* UDHI gets set automatically when encode_sm gets its hands on it */
-
-			ss_uicc_sms_tx(ctx, &response_hdr,
-				       /* The response is a single blob with both UDH and UD, which makes
+		ss_uicc_sms_tx(ctx, &response_hdr,
+			       /* The response is a single blob with both UDH and UD, which makes
                 * sense there as that's part of what gets integrity protected, but as
-				        * sms_tx needs to fragment it, we're dissecting the message for it */
-				       &sms_response->data[1], sms_response->data[0],
-				       &sms_response->data[1 + sms_response->data[0]],
-				       sms_response->len - 1 - sms_response->data[0],
-				       /* Couldn't do anything else than debug logging */
-				       NULL);
-			SS_LOGP(SSMS, LDEBUG, "Enqueued SMS in response to command\n");
-			ss_buf_free(sms_response);
-		}
-		break;
-	default:
-		SS_LOGP(SSMS, LDEBUG, "received sms TP-UD with unknown IEIa=%02x:%s\n", ieia,
-			ss_hexdump(tp_ud, tp_ud_len));
-		rc = -1;
+			        * sms_tx needs to fragment it, we're dissecting the message for it */
+			       &sms_response->data[1], sms_response->data[0],
+			       &sms_response->data[1 + sms_response->data[0]],
+			       sms_response->len - 1 - sms_response->data[0],
+			       /* Couldn't do anything else than debug logging */
+			       NULL);
+		SS_LOGP(SSMS, LDEBUG, "Enqueued SMS in response to command\n");
+		ss_buf_free(sms_response);
 	}
 
 	return rc;
+}
+
+/* Check a single (non-concatenated) SM for the CPI IE and, if present, hand
+ * it to handle_sm().
+ *
+ * The response arguments behave like those of @ref ss_uicc_sms_rx. */
+static int handle_single_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, struct ss_list *ud_hdr_dec,
+			    uint8_t *tp_ud, size_t tp_ud_len, size_t *response_len, uint8_t response[*response_len])
+{
+	if (!ss_tlv8_get_ie(ud_hdr_dec, IEI_CPI)) {
+		SS_LOGP(SSMS, LDEBUG, "received sms TP-UD with no CPI IE: %s\n", ss_hexdump(tp_ud, tp_ud_len));
+		return -1;
+	}
+
+	return handle_sm(ctx, sm_hdr, tp_ud, tp_ud_len, response_len, response);
 }
 
 /*! Receive an SM.
@@ -344,13 +378,20 @@ int ss_uicc_sms_rx(struct ss_context *ctx, struct ss_buf *sms_tpdu, size_t *resp
 				/* Part of a concatencated SM received, collect partial messages */
 				concat_sm_desc_ie = ss_tlv8_get_ie_minlen(ud_hdr_dec, TS_23_040_IEI_CONCAT_SMS, 3);
 				if (concat_sm_desc_ie) {
-					concat_sm_buf = concat_sm(state, tp_ud, tp_ud_len, concat_sm_desc_ie);
-					if (concat_sm_buf) {
-						rc = handle_sm(ctx, &sm_hdr, ud_hdr, ud_hdr_len, concat_sm_buf->data,
-							       concat_sm_buf->len, response_len, response);
+					rc = concat_sm(state, tp_ud, tp_ud_len, concat_sm_desc_ie, ud_hdr_dec,
+						       &concat_sm_buf);
+					if (rc != 0) {
+						*response_len = 0;
+					} else if (concat_sm_buf) {
+						rc = handle_sm(ctx, &sm_hdr, concat_sm_buf->data, concat_sm_buf->len,
+							       response_len, response);
 						ss_buf_free(concat_sm_buf);
 						if (rc < 0)
 							*response_len = 0;
+					} else {
+						/* Part accepted and buffered, message still incomplete:
+						 * no response data of our own to report yet. */
+						*response_len = 0;
 					}
 				}
 
@@ -366,7 +407,7 @@ int ss_uicc_sms_rx(struct ss_context *ctx, struct ss_buf *sms_tpdu, size_t *resp
 		/* Normal SM received, forward directly */
 		if (!concat_sm_desc_ie) {
 			SS_LOGP(SSMS, LDEBUG, "received sms TP-UD: %s\n", ss_hexdump(tp_ud, tp_ud_len));
-			rc = handle_sm(ctx, &sm_hdr, ud_hdr, ud_hdr_len, tp_ud, tp_ud_len, response_len, response);
+			rc = handle_single_sm(ctx, &sm_hdr, ud_hdr_dec, tp_ud, tp_ud_len, response_len, response);
 			if (rc < 0)
 				*response_len = 0;
 		}
