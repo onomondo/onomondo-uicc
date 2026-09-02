@@ -21,3 +21,9 @@ add_executable(sms_concat_ignore_test sms_concat_ignore_test.c)
 target_link_libraries(sms_concat_ignore_test uicc milenage crypto storage $<$<TARGET_EXISTS:utils>:utils>)
 
 add_test(NAME sms_concat_ignore_test COMMAND sms_concat_ignore_test)
+
+add_executable(sms_concat_ref0_test sms_concat_ref0_test.c)
+
+target_link_libraries(sms_concat_ref0_test uicc milenage crypto storage $<$<TARGET_EXISTS:utils>:utils>)
+
+add_test(NAME sms_concat_ref0_test COMMAND sms_concat_ref0_test)
