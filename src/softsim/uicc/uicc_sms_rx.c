@@ -86,7 +86,7 @@ static int put_sm_part(struct ss_uicc_sms_rx_state *state, struct ss_uicc_sms_rx
 	/* Ignore duplicates */
 	SS_LIST_FOR_EACH(&state->sm, sm_i, struct ss_uicc_sms_rx_sm, list) {
 		if (sm_i->msg_part_no == sm->msg_part_no) {
-			SS_LOGP(SSMS, LERROR, "ignoring duplicate part %u/%u of message %u\n", sm->msg_part_no,
+			SS_LOGP(SSMS, LINFO, "ignoring duplicate part %u/%u of message %u\n", sm->msg_part_no,
 				state->msg_parts, sm->msg_id);
 			return -EINVAL;
 		}
@@ -118,14 +118,14 @@ static int concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_ud, size_t 
 
 	*out_result = NULL;
 
-	SS_LOGP(SSMS, LERROR, "receiving part %u/%u of message %u: %s\n", msg_part_no, msg_parts, msg_id,
+	SS_LOGP(SSMS, LDEBUG, "receiving part %u/%u of message %u: %s\n", msg_part_no, msg_parts, msg_id,
 		ss_hexdump(tp_ud, tp_ud_len));
 
 	/* TS 23.040 section 9.2.3.24.1: when the part count is zero, or the
 	 * sequence number is zero or exceeds the part count, ignore the IE and
 	 * handle the SM as a single short message. */
 	if (msg_parts == 0 || msg_part_no == 0 || msg_part_no > msg_parts) {
-		SS_LOGP(SSMS, LERROR, "ignoring invalid concatenation IE (part %u/%u), handling as single SM\n",
+		SS_LOGP(SSMS, LDEBUG, "ignoring invalid concatenation IE (part %u/%u), handling as single SM\n",
 			msg_part_no, msg_parts);
 
 		/* Mirror handle_single_sm()'s gate: a "single SM" is only a
@@ -162,7 +162,7 @@ static int concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_ud, size_t 
 
 	/* Clear state when a new message is detected */
 	if (state->msg_id != msg_id) {
-		SS_LOGP(SSMS, LERROR, "message %u is a new message, clearing state.\n", msg_id);
+		SS_LOGP(SSMS, LINFO, "message %u is a new message, clearing state.\n", msg_id);
 		clear_state(state);
 		state->msg_id = msg_id;
 		state->msg_parts = msg_parts;
