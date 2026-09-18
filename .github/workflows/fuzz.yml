@@ -20,7 +20,7 @@ jobs:
   # its own job because CONFIG_BUILD_FUZZERS requires clang, which rules out
   # adding it to the uicc-build-and-test matrix in ci_uicc.yml.
   fuzz-corpus:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
 
     steps:
@@ -64,7 +64,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
        startsWith(github.head_ref, 'release-please--branches--'))
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
 
     steps:

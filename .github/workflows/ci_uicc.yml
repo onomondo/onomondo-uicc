@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   verify-c-structs:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - name: Checkout Project
@@ -37,7 +37,7 @@ jobs:
           git diff --cached --exit-code --ignore-space-at-eol
 
   uicc-build-and-test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     
     strategy:
