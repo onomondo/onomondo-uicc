@@ -79,17 +79,26 @@ struct cntr_record {
 /* TS 131.115 V12.1.0 Section 7 */
 #define RSC_WILL_SMS_SUBMIT 0x0b
 
-/* Arbitrary limit for response sizes: "The limitation of 256 bytes does not
- * apply for the length of the response data." */
-#define SS_UICC_REMOTE_COMMAND_RESPONSE_MAXSIZE 4096
+/* Size of the OTA response header (TS 102 225 response packet, up to the
+ * integrity field). */
+#define OTA_RESPONSE_HEADER_LEN 16
 
-/* ss_transact() refuses a response buffer that cannot hold a full R-APDU and
- * returns 0; process_commands() below reads the SW back out of the buffer
- * without checking for that, so the space left after the OTA response header
- * has to clear the bar. */
-_Static_assert(SS_UICC_REMOTE_COMMAND_RESPONSE_MAXSIZE - (16 + OTA_INTEGRITY_LEN) - 3 >=
-		       sizeof(((struct ss_apdu *)0)->rsp) + sizeof(((struct ss_apdu *)0)->sw),
-	       "RFM response buffer too small for the ss_transact() contract");
+#define MEMBER_SIZE(type, member) sizeof(((type *)0)->member)
+
+/* Worst-case size of a response message. process_commands() runs every command
+ * of the script into the same output slot, so only the last command's output
+ * (a full response body plus SW) survives, however long the script is. This
+ * holds for the compact remote command structure only; the expanded format
+ * (TS 102 226 5.2, BER-TLV) returns a response for every command, so this
+ * buffer must be resized if that format is ever implemented.
+ * Layout: OTA response header, integrity field, command count and SW (3),
+ * the last command's response body and SW, and up to one cipher block of
+ * padding. The space left after the header and integrity field therefore
+ * always covers a full R-APDU, which ss_transact() requires.
+ */
+#define SS_UICC_REMOTE_COMMAND_RESPONSE_MAXSIZE                                               \
+	(OTA_RESPONSE_HEADER_LEN + OTA_INTEGRITY_LEN + 3 + MEMBER_SIZE(struct ss_apdu, rsp) + \
+	 MEMBER_SIZE(struct ss_apdu, sw) + AES_BLOCKSIZE)
 
 /* See also ETSI TS 102 225, section 5.1.1 */
 enum cntr_mgmnt {
