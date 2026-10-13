@@ -4,15 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-/* TS 23.040 section 9.2.3.24.1: the concatenation reference number is a
- * modulo-256 counter with no reserved values, so 0 is a valid msg_id;
- * idleness of the reassembly state is indicated by msg_parts == 0, which a
- * latched message can never carry. This pins that a reference-0 message
- * latches from idle, reassembles and supersedes like any other reference,
- * and that the part-count consistency check still bites within reference 0.
- *
- * TS 23.048 puts the CPI IE only on part 1 of a concatenation, so part 1
- * below carries it and part 2 does not. */
+/* TS 23.040 section 9.2.3.24.1: the reference number is a modulo-256 counter,
+ * so reference 0 must latch, reassemble and supersede like any other. */
 
 #include <assert.h>
 #include <stdbool.h>
@@ -26,12 +19,8 @@
 #include "src/softsim/uicc/sw.h"
 #include "src/softsim/uicc/uicc_sms_rx.h"
 
-/* Feed one SMS-DELIVER whose user-data header carries a concatenation IE
- * with the given values, optionally preceded by a CPI IE. Returns the
- * ss_uicc_sms_rx() result: 0 when the part was buffered; -1 when the
- * payload was handled as a single SM and rejected for its unknown IEIa
- * 0x00; an SW when a completed reassembly reached handle_sm() and was
- * rejected there. */
+/* Feed one SMS-DELIVER carrying a concatenation IE, optionally preceded by
+ * the CPI IE (part 1 only, TS 23.048); returns ss_uicc_sms_rx()'s result. */
 static int rx(struct ss_context *ctx, uint8_t id, uint8_t parts, uint8_t seq, bool with_cpi)
 {
 	uint8_t udh[7];
@@ -82,20 +71,15 @@ int main(void)
 
 	assert(ctx);
 	ss_reset(ctx);
-	/* ss_reset() leaves the rx state all-zero (its documented initial
-	 * form); init the part list so ss_list_empty() below is meaningful. */
+	/* ss_reset() leaves the part list zeroed; init it for ss_list_empty(). */
 	ss_uicc_sms_rx_clear(ctx);
 	state = &ctx->proactive.sms_rx_state;
 
-	/* A reference-0 part arriving on idle state latches the part count
-	 * and buffers the part. */
+	/* Reference 0 latches from idle and buffers part 1. */
 	assert(rx(ctx, 0, 2, 1, true) == 0);
 	assert(state->msg_parts == 2 && !ss_list_empty(&state->sm));
 
-	/* The reference-0 message completes and the reassembly is delivered
-	 * to handle_sm(), which forwards it to ss_uicc_remote_cmd_receive();
-	 * the 4-byte reassembled payload is too short to be a command packet,
-	 * same as envelope_test.c's concat_sm_reassembly_test(). */
+	/* Part 2 completes it; the 4-byte payload is too short for a command packet. */
 	assert(rx(ctx, 0, 2, 2, false) == SS_SW_ERR_CHECKING_WRONG_LENGTH);
 	assert(state->msg_parts == 0 && ss_list_empty(&state->sm));
 
@@ -103,8 +87,7 @@ int main(void)
 	assert(rx(ctx, 0, 2, 1, true) == 0);
 	assert(state->msg_parts == 2 && !ss_list_empty(&state->sm));
 
-	/* The part-count consistency check still bites within reference 0:
-	 * a part reporting a different total clears state and is rejected. */
+	/* A part reporting a different total still clears state and is rejected. */
 	assert(rx(ctx, 0, 3, 1, true) == SS_SW_ERR_WRONG_PARAM_INCORRECT_DATA);
 	assert(state->msg_parts == 0 && ss_list_empty(&state->sm));
 
