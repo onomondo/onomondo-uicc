@@ -1,0 +1,4 @@
+whole-file read returns the file content
+offset read returns the requested window
+read past end of file returns NULL
+read of a missing file returns NULL
