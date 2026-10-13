@@ -9,10 +9,40 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <sys/stat.h>
+#include <onomondo/softsim/fs.h>
 #include <onomondo/softsim/storage.h>
 #include <onomondo/softsim/list.h>
 #include "src/softsim/uicc/fs.h"
 #include "src/softsim/uicc/fs_utils.h"
+
+/* fs.c declares the storage entry points weak, so these stand in for three of
+ * them: one cuts the first write of the chosen size short, the other two record
+ * the order the core closes and deletes in. */
+static size_t fail_write_size;
+static int seq, close_seq, delete_seq;
+
+size_t ss_fwrite(const void *ptr, size_t size, size_t count, ss_FILE f)
+{
+	if (size == fail_write_size) {
+		fail_write_size = 0;
+		return 0;
+	}
+	return fwrite(ptr, size, count, (FILE *)f);
+}
+
+int ss_fclose(ss_FILE f)
+{
+	close_seq = ++seq;
+	return fclose((FILE *)f);
+}
+
+int ss_delete_file(const char *path)
+{
+	delete_seq = ++seq;
+	remove(path);
+	return 0; /* the content file may not exist yet; never fall through to ss_delete_dir */
+}
 
 void test_storage_path_default(void)
 {
@@ -123,6 +153,32 @@ void test_create_record_file_reports_failure(void)
 	printf("Create record file failure propagation test passed\n");
 }
 
+/* A failed write must close the handle before the file is deleted: on a port
+ * whose handle is the file's cache node, delete frees what close then uses. */
+void test_failed_write_closes_before_delete(void)
+{
+	struct ss_list path;
+	size_t sizes[] = { 2, 1 }; /* 2: definition hex pair, 1: content prefill byte */
+	size_t i;
+	int rc;
+
+	mkdir("close_order_files", 0700);
+	rc = ss_storage_set_path("./close_order_files");
+	assert(rc == 0);
+
+	for (i = 0; i < 2; i++) {
+		seq = close_seq = delete_seq = 0;
+		fail_write_size = sizes[i];
+		ss_list_init(&path);
+		rc = ss_fs_utils_create_record_file(&path, 0x5F100001, 2, 0x1f);
+		ss_path_reset(&path);
+		assert(rc < 0);
+		assert(close_seq > 0 && delete_seq > 0);
+		assert(close_seq < delete_seq);
+	}
+	printf("Failed write closes before delete test passed\n");
+}
+
 int main(void)
 {
 	test_storage_path_default();
@@ -134,5 +190,6 @@ int main(void)
 	test_storage_path_special_chars();
 	test_storage_path_empty_string();
 	test_create_record_file_reports_failure();
+	test_failed_write_closes_before_delete();
 	return 0;
 }
