@@ -9,7 +9,7 @@ add_library(crypto
 		aes-internal.c
 		aes-wrap.c
 		des-internal.c
-		# aes-encblock.c calls back into this OTA wrapper, so it lives in the same archive
+		# Milenage's AES block (aes-encblock.c) calls ss_utils_aes_encrypt in every build
 		../uicc/utils_aes.c
 )
 
