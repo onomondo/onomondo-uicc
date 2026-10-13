@@ -157,7 +157,6 @@ struct ss_buf *ss_storage_read_file(const struct ss_list *path, size_t read_offs
 			(unsigned int)read_len, host_path);
 		return NULL;
 	}
-	memset(line_buf, 0, read_len);
 
 	fd = ss_fopen(host_path, "r");
 	if (!fd) {
