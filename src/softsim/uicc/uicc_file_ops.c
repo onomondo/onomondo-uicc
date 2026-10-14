@@ -37,12 +37,14 @@
  * (e.g. REFRESH after RFM operation) */
 static void record_file_change(struct ss_apdu *apdu)
 {
+#ifndef CONFIG_DISABLE_SMS
 	int rc = 0;
 
 	if (apdu->ctx->fs_chg_record)
 		rc = ss_fs_chg_add(apdu->ctx->fs_chg_filelist, &apdu->lchan->fs_path);
 	if (rc < 0)
 		SS_LOGP(SFILE, LERROR, "file change not recorded!\n");
+#endif
 }
 
 /* Generate the FCP string as it is returned by the card to the outside world.

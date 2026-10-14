@@ -41,6 +41,11 @@ struct ss_cat_envelope_command {
 /* Handler function to handle CAT SMS PP Download */
 static int handle_sms_pp_dwnld(struct ss_apdu *apdu, struct ss_buf *cat_template)
 {
+#ifdef CONFIG_DISABLE_SMS
+	/* 6F00 is one of the answers TS 31.111 clause 7.1.1.1 maps to an RP-ACK */
+	SS_LOGP(SPROACT, LERROR, "SMS-PP DOWNLOAD received but SMS is compiled out, answering 6F00\n");
+	return SS_SW_ERR_CHECKING_NO_PRECISE_DIAG;
+#else
 	struct ss_list *ctlv_data = NULL;
 	struct cmp_tlv_ie *sms_tpdu_ie;
 	int rc;
@@ -67,6 +72,7 @@ static int handle_sms_pp_dwnld(struct ss_apdu *apdu, struct ss_buf *cat_template
 leave:
 	ss_ctlv_free(ctlv_data);
 	return rc;
+#endif
 }
 
 const struct ss_cat_envelope_command cat_envelope_commands[] = {

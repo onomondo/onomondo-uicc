@@ -131,6 +131,9 @@ const struct ber_tlv_desc *ss_proactive_get_cat_descr(void)
 	return bertlv_cat_descr;
 }
 
+/* Guarded as a whole: without SMS (and so without OTA and REFRESH) the array
+ * would be empty, which ISO C does not allow. */
+#ifndef CONFIG_DISABLE_SMS
 const struct ss_proactive_task proactive_tasks[] = {
 	{
 		.name = "SM QUEUE",
@@ -141,6 +144,7 @@ const struct ss_proactive_task proactive_tasks[] = {
 		.handler = ss_uicc_refresh_poll,
 	},
 };
+#endif
 
 /* A defeult callback function that is used in case the caller does not supply
  * a callback function to handle TERMINAL RESPONSE */
@@ -170,6 +174,7 @@ leave:
  *  \param[inout] ctx softsim context. */
 void ss_proactive_poll(struct ss_context *ctx)
 {
+#ifndef CONFIG_DISABLE_SMS
 	size_t i;
 
 	/* Go through all proactive tasks and call their handler functions. */
@@ -177,6 +182,7 @@ void ss_proactive_poll(struct ss_context *ctx)
 		SS_LOGP(SPROACT, LDEBUG, "polling proactive task %s\n", proactive_tasks[i].name);
 		proactive_tasks[i].handler(ctx);
 	}
+#endif
 
 	/* If for some reason the TERMINAL RESPONSE gets lost or is not sent by
 	 * the terminal we will reset te command handling after some time. To

@@ -20,6 +20,7 @@ option(CONFIG_COMPACT_STORAGE 	"Build with compact storage implementation")
 option(CONFIG_BUILD_LIB_ONLY 	"Build libraries only")
 option(CONFIG_ALT_FILE_SEPARATOR "Use _ as file separator instead of /")
 option(CONFIG_BUILD_FUZZERS 	"Build libFuzzer targets in tests/fuzz (clang only, implies sanitizers)")
+option(CONFIG_DISABLE_SMS 		"Compile out SMS handling and the OTA/RFM and REFRESH it carries")
 
 set(CONFIG_SS_STORAGE_PATH_DEFAULT "./files" CACHE STRING "Default storage path for SoftSIM filesystem")
 set(CONFIG_SS_STORAGE_PATH_MAX "100" CACHE STRING "Maximum path length for storage operations")
@@ -60,6 +61,10 @@ endif()
 
 if(CONFIG_EXTERNAL_KEY_LOAD)
 	add_compile_definitions(CONFIG_EXTERNAL_KEY_LOAD)
+endif()
+
+if(CONFIG_DISABLE_SMS)
+	add_compile_definitions(CONFIG_DISABLE_SMS)
 endif()
 
 if(CONFIG_BUILD_FUZZERS)
