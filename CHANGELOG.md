@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.4.0](https://github.com/onomondo/onomondo-uicc/compare/v2.3.1...v2.4.0) (2026-10-14)
+
+
+### Features
+
+* compile-time opt-out for SMS and OTA ([#160](https://github.com/onomondo/onomondo-uicc/issues/160)) ([30ff5e3](https://github.com/onomondo/onomondo-uicc/commit/30ff5e33414a11874d3ccdd9ec04498a18410876))
+* size the RFM response buffer ([#178](https://github.com/onomondo/onomondo-uicc/issues/178)) ([c47bf7e](https://github.com/onomondo/onomondo-uicc/commit/c47bf7e2b961600928ce7cbe33c944d3c1016a22))
+
+
+### Bug Fixes
+
+* close before delete on failed storage write ([#175](https://github.com/onomondo/onomondo-uicc/issues/175)) ([6fddf73](https://github.com/onomondo/onomondo-uicc/commit/6fddf732c9a10c80654ef5ba44e2b43718cb94e8))
+* demand only the encoded octets in the SMS address length check ([#173](https://github.com/onomondo/onomondo-uicc/issues/173)) ([7899dff](https://github.com/onomondo/onomondo-uicc/commit/7899dff0111b2f8f5110820958da25f04fd11a33))
+* ignore invalid SMS concatenation IEs ([#158](https://github.com/onomondo/onomondo-uicc/issues/158)) ([e8d5457](https://github.com/onomondo/onomondo-uicc/commit/e8d545711fbec94936302947abca5384a6937793))
+* reject concatenated SMS without CPI in part 1 before buffering ([#171](https://github.com/onomondo/onomondo-uicc/issues/171)) ([1da758e](https://github.com/onomondo/onomondo-uicc/commit/1da758ecdfc424c1f299f48de801072f7ffc5cfb))
+* reject oversized Address-Length in SMS address decoder ([#149](https://github.com/onomondo/onomondo-uicc/issues/149)) ([355f48c](https://github.com/onomondo/onomondo-uicc/commit/355f48cf98d3dbfd825d2535ec5cc747cab99026))
+
+
+### Performance Improvements
+
+* read file content directly into the result buffer ([#166](https://github.com/onomondo/onomondo-uicc/issues/166)) ([44296f7](https://github.com/onomondo/onomondo-uicc/commit/44296f7051704fe7f93b88892a981a7fdc711200))
+
 ## [2.3.1](https://github.com/onomondo/onomondo-uicc/compare/v2.3.0...v2.3.1) (2026-08-27)
 
 
