@@ -20,7 +20,6 @@
 #include "context.h"
 #include "btlv.h"
 #include "ctlv.h"
-#include "tlv8.h"
 #include "sms.h"
 #include "uicc_sms_tx.h"
 
