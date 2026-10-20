@@ -12,7 +12,16 @@
 #include "context.h"
 #include "uicc_lchan.h"
 
+/* Index of the P3 byte: Le (Case 2), Lc (Case 3/4) or the 00 marker of an
+ * extended length field */
 #define P3 4
+
+/* CLA INS P1 P2 P3: the header of a short-length command */
+#define SHORT_HEADER_LEN (APDU_HEADER_SIZE + 1)
+
+/* CLA INS P1 P2 00 Lx Lx: the header of an extended-length command, where 00
+ * in the P3 slot announces a two-byte length field (ISO/IEC 7816-4 §5.1) */
+#define EXT_HEADER_LEN (APDU_HEADER_SIZE + 3)
 
 /*! Create a new APDU struct for use with the SoftSIM API.
  *  \returns pointer to allocated APDU struct, NULL on allocation failure. */
@@ -65,17 +74,116 @@ void ss_apdu_toss(struct ss_apdu *apdu)
 	}
 }
 
-/** Parse an APDU's wire format into apdu->hdr, apdu->lc, apdu->le, and apdu->cmd.
- *  Handles the four ISO/IEC 7816-4 command cases in their short and extended
+/* Body of a short-length command: P3 is Lc, optionally followed by a one-byte
+ * Le. Sets lc, le, processed_bytes and, for Case 4, hdr.p3.
+ * \returns start of the data field. */
+static const uint8_t *parse_short_body(struct ss_apdu *apdu, const uint8_t *buffer, size_t len)
+{
+	uint16_t lc = buffer[P3];
+	uint16_t le;
+
+	if (len == SHORT_HEADER_LEN + lc) {
+		/* Case 3 Command: HEADER + LC + DATA
+		 * [ CLA, INS, P1, P2, LC DATA[LC] ] */
+		le = 0;
+		SS_LOGP(SAPDU, LDEBUG, "Case 3 -  lc %d\n", lc);
+		apdu->processed_bytes = len;
+	} else {
+		/* Case 4 Command: HEADER + LC + DATA + LE */
+		le = buffer[len - 1];
+		le = le == 0 ? 256 : le;
+		SS_LOGP(SAPDU, LDEBUG, "Case 4:  lc %d, le %d \n", lc, le);
+		apdu->hdr.p3 = lc;
+		apdu->processed_bytes = SHORT_HEADER_LEN + lc + 1;
+	}
+
+	apdu->lc = lc;
+	apdu->le = le;
+	return buffer + SHORT_HEADER_LEN;
+}
+
+/* Body of an extended-length command: the 00 in the P3 slot is followed by a
+ * two-byte Le (Case 2) or a two-byte Lc (Case 3/4). Sets lc, le,
+ * processed_bytes and malformed.
+ * \returns start of the data field, NULL when the command has none. */
+static const uint8_t *parse_extended_body(struct ss_apdu *apdu, const uint8_t *buffer, size_t len)
+{
+	uint16_t lc, le;
+	uint8_t le_bytes;
+
+	if (len == EXT_HEADER_LEN) {
+		/* Case 2 Command: Header + Le (extended case)
+		 * [ CLA, INS, P1, P2, 0, LE1, LE2 ]
+		 * parse next two bytes as length */
+		le = buffer[P3 + 1] << 8 | buffer[P3 + 2];
+		le = le == 0 ? 65535 : le;
+		apdu->lc = 0;
+		apdu->le = le;
+		apdu->processed_bytes = len;
+		SS_LOGP(SAPDU, LDEBUG, "APDU is CASE 2 extended - le=%d\n", le);
+		return NULL;
+	}
+
+	/* P3 == 0 promises two length bytes; here the second one is missing. */
+	if (len < EXT_HEADER_LEN) {
+		SS_LOGP(SAPDU, LERROR, "APDU malformed. Extended length field truncated. Len: %u, apdu: %s\n",
+			(unsigned int)len, ss_hexdump(buffer, len));
+		apdu->lc = 0;
+		apdu->le = 0;
+		apdu->processed_bytes = len;
+		apdu->malformed = true;
+		return NULL;
+	}
+
+	/* [ CLA, INS, P1, P2, 0, LC1, LC2 [REST] ] */
+	lc = buffer[P3 + 1] << 8 | buffer[P3 + 2];
+
+	if (len == EXT_HEADER_LEN + lc) {
+		/* Case 3 Command: [ CLA, INS, P1, P2, 0, LC1, LC2 DATA[LC] ] */
+		le = 0;
+		SS_LOGP(SAPDU, LDEBUG, "Case 3 extended - lc %d\n", lc);
+	} else {
+		/* Case 4 Command: HEADER + LC + DATA + LE. IF LC is extended then LE is also extended
+		 * It __should__ always be same format - but we can't be sure that the call respects
+		 * this at all times */
+		le_bytes = len - (EXT_HEADER_LEN + lc);
+
+		switch (le_bytes) {
+		case 1:
+			le = buffer[len - 1];
+			break;
+		case 2:
+		case 3:
+			le = buffer[len - 2] << 8 | buffer[len - 1];
+			break;
+		default:
+			/* can't really recover well from this */
+			le = 0;
+			SS_LOGP(SAPDU, LERROR, "APDU malformed. LE couldn't be derived. Len: %zu, lc: %d, apdu: %s\n",
+				len, lc, ss_hexdump(buffer, len));
+			apdu->malformed = true;
+			break;
+		}
+
+		SS_LOGP(SAPDU, LDEBUG, "Case 4 extended  - lc %d, le %d \n", lc, le);
+	}
+
+	apdu->lc = lc;
+	apdu->le = le;
+	apdu->processed_bytes = len;
+	return buffer + EXT_HEADER_LEN;
+}
+
+/** Parse an APDU's wire format into apdu->hdr, apdu->lc, apdu->le, apdu->cmd and
+ *  apdu->processed_bytes, and set apdu->malformed on inconsistent length fields.
+ *  Handles the four ISO/IEC 7816-4 §5.1 command cases in their short and extended
  *  length forms (Case 1; Case 2/3/4 short; Case 2/3/4 extended).
  *  \param[in] apdu struct allocated by caller.
  *  \param[in] buffer with apdu request.
  *  \param[in] len bytes in buffer */
 void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 {
-	// resulting apdu is collected in the end
-	uint16_t le = 0, lc = 0, processed_bytes = 0;
-	uint8_t *data_start = NULL;
+	const uint8_t *data_start;
 
 	/* Not an assert: -DNDEBUG would strip it, and the header memcpy below
 	 * reads APDU_HEADER_SIZE bytes from a caller-supplied buffer. */
@@ -94,134 +202,60 @@ void ss_apdu_parse_exhaustive(struct ss_apdu *apdu, uint8_t *buffer, size_t len)
 	 * This function will handle extended cases as well so p3 isn't directly used */
 	memcpy(&(apdu->hdr), buffer, APDU_HEADER_SIZE);
 	apdu->hdr.p3 = 0;
-	processed_bytes = APDU_HEADER_SIZE;
 
 	/* Case 1 Command: Header only.
-	 * A C-APDU of {CLA INS P1 P2} is passed from the terminal to the UICC.
-	 * https://www.etsi.org/deliver/etsi_ts/102200_102299/102221/13.02.00_60/ts_102221v130200p.pdf */
+	 * A C-APDU of {CLA INS P1 P2} is passed from the terminal to the UICC
+	 * (TS 102 221 table 10.2). */
 	if (len == APDU_HEADER_SIZE) {
 		SS_LOGP(SAPDU, LDEBUG, "APDU is CASE 1 - header only\n");
 		apdu->processed_bytes = APDU_HEADER_SIZE;
 		return;
 	}
 
-	if (len == APDU_HEADER_SIZE + 1) {
-		// Case 2 Command: Header + Le
-		// [ CLA, INS, P1, P2, LE ]
-		le = buffer[P3];
-		le = le == 0 ? 256 : le;
-		processed_bytes = len;
+	/* Case 2 Command: Header + Le
+	 * [ CLA, INS, P1, P2, LE ]
+	 * Tested before the extended-length marker below: a five-byte APDU with
+	 * P3 = 00 is a short Case 2 asking for 256 bytes, not an extended header
+	 * cut short after its 00 marker. */
+	if (len == SHORT_HEADER_LEN) {
+		uint16_t le = buffer[P3];
 
-		SS_LOGP(SAPDU, LDEBUG, "APDU is CASE 2 - le=%d\n", le);
-		goto out;
+		apdu->lc = 0;
+		apdu->le = le == 0 ? 256 : le;
+		apdu->processed_bytes = len;
+		SS_LOGP(SAPDU, LDEBUG, "APDU is CASE 2 - le=%d\n", apdu->le);
+		return;
 	}
 
-	// Check for extended cases
-	if (buffer[P3] == 0) {
-		// Case 2 Command: Header + Le (extended case)
-		// [ CLA, INS, P1, P2, 0, LE1, LE2 ]
-		if (len == APDU_HEADER_SIZE + 3) {
-			// parse next two bytes as length
-			le = buffer[P3 + 1] << 8 | buffer[P3 + 2];
-			le = le == 0 ? 65535 : le;
+	/* 00 in the P3 slot announces two-byte length fields (ISO/IEC 7816-4 §5.1) */
+	if (buffer[P3] == 0)
+		data_start = parse_extended_body(apdu, buffer, len);
+	else
+		data_start = parse_short_body(apdu, buffer, len);
 
-			processed_bytes = len;
-			SS_LOGP(SAPDU, LDEBUG, "APDU is CASE 2 extended - le=%d\n", le);
-			goto out;
-		}
+	/* extended Case 2 or a truncated length field: no data field to check or copy */
+	if (!data_start)
+		return;
 
-		/* P3 == 0 promises two length bytes; here the second one is missing. */
-		if (len < APDU_HEADER_SIZE + 3) {
-			SS_LOGP(SAPDU, LERROR, "APDU malformed. Extended length field truncated. Len: %u, apdu: %s\n",
-				(unsigned int)len, ss_hexdump(buffer, len));
-			processed_bytes = len;
-			apdu->malformed = true;
-			goto out;
-		}
-
-		// [ CLA, INS, P1, P2, 0, LC1, LC2 [REST] ]
-		lc = buffer[P3 + 1] << 8 | buffer[P3 + 2];
-		data_start = buffer + APDU_HEADER_SIZE + 3;
-
-		if (len == APDU_HEADER_SIZE + 3 + lc) {
-			// [ CLA, INS, P1, P2, 0, LC1, LC2 DATA[LC] ]
-			le = 0;
-			processed_bytes = len;
-			SS_LOGP(SAPDU, LDEBUG, "Case 3 extended - lc %dd\n", lc);
-
-			goto out;
-		}
-
-		/* Case 4 Command: HEADER + LC + DATA + LE. IF LC is extended then LE is also extended
-		 * It __should__ always be same format - but we can't be sure that the call respects
-		 * this at all times */
-		uint8_t le_bytes = 0;
-		le_bytes = len - (APDU_HEADER_SIZE + 3 + lc);
-
-		switch (le_bytes) {
-		case 1:
-			le = buffer[len - 1];
-			break;
-		case 2:
-		case 3:
-			le = buffer[len - 2] << 8 | buffer[len - 1];
-			break;
-		default:
-			// can't really recover well from this
-			le = 0;
-			SS_LOGP(SAPDU, LERROR, "APDU malformed. LE couldn't be derived. Len: %zu, lc: %d, apdu: %s\n",
-				len, lc, ss_hexdump(buffer, len));
-			apdu->malformed = true;
-			break;
-		}
-
-		SS_LOGP(SAPDU, LDEBUG, "Case 4 extended  - lc %d, le %d \n", lc, le);
-
-		processed_bytes = len;
-		goto out;
-	}
-
-	lc = buffer[P3];
-	data_start = buffer + APDU_HEADER_SIZE + 1;
-
-	// Case 3 Command: HEADER + LC + DATA
-	if (len == APDU_HEADER_SIZE + 1 + lc) {
-		// [ CLA, INS, P1, P2, LC DATA[LC] ]
-		le = 0;
-		SS_LOGP(SAPDU, LDEBUG, "Case 3 -  lc %d\n", lc);
-		processed_bytes = len;
-		goto out;
-	}
-
-	// Case 4 Command: HEADER + LC + DATA + LE
-	le = buffer[len - 1];
-	le = le == 0 ? 256 : le;
-	SS_LOGP(SAPDU, LDEBUG, "Case 4:  lc %d, le %d \n", lc, le);
-	apdu->hdr.p3 = lc;
-	processed_bytes = APDU_HEADER_SIZE + 1 + lc + 1;
-out:
 	/* lc is externally supplied so we can't trust it at all. It must fit both
 	 * the bytes that follow data_start and apdu->cmd, which bound the memcpy
 	 * below. */
-	if (lc) {
+	if (apdu->lc) {
 		size_t available = len - (size_t)(data_start - buffer);
 
-		if (lc > available || lc > sizeof(apdu->cmd)) {
+		if (apdu->lc > available || apdu->lc > sizeof(apdu->cmd)) {
 			SS_LOGP(SAPDU, LERROR,
 				"APDU malformed. LC is larger than the remaining buffer. Len: %u, lc: %d, apdu: %s\n",
-				(unsigned int)len, lc, ss_hexdump(buffer, len));
-			lc = 0;
+				(unsigned int)len, apdu->lc, ss_hexdump(buffer, len));
+			apdu->lc = 0;
 			apdu->hdr.p3 = 0;
 			/* the count derived from the untrusted Lc is equally untrusted */
-			processed_bytes = len;
+			apdu->processed_bytes = len;
 			apdu->malformed = true;
 		}
 	}
-	apdu->lc = lc;
-	apdu->le = le;
-	apdu->processed_bytes = processed_bytes;
-	// copy data field if present
-	if (lc && data_start) {
-		memcpy(apdu->cmd, data_start, lc);
-	}
+
+	/* copy data field if present */
+	if (apdu->lc)
+		memcpy(apdu->cmd, data_start, apdu->lc);
 }

@@ -54,7 +54,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	/* cmd[256] and rsp[256] are one allocation: an over-long Lc overflows cmd
 	 * into rsp without leaving the object, so the copy alone never faults. */
 	assert(apdu.lc <= sizeof(apdu.cmd));
-	/* the out: guard clamps both lc and processed_bytes to the request. */
+	/* the parser's Lc bound clamps both lc and processed_bytes to the request. */
 	assert(apdu.processed_bytes <= size);
 
 	free(req);
