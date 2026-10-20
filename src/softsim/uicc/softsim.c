@@ -212,7 +212,6 @@ static void get_response(struct ss_apdu *apdu)
 		return;
 	}
 	if (last_apdu->rsp_len == 0) {
-		apdu->rsp_len = 0;
 		apdu->sw = SS_SW_ERR_CHECKING_WRONG_LENGTH;
 		apdu->le = 0;
 		SS_LOGP(SLCHAN, LERROR, "last command did not return any response -- abort.\n");
@@ -583,7 +582,6 @@ static struct ss_apdu *get_response_apdu(struct ss_context *ctx, struct ss_apdu 
 	struct ss_apdu *apdu = ss_apdu_new(ctx);
 
 	apdu->le = apdu_orig->sw & 0xff;
-	apdu->sw = 0x00;
 	apdu->hdr.ins = TS_102_221_INS_GET_RESPONSE;
 	apdu->hdr.cla = 0;
 	apdu->hdr.p3 = apdu->le;
