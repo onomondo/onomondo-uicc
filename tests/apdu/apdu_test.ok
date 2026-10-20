@@ -1,22 +1,26 @@
-cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 2, le: 360
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 2, le: 360, processed: 11, malformed: 0
 
-cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 2, le: 1
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 2, le: 1, processed: 10, malformed: 0
 
-cla: 00, ins: a4, p1: 08, p2: 04, p3: 02, lc: 2, le: 104
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 02, lc: 2, le: 104, processed: 8, malformed: 0
 
-cla: 00, ins: b2, p1: 01, p2: 04, p3: 00, lc: 0, le: 38
+cla: 00, ins: b2, p1: 01, p2: 04, p3: 00, lc: 0, le: 38, processed: 5, malformed: 0
 
-cla: 00, ins: b2, p1: 01, p2: 04, p3: 00, lc: 0, le: 38
+cla: 00, ins: b2, p1: 01, p2: 04, p3: 00, lc: 0, le: 38, processed: 7, malformed: 0
 
-cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 104
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 104, processed: 8, malformed: 1
 
-cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 0
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 0, processed: 11, malformed: 1
 
-cla: 00, ins: a4, p1: 00, p2: 00, p3: 00, lc: 0, le: 0
+cla: 00, ins: a4, p1: 00, p2: 00, p3: 00, lc: 0, le: 0, processed: 6, malformed: 1
 
-cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 104
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 104, processed: 8, malformed: 1
 
-cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 3, le: 0
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 3, le: 0, processed: 8, malformed: 0
 
-cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 0
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 0, le: 0, processed: 327, malformed: 1
+
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 00, lc: 2, le: 360, processed: 12, malformed: 0
+
+cla: 00, ins: a4, p1: 08, p2: 04, p3: 02, lc: 2, le: 1, processed: 8, malformed: 0
 
