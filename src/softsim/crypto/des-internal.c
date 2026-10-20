@@ -11,7 +11,6 @@
 #include "includes.h"
 
 #include "common.h"
-#include "crypto.h"
 #include "des_i.h"
 
 /*
