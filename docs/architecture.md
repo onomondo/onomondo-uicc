@@ -120,7 +120,7 @@ Tests never build when the repo is consumed via `add_subdirectory` (project-name
 | Suite(s) | Covers |
 |---|---|
 | `init`, `app_transact` | End-to-end APDU transcripts (modem boot; extended-length encodings) |
-| `apdu`, `fcp`, `btlv`, `ctlv`, `tlv8`, `sms` | Wire-format codecs |
+| `apdu`, `fcp`, `btlv`, `ctlv`, `sms` | Wire-format codecs |
 | `access` | Access rules, incl. a guard against an `-DNDEBUG` bootstrap-bypass regression |
 | `pin`, `read_binary` | Command behavior over the real APDU path |
 | `ota`, `envelope` | OTA padding counts; end-to-end ENVELOPE → remote command |
