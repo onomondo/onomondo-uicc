@@ -30,6 +30,8 @@
 
 #ifndef CONFIG_EXTERNAL_CRYPTO_IMPL
 
+/* Decrypt and CMAC serve OTA only; Milenage keeps encrypt. */
+#ifndef CONFIG_DISABLE_SMS
 /*! Perform an in-place AES decryption with the common settings of OTA
  *  (CBC mode, zero IV).
  *  \param[inout] buffer user provided memory with plaintext to decrypt.
@@ -67,6 +69,7 @@ void ss_utils_aes_decrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key
 	MEMZERO_EXTERNAL_KEY();
 #endif // CONFIG_EXTERNAL_KEY_LOAD
 }
+#endif // CONFIG_DISABLE_SMS
 
 /*! Perform an in-place AES encryption with the common settings of OTA
  *  (CBC mode, zero IV).
@@ -104,6 +107,7 @@ void ss_utils_aes_encrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key
 }
 #endif // CONFIG_EXTERNAL_CRYPTO_IMPL
 
+#ifndef CONFIG_DISABLE_SMS
 /* Shift a whole block to the left by one bit position.
  * (See also RFC 4493, appendix A) */
 static void leftshift_onebit(uint8_t *input, uint8_t *output)
@@ -232,3 +236,4 @@ void ss_utils_aes_cc_cleanup(struct utils_aes_cc_ctx *cc)
 	ss_memzero(&cc->K1, sizeof(cc->K1));
 	ss_memzero(&cc->K2, sizeof(cc->K2));
 }
+#endif // CONFIG_DISABLE_SMS
