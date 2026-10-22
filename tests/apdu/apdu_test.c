@@ -13,8 +13,9 @@
 
 void dump_apdu(struct ss_apdu *apdu)
 {
-	printf("cla: %02x, ins: %02x, p1: %02x, p2: %02x, p3: %02x, lc: %u, le: %u\n\n", apdu->hdr.cla, apdu->hdr.ins,
-	       apdu->hdr.p1, apdu->hdr.p2, apdu->hdr.p3, apdu->lc, apdu->le);
+	printf("cla: %02x, ins: %02x, p1: %02x, p2: %02x, p3: %02x, lc: %u, le: %u, processed: %u, malformed: %u\n\n",
+	       apdu->hdr.cla, apdu->hdr.ins, apdu->hdr.p1, apdu->hdr.p2, apdu->hdr.p3, apdu->lc, apdu->le,
+	       apdu->processed_bytes, apdu->malformed);
 }
 /* See also RFC 4493, section 4, Example 1 */
 void apdu_test_select_extended(void)
@@ -120,6 +121,28 @@ void apdu_test_lc_over_cmd_buffer(void)
 	dump_apdu(&apdu);
 }
 
+/* Characterization: ISO/IEC 7816-4 §5.1 has no three-byte Le field. The parser
+ * reads Le from the last two bytes and ignores the one before them. */
+void apdu_test_select_extended_le3(void)
+{
+	fprintf(stderr, "apdu_test_select_extended_le3\n");
+	struct ss_apdu apdu = { 0 };
+	uint8_t cmd[] = { 0x00, 0xa4, 0x08, 0x04, 0x00, 0x00, 0x02, 0x2f, 0x00, 0x00, 0x01, 0x68 };
+	ss_apdu_parse_exhaustive(&apdu, cmd, SS_ARRAY_SIZE(cmd));
+	dump_apdu(&apdu);
+}
+
+/* Characterization: ISO/IEC 7816-4 §5.1 allows no byte after a short Le. The
+ * parser reads Le from the last byte but counts one byte less as processed. */
+void apdu_test_short_case4_trailing(void)
+{
+	fprintf(stderr, "apdu_test_short_case4_trailing\n");
+	struct ss_apdu apdu = { 0 };
+	uint8_t cmd[] = { 0x00, 0xa4, 0x08, 0x04, 0x02, 0x2f, 0x00, 0x68, 0x01 };
+	ss_apdu_parse_exhaustive(&apdu, cmd, SS_ARRAY_SIZE(cmd));
+	dump_apdu(&apdu);
+}
+
 int main(int argc, char **argv)
 {
 	apdu_test_select_extended();
@@ -133,5 +156,7 @@ int main(int argc, char **argv)
 	apdu_test_lc_boundary_reject();
 	apdu_test_lc_exact_fit();
 	apdu_test_lc_over_cmd_buffer();
+	apdu_test_select_extended_le3();
+	apdu_test_short_case4_trailing();
 	return 0;
 }
