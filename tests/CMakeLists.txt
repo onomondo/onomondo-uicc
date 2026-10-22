@@ -6,12 +6,12 @@ enable_testing()
 
 add_subdirectory(access)
 add_subdirectory(access_sw)
-add_subdirectory(aes)
 add_subdirectory(apdu)
 add_subdirectory(app_transact)
 add_subdirectory(btlv)
 add_subdirectory(ctlv)
 if(NOT CONFIG_DISABLE_SMS)
+	add_subdirectory(aes)
 	add_subdirectory(des)
 	add_subdirectory(ota)
 	# exercises the whole ENVELOPE -> SMS -> remote command -> REFRESH chain

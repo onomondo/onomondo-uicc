@@ -13,3 +13,7 @@ set_tests_properties(opt_out_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_B
 # The compiled-out subsystem must say so in the log.
 add_test(NAME opt_out_test_log COMMAND grep -q "SMS is compiled out" ${CMAKE_CURRENT_BINARY_DIR}/opt_out_test.out)
 set_tests_properties(opt_out_test_log PROPERTIES DEPENDS opt_out_test)
+
+# The gate must keep the OTA-only AES (decrypt, CMAC) out of the link too.
+add_test(NAME opt_out_test_link
+	 COMMAND sh -c "nm $<TARGET_FILE:opt_out_test> | grep -q 'ss_utils_aes_encrypt$' && ! nm $<TARGET_FILE:opt_out_test> | grep -qE '(aes_decrypt_init|ss_utils_aes_cc_setup)$'")
