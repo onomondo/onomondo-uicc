@@ -242,3 +242,15 @@ int ss_proactive_put(struct ss_context *ctx, term_resp_cb term_resp_cb, const ui
 void ss_proactive_reset(struct ss_context *ctx);
 int ss_proactive_get_rc(const uint8_t *resp_data, uint8_t resp_data_len, enum log_subsys log_subsys);
 bool ss_proactive_term_prof_bit(const struct ss_context *ctx, size_t byte_idx, uint8_t bit_idx);
+
+/* ETSI TS 102 223, 8.12: '0X'/'1X' performed, '2X' worth a retry, '3X' and up fail again;
+ * a negative rc (no readable RESULT, see ss_proactive_get_rc) is retried. */
+static inline bool ss_proactive_rc_performed(int rc)
+{
+	return rc >= 0x00 && rc < 0x20;
+}
+
+static inline bool ss_proactive_rc_retry(int rc)
+{
+	return rc < 0 || (rc >= 0x20 && rc < 0x30);
+}
