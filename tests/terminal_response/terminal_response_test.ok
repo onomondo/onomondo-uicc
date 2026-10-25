@@ -1,0 +1,12 @@
+additional EFs read: STATUS after the file change: 9114
+additional EFs read: TERMINAL RESPONSE 830103: 9000
+additional EFs read: STATUS, nothing pending: 9000
+terminal busy: STATUS after the file change: 9114
+terminal busy: TERMINAL RESPONSE 83022001: 9000
+terminal busy: STATUS, REFRESH sent again: 9114
+terminal busy: STATUS, nothing pending: 9000
+beyond terminal capabilities: STATUS after the file change: 9114
+beyond terminal capabilities: TERMINAL RESPONSE 830130: 9000
+beyond terminal capabilities: STATUS, nothing pending: 9000
+sms: STATUS with the SEND SHORT MESSAGE pending: 9121
+sms: TERMINAL RESPONSE 01: 9000, result reported to the sender: 0

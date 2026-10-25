@@ -379,10 +379,10 @@ static void term_response_cb(struct ss_context *ctx, uint8_t *resp_data, uint8_t
 		/* Note: When sending was successful we only report the success
 		 * back to the caller when the last message is done. Contrary
 		 * to that, errors are reported back immediately. */
-		if (rc == 0 && ctx->proactive.sms_tx_state.last_msg)
-			ctx->proactive.sms_tx_state.sms_result_cb(ctx, 0);
-		else if (rc != 0)
+		if (!ss_proactive_rc_performed(rc))
 			ctx->proactive.sms_tx_state.sms_result_cb(ctx, -EINVAL);
+		else if (ctx->proactive.sms_tx_state.last_msg)
+			ctx->proactive.sms_tx_state.sms_result_cb(ctx, 0);
 	}
 
 	ctx->proactive.sms_tx_state.sms_result_cb = NULL;
