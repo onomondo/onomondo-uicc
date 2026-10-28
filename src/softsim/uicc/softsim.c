@@ -123,6 +123,13 @@ void ss_reset(struct ss_context *ctx)
 #endif
 	memset(&ctx->proactive, 0, sizeof(ctx->proactive));
 
+#ifndef CONFIG_DISABLE_SMS
+	/* A reset makes the terminal read every file again (TS 102 223, 6.4.7),
+	 * so pending changes are moot; a borrowed list is left alone. */
+	if (!ctx->fs_chg_is_borrowed)
+		ctx->fs_chg_filelist[0] = 0;
+#endif
+
 	return;
 }
 
