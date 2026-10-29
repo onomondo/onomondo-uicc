@@ -1,0 +1,7 @@
+STATUS: 9114
+FETCH with Le=05: 6c14, pending 20 bytes
+FETCH with Le=00: 6c14, pending 20 bytes
+FETCH with Le=14: d0128103010101820281829207013f007fff6f7b 9000
+TERMINAL RESPONSE: 9000
+FETCH with nothing pending: 9000, 0 data bytes
+FETCH with Le=05 via the transport layer: d0128103010101820281829207013f007fff6f7b 9000

@@ -153,6 +153,10 @@ int ss_uicc_cat_cmd_fetch(struct ss_apdu *apdu)
 		goto leave;
 	}
 
+	/* Wrong Le: answer 6CXX and keep the command for the re-issued FETCH (ETSI TS 102 221, 7.3.1.1.5.1) */
+	if (apdu->ctx->proactive.data_len && apdu->le != apdu->ctx->proactive.data_len)
+		return SS_SW_ERR_CHECKING_WRONG_LE | apdu->ctx->proactive.data_len;
+
 	memcpy(apdu->rsp, apdu->ctx->proactive.data, apdu->ctx->proactive.data_len);
 	apdu->rsp_len = apdu->ctx->proactive.data_len;
 
