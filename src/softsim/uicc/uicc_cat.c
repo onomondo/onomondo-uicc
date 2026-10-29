@@ -175,6 +175,14 @@ int ss_uicc_cat_cmd_term_resp(struct ss_apdu *apdu)
 		return SS_SW_ERR_WRONG_PARAM_FUNCTION_NOT_SUPPORTED;
 
 	term_resp_cb callback = apdu->ctx->proactive.term_resp_cb;
+
+	/* No command pending, or the pending one not fetched yet: a late
+	 * response to a command given up on, see ss_proactive_poll() */
+	if (!callback || apdu->ctx->proactive.data_len) {
+		SS_LOGP(SPROACT, LINFO, "TERMINAL RESPONSE without a fetched command, ignored\n");
+		return 0;
+	}
+
 	ss_proactive_reset(apdu->ctx);
 	callback(apdu->ctx, apdu->cmd, apdu->lc);
 
