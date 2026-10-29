@@ -19,6 +19,7 @@ if(NOT CONFIG_DISABLE_SMS)
 	add_subdirectory(ota)
 	# exercises the whole ENVELOPE -> SMS -> remote command -> REFRESH chain
 	add_subdirectory(envelope)
+	add_subdirectory(refresh)
 	add_subdirectory(sms)
 	add_subdirectory(terminal_response)
 else()

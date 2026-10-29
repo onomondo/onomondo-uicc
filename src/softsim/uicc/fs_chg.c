@@ -15,6 +15,8 @@
 #include <onomondo/softsim/list.h>
 #include <onomondo/softsim/log.h>
 #include "fs_chg.h"
+#include "btlv.h"
+#include "fcp.h"
 
 struct ss_file_blacklist {
 	size_t path_len;
@@ -66,12 +68,18 @@ static int pack_path(uint8_t result[SS_FS_CHG_PATH_MAXLEN], const struct ss_list
 		if (path_cursor->fid > 0xFFFF)
 			return -EINVAL;
 
+		uint16_t fid = path_cursor->fid;
+
+		/* The ADF (the DF with a DF name) is listed as '7FFF' */
+		if (ss_btlv_get_ie(path_cursor->fcp_decoded, TS_102_221_IEI_FCP_DF_NAME))
+			fid = 0x7FFF;
+
 		/* Record path */
 		if (result_ptr - result > SS_FS_CHG_PATH_MAXLEN)
 			return -EINVAL;
-		*result_ptr = (path_cursor->fid >> 8) & 0xff;
+		*result_ptr = (fid >> 8) & 0xff;
 		result_ptr++;
-		*result_ptr = path_cursor->fid & 0xff;
+		*result_ptr = fid & 0xff;
 		result_ptr++;
 	}
 
