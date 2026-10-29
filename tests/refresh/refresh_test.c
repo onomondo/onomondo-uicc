@@ -24,6 +24,12 @@ extern uint32_t ss_log_mask;
 #define FETCHED_UICC_RESET "d009810301010482028182"
 #define TERMINAL_PROFILE "8010000014ffffffffffffffffffffffffffffffffffffffff"
 #define TERMINAL_PROFILE_NO_REFRESH "8010000014ffff7fffffffffffffffffffffffffffffffffff"
+#define LOCI_DIRTY "0123456762f2100001ff00"
+#define PSLOCI_DIRTY "c123456701234562f21000010100"
+#define EPSLOCI_DIRTY "0bf662f2108001012345678962f210000100"
+#define LOCI_NOT_UPDATED "ffffffffffffff0000ff01"
+#define PSLOCI_NOT_UPDATED "ffffffffffffffffffff0000ff01"
+#define EPSLOCI_NOT_UPDATED "ffffffffffffffffffffffffffffff000001"
 
 /* The shipped TAR record mandates ciphering (MSL 0x06); relax it so the unciphered, unsigned packets below
  * are accepted. Patches the build-dir copy only; records are stored as ASCII hex and MSL is byte 3. */
@@ -189,6 +195,53 @@ static struct ss_context *new_ctx_with_profile(void)
 	return new_ctx_with_terminal_profile(TERMINAL_PROFILE);
 }
 
+/* Location files under the ADF, as the terminal sees them: SELECT the ADF and the EF, then READ or UPDATE BINARY.
+ * PIN1 is disabled in the shipped profile, which satisfies their access conditions. */
+static void select_ef(struct ss_context *ctx, const char *fid_hex)
+{
+	char hex[32];
+	uint8_t resp[300];
+	size_t resp_len;
+	uint16_t sw;
+
+	sw = transact_hex(ctx, "00a4000c027ff0", resp, &resp_len);
+	assert(sw == 0x9000);
+	snprintf(hex, sizeof(hex), "00a4000c02%s", fid_hex);
+	sw = transact_hex(ctx, hex, resp, &resp_len);
+	assert(sw == 0x9000);
+}
+
+static void write_ef(struct ss_context *ctx, const char *fid_hex, const char *content_hex)
+{
+	char hex[64];
+	uint8_t resp[300];
+	size_t resp_len;
+	uint16_t sw;
+
+	select_ef(ctx, fid_hex);
+	snprintf(hex, sizeof(hex), "00d60000%02zx%s", strlen(content_hex) / 2, content_hex);
+	sw = transact_hex(ctx, hex, resp, &resp_len);
+	assert(sw == 0x9000);
+}
+
+static void check_ef(struct ss_context *ctx, const char *fid_hex, const char *label, const char *expected_hex)
+{
+	char hex[32];
+	uint8_t resp[300];
+	size_t resp_len;
+	size_t len = strlen(expected_hex) / 2;
+	const char *content;
+	uint16_t sw;
+
+	select_ef(ctx, fid_hex);
+	snprintf(hex, sizeof(hex), "00b00000%02zx", len);
+	sw = transact_hex(ctx, hex, resp, &resp_len);
+	assert(sw == 0x9000 && resp_len == len + 2);
+	content = ss_hexdump(resp, len);
+	printf("%s: %s\n", label, content);
+	assert(strcmp(content, expected_hex) == 0);
+}
+
 /* A file the RFM updated is announced by a REFRESH File Change Notification in the very reply with the PoR,
  * from the UICC to the terminal (TS 102 223 clause 10), naming the file under the ADF as '3F007FFF' (8.18). */
 static void file_change_test(void)
@@ -228,6 +281,108 @@ static void imsi_change_test(void)
 	fetch(ctx, sw, resp, &resp_len);
 	assert_fetched(resp, resp_len, FETCHED_UICC_RESET);
 
+	ss_free_ctx(ctx);
+}
+
+/* The location files follow a changed EF.IMSI (TS 31.102 Annex A NOTE 1), but only once the terminal has ended the
+ * session (TS 31.111 6.4.7.1): at the reset, not when the REFRESH goes out, and at that one reset only. */
+static void imsi_change_loci_test(void)
+{
+	struct ss_context *ctx = new_ctx_with_profile();
+	uint8_t resp[300];
+	size_t resp_len;
+	uint16_t sw;
+
+	write_ef(ctx, "6f7e", LOCI_DIRTY);
+	write_ef(ctx, "6f73", PSLOCI_DIRTY);
+	write_ef(ctx, "6fe3", EPSLOCI_DIRTY);
+
+	sw = envelope_rfm(ctx, RFM_IMSI, 0x01, resp, &resp_len);
+	printf("ENVELOPE update EF.IMSI, location files dirty: %04x\n", sw);
+	assert(sw == 0x910b);
+	fetch(ctx, sw, resp, &resp_len);
+	assert_fetched(resp, resp_len, FETCHED_UICC_RESET);
+
+	check_ef(ctx, "6f7e", "EF.LOCI before reset", LOCI_DIRTY);
+	check_ef(ctx, "6f73", "EF.PSLOCI before reset", PSLOCI_DIRTY);
+	check_ef(ctx, "6fe3", "EF.EPSLOCI before reset", EPSLOCI_DIRTY);
+
+	ss_reset(ctx);
+	check_ef(ctx, "6f7e", "EF.LOCI after reset", LOCI_NOT_UPDATED);
+	check_ef(ctx, "6f73", "EF.PSLOCI after reset", PSLOCI_NOT_UPDATED);
+	check_ef(ctx, "6fe3", "EF.EPSLOCI after reset", EPSLOCI_NOT_UPDATED);
+
+	write_ef(ctx, "6fe3", EPSLOCI_DIRTY);
+	ss_reset(ctx);
+	check_ef(ctx, "6fe3", "EF.EPSLOCI after a second reset", EPSLOCI_DIRTY);
+
+	ss_free_ctx(ctx);
+}
+
+/* A port may end the session by freeing the context instead of resetting
+ * it; the location files are reset on that path too. */
+static void imsi_change_free_ctx_test(void)
+{
+	struct ss_context *ctx = new_ctx_with_profile();
+	uint8_t resp[300];
+	size_t resp_len;
+	uint16_t sw;
+
+	write_ef(ctx, "6fe3", EPSLOCI_DIRTY);
+	sw = envelope_rfm(ctx, RFM_IMSI, 0x01, resp, &resp_len);
+	printf("ENVELOPE update EF.IMSI, then free: %04x\n", sw);
+	assert(sw == 0x910b);
+	fetch(ctx, sw, resp, &resp_len);
+	ss_free_ctx(ctx);
+
+	ctx = ss_new_ctx();
+	ss_reset(ctx);
+	check_ef(ctx, "6fe3", "EF.EPSLOCI after ss_free_ctx", EPSLOCI_NOT_UPDATED);
+	ss_free_ctx(ctx);
+}
+
+/* Without REFRESH in the TERMINAL PROFILE (byte 3 bit 8) the file changes are
+ * dropped, but the location files still follow the IMSI at the next reset. */
+static void imsi_change_no_refresh_support_test(void)
+{
+	struct ss_context *ctx = new_ctx_with_terminal_profile(TERMINAL_PROFILE_NO_REFRESH);
+	uint8_t resp[300];
+	size_t resp_len;
+	uint16_t sw;
+
+	write_ef(ctx, "6fe3", EPSLOCI_DIRTY);
+	sw = envelope_rfm(ctx, RFM_IMSI, 0x01, resp, &resp_len);
+	printf("ENVELOPE update EF.IMSI, no REFRESH support: %04x\n", sw);
+	assert(sw == 0x9000);
+
+	ss_reset(ctx);
+	check_ef(ctx, "6fe3", "EF.EPSLOCI after reset without REFRESH", EPSLOCI_NOT_UPDATED);
+	ss_free_ctx(ctx);
+}
+
+/* The reset comes before the deferred PoR's TERMINAL RESPONSE ever ran the poll */
+static void imsi_change_reset_while_deferred_test(void)
+{
+	struct ss_context *ctx = new_ctx_with_profile();
+	uint8_t resp[300];
+	size_t resp_len;
+	uint16_t sw;
+
+	write_ef(ctx, "6fe3", EPSLOCI_DIRTY);
+	sw = envelope_rfm(ctx, RFM_IMSI, 0x21, resp, &resp_len);
+	printf("ENVELOPE update EF.IMSI with the PoR by SMS: %04x\n", sw);
+	assert(sw == 0x9129);
+	ss_reset(ctx);
+	check_ef(ctx, "6fe3", "EF.EPSLOCI after a reset before the SEND SM response", EPSLOCI_NOT_UPDATED);
+
+	/* An RFM that leaves EF.IMSI alone owes nothing */
+	sw = transact_hex(ctx, TERMINAL_PROFILE, resp, &resp_len);
+	assert(sw == 0x9000);
+	write_ef(ctx, "6fe3", EPSLOCI_DIRTY);
+	sw = envelope_rfm(ctx, RFM_FPLMN, 0x21, resp, &resp_len);
+	assert(sw == 0x9129);
+	ss_reset(ctx);
+	check_ef(ctx, "6fe3", "EF.EPSLOCI after a reset following an EF.FPLMN change", EPSLOCI_DIRTY);
 	ss_free_ctx(ctx);
 }
 
@@ -772,6 +927,10 @@ int main(void)
 	relax_tar_msl();
 	file_change_test();
 	imsi_change_test();
+	imsi_change_loci_test();
+	imsi_change_free_ctx_test();
+	imsi_change_no_refresh_support_test();
+	imsi_change_reset_while_deferred_test();
 	por_by_sms_test();
 	reset_drops_pending_changes_test();
 	long_list_test();

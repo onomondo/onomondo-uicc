@@ -12,7 +12,9 @@
 #include <errno.h>
 #include <onomondo/softsim/utils.h>
 #include <onomondo/softsim/log.h>
+#include <onomondo/softsim/storage.h>
 #include "context.h"
+#include "fs.h"
 #include "uicc_cat.h"
 #include "uicc_refresh.h"
 #include "ctlv.h"
@@ -59,6 +61,66 @@ static bool imsi_changed(const uint8_t *filelist, int filelist_len)
 			return true;
 	}
 	return false;
+}
+
+/* "Not updated" location files: LAC/TAC '0000' marks a deleted area (TS 24.008
+ * 10.5.1.3), status 01 (TS 31.102 4.2.17, 4.2.23, 4.2.91); no DF.5GS files. */
+static const uint8_t loci_not_updated[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0xff, 0x01 };
+static const uint8_t psloci_not_updated[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+					      0xff, 0xff, 0xff, 0x00, 0x00, 0xff, 0x01 };
+static const uint8_t epsloci_not_updated[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+					       0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x01 };
+
+static const struct {
+	uint16_t fid;
+	const uint8_t *content;
+	size_t len;
+} loci_files[] = {
+	{ 0x6f7e, loci_not_updated, sizeof(loci_not_updated) },
+	{ 0x6f73, psloci_not_updated, sizeof(psloci_not_updated) },
+	{ 0x6fe3, epsloci_not_updated, sizeof(epsloci_not_updated) },
+};
+
+/*! Reset the location files after a remote EF.IMSI change, when the card
+ *  session ends (TS 31.111, 6.4.7.1; TS 31.124, 27.22.4.7.2). */
+void ss_uicc_refresh_session_end(struct ss_context *ctx)
+{
+	struct ss_uicc_refresh_state *state = &ctx->proactive.refresh_state;
+	struct ss_list path;
+	size_t i;
+	int rc;
+
+	/* An EF.IMSI change still waiting for its REFRESH is owed the reset too */
+	if (!ctx->fs_chg_is_borrowed && imsi_changed(ctx->fs_chg_filelist, ss_fs_chg_len(ctx->fs_chg_filelist)))
+		state->loci_reset_pending = true;
+	if (!state->loci_reset_pending)
+		return;
+
+	ss_fs_init(&path);
+	/* ADF.USIM, as the file system TARs preselect it (uicc_remote_cmd.c) */
+	rc = ss_fs_select(&path, 0x7ff0);
+	if (rc < 0) {
+		SS_LOGP(SREFRESH, LERROR, "cannot select the ADF, location files not reset\n");
+		ss_path_reset(&path);
+		return;
+	}
+	state->loci_reset_pending = false;
+
+	for (i = 0; i < SS_ARRAY_SIZE(loci_files); i++) {
+		/* An optional file the profile lacks is skipped */
+		if (ss_fs_select(&path, loci_files[i].fid) < 0)
+			continue;
+		if (ss_storage_get_file_len(&path) != loci_files[i].len) {
+			SS_LOGP(SREFRESH, LERROR, "file %04x has an unexpected size, not reset\n", loci_files[i].fid);
+			continue;
+		}
+		rc = ss_storage_write_file(&path, loci_files[i].content, 0, loci_files[i].len);
+		if (rc < 0)
+			SS_LOGP(SREFRESH, LERROR, "file %04x not writeable\n", loci_files[i].fid);
+		else
+			SS_LOGP(SREFRESH, LINFO, "file %04x reset after the EF.IMSI change\n", loci_files[i].fid);
+	}
+	ss_path_reset(&path);
 }
 
 /* Encode and queue a REFRESH command, see also ETSI TS 102 223, section 6.6.13 */
@@ -132,6 +194,9 @@ void ss_uicc_refresh_poll(struct ss_context *ctx)
 			SS_LOGP(SREFRESH, LDEBUG, "no file changes detected, skipping...\n");
 			return;
 		}
+		/* Owed to the IMSI change itself, with or without REFRESH support */
+		if (imsi_changed(ctx->fs_chg_filelist, ss_fs_chg_len(ctx->fs_chg_filelist)))
+			state->loci_reset_pending = true;
 		/* Check REFRESH support, see also ETSI TS 131 111 section 5.2 */
 		if (!ss_proactive_term_prof_bit(ctx, 3, 8)) {
 			SS_LOGP(SREFRESH, LINFO, "TERMINAL PROFILE does not support REFRESH, file changes dropped\n");
