@@ -15,6 +15,7 @@
 #include "uicc_cat.h"
 #include "uicc_sms_rx.h"
 #include "uicc_remote_cmd.h"
+#include "uicc_refresh.h"
 #include "uicc_ins.h"
 #include "uicc_lchan.h"
 #include "apdu.h"
@@ -258,6 +259,14 @@ static int concat_sm(struct ss_uicc_sms_rx_state *state, uint8_t *tp_ud, size_t 
 	return 0;
 }
 
+/* The terminal is told about the files a command packet changed once the
+ * packet's response is on its way: the response SMS has been sent. */
+static void refresh_after_response(struct ss_context *ctx, int rc)
+{
+	(void)rc;
+	ss_uicc_refresh_poll(ctx);
+}
+
 /* Process the tp_ud data of a command packet (IEI_CPI) we have received from
  * either a single SM or multiple concatenated delivered SMs. The caller is
  * responsible for confirming the CPI IE was present before calling this.
@@ -269,6 +278,7 @@ static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *
 {
 	int rc;
 	struct ss_buf *sms_response = NULL;
+	bool refresh_deferred = false;
 
 	assert(sm_hdr->tp_mti == SMS_MTI_DELIVER);
 
@@ -287,18 +297,20 @@ static int handle_sm(struct ss_context *ctx, struct ss_sm_hdr *sm_hdr, uint8_t *
 		response_hdr.u.sms_submit.tp_dcs = 246;
 		/* UDHI gets set automatically when encode_sm gets its hands on it */
 
-		ss_uicc_sms_tx(ctx, &response_hdr,
-			       /* The response is a single blob with both UDH and UD, which makes
-                * sense there as that's part of what gets integrity protected, but as
-			        * sms_tx needs to fragment it, we're dissecting the message for it */
-			       &sms_response->data[1], sms_response->data[0],
-			       &sms_response->data[1 + sms_response->data[0]],
-			       sms_response->len - 1 - sms_response->data[0],
-			       /* Couldn't do anything else than debug logging */
-			       NULL);
+		refresh_deferred = ss_uicc_sms_tx(ctx, &response_hdr,
+						  /* The response is a single blob with both UDH and UD, which makes
+						   * sense there as that's part of what gets integrity protected, but as
+						   * sms_tx needs to fragment it, we're dissecting the message for it */
+						  &sms_response->data[1], sms_response->data[0],
+						  &sms_response->data[1 + sms_response->data[0]],
+						  sms_response->len - 1 - sms_response->data[0],
+						  refresh_after_response) == 0;
 		SS_LOGP(SSMS, LDEBUG, "Enqueued SMS in response to command\n");
 		ss_buf_free(sms_response);
 	}
+
+	if (!refresh_deferred)
+		ss_uicc_refresh_poll(ctx);
 
 	return rc;
 }
