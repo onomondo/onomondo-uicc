@@ -11,8 +11,8 @@ whole call surface — eight functions. Headers under `src/` are internal.
 | Function | Contract |
 |---|---|
 | `ss_new_ctx()` | Allocate one card context. One context = one card. |
-| `ss_free_ctx(ctx)` | Teardown. |
-| `ss_reset(ctx)` | Card reset: clears the logical channel, SMS and proactive state. Call on card power-on/off/reset. |
+| `ss_free_ctx(ctx)` | Teardown. May write the location files, as `ss_reset()` does. |
+| `ss_reset(ctx)` | Card reset: clears the logical channel, SMS and proactive state. Call on card power-on/off/reset. May write EF.LOCI, EF.PSLOCI and EF.EPSLOCI after a remote EF.IMSI change, so a port that caches writes must flush after it. |
 | `ss_atr(ctx, buf, len)` | Writes the ATR, returns its length. Size the buffer for the ISO/IEC 7816-3 §8.1 maximum (TS + 32 = 33 bytes). The ATR declares *no extended Lc/Le* (card-capabilities byte 3, b7=0), matching the fixed 256-byte APDU buffers. |
 | `ss_transact(ctx, rsp, rsp_len, req, &req_len)` | T=0 TPDU exchange. `req_len` is in/out: pass what you have (a concatenated stream is legal — input is truncated at 261 = 5-byte header + 256 body), it returns the bytes actually consumed. Requests shorter than the 5-byte header are answered `6700`. |
 | `ss_application_apdu_transact(...)` | Same signature, application level: accepts 4-byte case-1 APDUs, auto-issues GET RESPONSE on `61xx` and retries with the corrected length on `6Cxx`. The right entry point for a modem host. |

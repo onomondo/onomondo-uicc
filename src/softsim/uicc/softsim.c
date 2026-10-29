@@ -94,6 +94,8 @@ void ss_free_ctx(struct ss_context *ctx)
 	/* Clear all proactive sim related state (cat) */
 	ss_uicc_sms_rx_clear(ctx);
 	ss_uicc_sms_tx_clear(ctx);
+	/* A port may end the card session here, without ss_reset() */
+	ss_uicc_refresh_session_end(ctx);
 #endif
 
 	ss_uicc_lchan_free(ctx);
@@ -120,6 +122,8 @@ void ss_reset(struct ss_context *ctx)
 #ifndef CONFIG_DISABLE_SMS
 	ss_uicc_sms_rx_clear(ctx);
 	ss_uicc_sms_tx_clear(ctx);
+	/* Consumes refresh_state, so it runs before the memset below */
+	ss_uicc_refresh_session_end(ctx);
 #endif
 	memset(&ctx->proactive, 0, sizeof(ctx->proactive));
 
