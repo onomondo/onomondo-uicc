@@ -19,6 +19,7 @@ if(NOT CONFIG_DISABLE_SMS)
 	# exercises the whole ENVELOPE -> SMS -> remote command -> REFRESH chain
 	add_subdirectory(envelope)
 	add_subdirectory(sms)
+	add_subdirectory(terminal_response)
 else()
 	add_subdirectory(opt_out)
 endif()
