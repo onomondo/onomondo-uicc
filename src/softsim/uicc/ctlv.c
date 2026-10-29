@@ -347,7 +347,7 @@ static size_t encode_ie(uint8_t *enc, size_t len, const struct cmp_tlv_ie *ie)
 
 	/* Do not allow tag values that are not allowed. */
 	if (ie->tag == 0x00 || ie->tag == 0xff || ie->tag == 0x80) {
-		SS_LOGP(SCTLV, LERROR, "tag %02x is not allowed in COMPRENSION-TLV, aborting at IE\n", ie->tag);
+		SS_LOGP(SCTLV, LERROR, "tag %02x is not allowed in COMPREHENSION-TLV, aborting at IE\n", ie->tag);
 		return 0;
 	}
 

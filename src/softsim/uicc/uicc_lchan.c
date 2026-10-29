@@ -34,7 +34,7 @@ void ss_uicc_lchan_dump(const struct ss_lchan *lchan)
 	SS_LOGP(SLCHAN, LDEBUG, "lchan %u:\n", lchan->nr);
 	for (i = 0; i < SS_ARRAY_SIZE(lchan->pin_verfied); i++) {
 		if (lchan->pin_verfied[i])
-			SS_LOGP(SLCHAN, LDEBUG, " pin %u verifed\n", i);
+			SS_LOGP(SLCHAN, LDEBUG, " pin %u verified\n", i);
 	}
 
 	SS_LOGP(SLCHAN, LDEBUG, " selected file: %s\n", ss_fs_utils_dump_path(&lchan->fs_path));

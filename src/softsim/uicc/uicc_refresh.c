@@ -30,13 +30,13 @@ static void term_response_cb(struct ss_context *ctx, uint8_t *resp_data, uint8_t
 	rc = ss_proactive_get_rc(resp_data, resp_data_len, SREFRESH);
 
 	if (rc != 0 && state->retry_counter < MAX_REFRESH_RETRYS) {
-		SS_LOGP(SREFRESH, LERROR, "unsccessful REFRESH command, retrying...\n");
+		SS_LOGP(SREFRESH, LERROR, "unsuccessful REFRESH command, retrying...\n");
 		/* Unfortunately there is not much that can be done at this point other
 		 * than trying again. */
 		state->state = SS_REFRESH_PENDING;
 		state->retry_counter++;
 	} else if (rc != 0) {
-		SS_LOGP(SREFRESH, LERROR, "unsccessful REFRESH command, giving up...\n");
+		SS_LOGP(SREFRESH, LERROR, "unsuccessful REFRESH command, giving up...\n");
 		state->state = SS_REFRESH_READY;
 		state->retry_counter = 0;
 	} else {

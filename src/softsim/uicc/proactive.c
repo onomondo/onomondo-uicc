@@ -161,7 +161,7 @@ static void default_term_response_cb(struct ss_context *ctx, uint8_t *resp_data,
 
 	ctlv_data = ss_ctlv_decode(resp_data, resp_data_len);
 	if (!ctlv_data) {
-		SS_LOGP(SPROACT, LERROR, "Unable to decode response - non valid COMPRESNSION-TLV?\n");
+		SS_LOGP(SPROACT, LERROR, "Unable to decode response - non valid COMPREHENSION-TLV?\n");
 		goto leave;
 	}
 	ss_ctlv_dump(ctlv_data, 2, SPROACT, LDEBUG);
@@ -327,15 +327,15 @@ bool ss_proactive_term_prof_bit(const struct ss_context *ctx, size_t byte_idx, u
 	uint8_t byte;
 
 	if (byte_idx == 0) {
-		SS_LOGP(SPROACT, LERROR, "TERMINAL PROFILE byte indexes start countingt at 1!\n");
+		SS_LOGP(SPROACT, LERROR, "TERMINAL PROFILE byte indexes start counting at 1!\n");
 		assert(false);
 	}
 	if (bit_idx == 0) {
-		SS_LOGP(SPROACT, LERROR, "TERMINAL PROFILE bit indexes start countingt at 1!\n");
+		SS_LOGP(SPROACT, LERROR, "TERMINAL PROFILE bit indexes start counting at 1!\n");
 		assert(false);
 	}
 	if (byte_idx > sizeof(ctx->proactive.term_profile)) {
-		SS_LOGP(SPROACT, LERROR, "Tried to access TERMINAL PROFILE byte %zu, but end ist at byte %zu!\n",
+		SS_LOGP(SPROACT, LERROR, "Tried to access TERMINAL PROFILE byte %zu, but end is at byte %zu!\n",
 			byte_idx, sizeof(ctx->proactive.term_profile));
 		assert(false);
 	}

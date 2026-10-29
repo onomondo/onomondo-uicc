@@ -176,7 +176,7 @@ static int validate_fcp(struct ss_list *fcp_decoded_envelope)
 		case SS_FCP_LINEAR_FIXED:
 			break;
 		default:
-			SS_LOGP(SADMIN, LERROR, "invalid FCP: unsupported file struture (%u)\n", file_descr.structure);
+			SS_LOGP(SADMIN, LERROR, "invalid FCP: unsupported file structure (%u)\n", file_descr.structure);
 			rc = -EINVAL;
 		}
 

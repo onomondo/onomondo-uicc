@@ -166,7 +166,7 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param, size_t cmd_pac
 	/* CPL, CHL, SPI, KIc, KID, TAR */
 	const size_t minimal_length = 2 + 1 + 2 + 1 + 1 + 3;
 	if (cmd_packet_len <= minimal_length || (((size_t)cmd_packet[0] << 8) | cmd_packet[1]) != cmd_packet_len - 2) {
-		SS_LOGP(SREMOTECMD, LERROR, "Received comand packet too short\n");
+		SS_LOGP(SREMOTECMD, LERROR, "Received command packet too short\n");
 		/* Is there any better guidance? This is only based on general ISO 7816
 		 * ENVELOPE descriptions. */
 		return -SS_SW_ERR_CHECKING_WRONG_LENGTH;
@@ -279,8 +279,8 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param, size_t cmd_pac
 	SS_LOGP(SREMOTECMD, LDEBUG, "command parameters (cleartext):\n");
 	SS_LOGP(SREMOTECMD, LDEBUG, "  cryptographic checksum (in): %s\n", param->in_cc ? "yes" : "no");
 	SS_LOGP(SREMOTECMD, LDEBUG, "  cryptographic checksum (out): %s\n", param->out_cc ? "yes" : "no");
-	SS_LOGP(SREMOTECMD, LDEBUG, "  chiphering (in): %s\n", param->in_ciphering ? "yes" : "no");
-	SS_LOGP(SREMOTECMD, LDEBUG, "  chiphering (out): %s\n", param->out_ciphering ? "yes" : "no");
+	SS_LOGP(SREMOTECMD, LDEBUG, "  ciphering (in): %s\n", param->in_ciphering ? "yes" : "no");
+	SS_LOGP(SREMOTECMD, LDEBUG, "  ciphering (out): %s\n", param->out_ciphering ? "yes" : "no");
 	SS_LOGP(SREMOTECMD, LDEBUG, "  integrity parameter len (in): %zu\n", param->in_integrity_len);
 	SS_LOGP(SREMOTECMD, LDEBUG, "  integrity parameter len (out): %zu\n", param->out_integrity_len);
 	SS_LOGP(SREMOTECMD, LDEBUG, "  KIC indication: %02x\n", param->kic_indication);
