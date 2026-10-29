@@ -390,7 +390,7 @@ bool ss_access_check_command(struct ss_apdu *apdu, enum ss_access_intention inte
 			case 0xA4: {
 				uint8_t access_condition = access_condition_extract(item->nested);
 				if (access_condition == 0) {
-					SS_LOGP(SACCESS, LERROR, "Acccess condition not understood, rejecting.\n");
+					SS_LOGP(SACCESS, LERROR, "Access condition not understood, rejecting.\n");
 					return false;
 				}
 				if (ss_uicc_pin_verified(access_condition, apdu->lchan)) {

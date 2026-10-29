@@ -803,7 +803,7 @@ int ss_uicc_file_ops_cmd_search_record(struct ss_apdu *apdu)
 			rc = find_offset(buf, search_byte);
 			if (rc < 0) {
 				SS_LOGP(SFILE, LDEBUG,
-					"skipping record %u since it does not contain a byte with vale %02x\n",
+					"skipping record %u since it does not contain a byte with value %02x\n",
 					search_record_number, search_byte);
 				goto skip;
 			} else

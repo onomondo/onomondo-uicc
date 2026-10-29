@@ -414,7 +414,7 @@ int ss_uicc_sms_rx(struct ss_context *ctx, struct ss_buf *sms_tpdu, size_t *resp
 		}
 		break;
 	default:
-		SS_LOGP(SSMS, LINFO, "Unspported SMS message type (%u) received -- ignored!\n", sm_hdr.tp_mti & 0x03);
+		SS_LOGP(SSMS, LINFO, "Unsupported SMS message type (%u) received -- ignored!\n", sm_hdr.tp_mti & 0x03);
 		*response_len = 0;
 		break;
 	}
