@@ -227,7 +227,7 @@ bool ss_proactive_rts(const struct ss_context *ctx)
 int ss_proactive_put(struct ss_context *ctx, term_resp_cb term_resp_cb, const uint8_t *data, size_t len)
 {
 	struct ss_list *proact_cmd;
-	int rc = 0;
+	size_t encoded_len;
 
 	/*! The parameters *data and len are mandatory. */
 	assert(data);
@@ -248,20 +248,23 @@ int ss_proactive_put(struct ss_context *ctx, term_resp_cb term_resp_cb, const ui
 	ss_list_init(proact_cmd);
 	ss_btlv_new_ie(proact_cmd, "proactive-command", TS_101_220_IEI_PROACTIVE_CMD, len, data);
 
-	ctx->proactive.data_len = ss_btlv_encode(ctx->proactive.data, sizeof(ctx->proactive.data), proact_cmd);
-	if (ctx->proactive.data_len == 0) {
-		SS_LOGP(SPROACT, LERROR, "unable to put data, cannot encode BER-TLV enevelope!\n");
-		rc = -EINVAL;
-	}
-
+	encoded_len = ss_btlv_encode(ctx->proactive.data, sizeof(ctx->proactive.data), proact_cmd);
 	ss_btlv_free(proact_cmd);
 
+	/* '91 XX' announces the length in one byte (ETSI TS 102 221, 10.2.1.1):
+	 * refuse a command no FETCH could return and keep the slot free. */
+	if (encoded_len == 0 || encoded_len > 0xff) {
+		SS_LOGP(SPROACT, LERROR, "unable to put data, command does not fit a FETCH response!\n");
+		return -EINVAL;
+	}
+
+	ctx->proactive.data_len = encoded_len;
 	if (!term_resp_cb)
 		ctx->proactive.term_resp_cb = default_term_response_cb;
 	else
 		ctx->proactive.term_resp_cb = term_resp_cb;
 
-	return rc;
+	return 0;
 }
 
 /*! Reset proactive command handling (called after TERMINAL RESPONSE and also after timeout).
