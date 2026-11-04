@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.5.0](https://github.com/onomondo/onomondo-uicc/compare/v2.4.0...v2.5.0) (2026-11-04)
+
+
+### Features
+
+* REFRESH right after RFM ([#202](https://github.com/onomondo/onomondo-uicc/issues/202)) ([5fedaff](https://github.com/onomondo/onomondo-uicc/commit/5fedaffb7bf6fb964aee97d5e38983f19ec41bf5))
+* reset location files after an IMSI change ([#198](https://github.com/onomondo/onomondo-uicc/issues/198)) ([6300984](https://github.com/onomondo/onomondo-uicc/commit/63009844c086922b57239b3f2cd0e207e47f256d))
+
+
+### Bug Fixes
+
+* honour TR result classes ([#196](https://github.com/onomondo/onomondo-uicc/issues/196)) ([21fc4f5](https://github.com/onomondo/onomondo-uicc/commit/21fc4f53c47e3a7e111f0c0229262ea3d1598b4f))
+* ignore a TERMINAL RESPONSE without a fetched command ([#201](https://github.com/onomondo/onomondo-uicc/issues/201)) ([38d4e7a](https://github.com/onomondo/onomondo-uicc/commit/38d4e7afc18d83e52fc17caae19cd522d5daf343))
+* refuse an oversized proactive command ([#194](https://github.com/onomondo/onomondo-uicc/issues/194)) ([7d86fde](https://github.com/onomondo/onomondo-uicc/commit/7d86fdec8180476975b4aad2a0604df12cc9eac1))
+
 ## [2.4.0](https://github.com/onomondo/onomondo-uicc/compare/v2.3.1...v2.4.0) (2026-10-22)
 
 
