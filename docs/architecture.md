@@ -22,9 +22,6 @@ Static archives with no declared interdependencies — link order matters:
   filesystem (select, records, EF.ARR lookup); [`src/softsim/fs.c`](../src/softsim/fs.c)
   is the default POSIX implementation of the `ss_f*` **host port** declared in
   [`fs.h`](../include/onomondo/softsim/fs.h).
-- Two `crypto.h`: [`include/onomondo/softsim/crypto.h`](../include/onomondo/softsim/crypto.h)
-  is the library's crypto contract; [`src/softsim/crypto/crypto.h`](../src/softsim/crypto/crypto.h)
-  is the verbatim hostap wrapper header.
 - `softsim` the *executable* is `main.c`; the *API implementation* is
   [`src/softsim/uicc/softsim.c`](../src/softsim/uicc/softsim.c), inside lib `uicc`.
 
