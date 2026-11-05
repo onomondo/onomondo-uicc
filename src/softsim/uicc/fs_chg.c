@@ -75,7 +75,7 @@ static int pack_path(uint8_t result[SS_FS_CHG_PATH_MAXLEN], const struct ss_list
 			fid = 0x7FFF;
 
 		/* Record path */
-		if (result_ptr - result > SS_FS_CHG_PATH_MAXLEN)
+		if (result_ptr - result + 2 > SS_FS_CHG_PATH_MAXLEN)
 			return -EINVAL;
 		*result_ptr = (fid >> 8) & 0xff;
 		result_ptr++;
