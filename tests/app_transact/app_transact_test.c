@@ -58,7 +58,10 @@ const char *apdus[] = {
 	"80f2010c",
 	"00a408040000047fff6fe40168",
 	"00dc010436a0348001078120ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8204ffffffff8304ffffffff8401ff",
-	"00a408040000022fe20001"
+	/* Case 3 command in the 7-byte extended-Le shape: the parser files it as
+	 * Case 2 with lc = 0, and the dispatcher must drop that Le or answer 6700. */
+	"00a40304000005",
+	"00a408040000022fe20001",
 };
 
 int main(void)
