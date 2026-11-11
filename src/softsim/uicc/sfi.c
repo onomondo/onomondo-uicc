@@ -34,8 +34,8 @@ int ss_sfi_update(const struct ss_list *path)
 {
 	struct ss_list path_copy;
 	struct ss_file *file;
-	struct ber_tlv_ie *fcp_sfi_ie;
-	struct ber_tlv_ie *fcp_fid_ie;
+	struct ss_buf fcp_sfi;
+	struct ss_buf fcp_fid;
 	int rc;
 	uint8_t sfi;
 
@@ -48,22 +48,22 @@ int ss_sfi_update(const struct ss_list *path)
 	file = ss_get_file_from_path(path);
 
 	/* get FID */
-	fcp_fid_ie = ss_btlv_get_ie_minlen(file->fcp_decoded, TS_102_221_IEI_FCP_FILE_ID, 2);
-	if (!fcp_fid_ie)
+	rc = ss_fcp_get_tag_min_len(file->fci, TS_102_221_IEI_FCP_FILE_ID, 2, &fcp_fid);
+	if (rc < 0)
 		return -EINVAL;
 
 	/* get SFI */
-	fcp_sfi_ie = ss_btlv_get_ie(file->fcp_decoded, TS_102_221_IEI_FCP_SHORT_FILE_ID);
-	if (!fcp_sfi_ie) {
+	rc = ss_fcp_get_tag_min_len(file->fci, TS_102_221_IEI_FCP_SHORT_FILE_ID, 0, &fcp_sfi);
+	if (rc < 0) {
 		/* See also ETSI TS 102 221 11.1.1.4.8 */
-		sfi = fcp_fid_ie->value->data[1] & 0x1f;
+		sfi = fcp_fid.data[1] & 0x1f;
 	} else {
-		if (fcp_sfi_ie->value->len == 0) {
+		if (fcp_sfi.len == 0) {
 			/* Files without SFI are accepted */
 			rc = 0;
 			goto leave;
 		} else {
-			sfi = fcp_sfi_ie->value->data[0] >> 3;
+			sfi = fcp_sfi.data[0] >> 3;
 		}
 	}
 
@@ -78,14 +78,14 @@ int ss_sfi_update(const struct ss_list *path)
 		rc = -EINVAL;
 		goto leave;
 	}
-	rc = ss_fs_write_file_record(&path_copy, sfi, fcp_fid_ie->value->data, fcp_fid_ie->value->len);
+	rc = ss_fs_write_file_record(&path_copy, sfi, fcp_fid.data, fcp_fid.len);
 	if (rc < 0) {
 		rc = -EINVAL;
 		goto leave;
 	}
 
 	SS_LOGP(SSFI, LDEBUG, "registered SFI=%02x for FID=%s in lookup file %s\n", sfi,
-		ss_hexdump(fcp_fid_ie->value->data, fcp_fid_ie->value->len), ss_fs_utils_dump_path(&path_copy));
+		ss_hexdump(fcp_fid.data, fcp_fid.len), ss_fs_utils_dump_path(&path_copy));
 	rc = 0;
 leave:
 	ss_path_reset(&path_copy);

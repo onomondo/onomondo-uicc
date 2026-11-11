@@ -38,7 +38,12 @@ struct ss_file {
 	                     * calls; while ISO-IEC 7816-4 allows different
 	                     * information in here (eg. FMD), TS 102 221 usually only
 	                     * expects FCP data here. */
-	struct ss_list *fcp_decoded; /* The decoded form of the FCP that is part of the file control information */
+	/*
+	WIP mutas: 
+	* Trying to remove the decoded FCP tree to save on some memory.
+	* See SOFTSIM-294 for more information
+	*/
+	//struct ss_list *fcp_decoded; /* The decoded form of the FCP that is part of the file control information */
 	struct ss_fcp_file_descr *fcp_file_descr;
 	struct ss_list *access; /**< The access rule governing file operations for
 	                         * the SE that selected the file (or general access if

@@ -404,20 +404,20 @@ int ss_uicc_admin_cmd_activate_file(struct ss_apdu *apdu)
 	if (!ss_access_check_command(apdu, SS_ACCESS_INTENTION_EFDF_ACTIVATE_FILE))
 		return SS_SW_ERR_CMD_NOT_ALLOWED_NO_INFO;
 
-	struct ber_tlv_ie *fcp_decoded_lifecycle;
+	struct ss_buf lcsi;
 	struct ss_file *selected_file = ss_get_file_from_path(&apdu->lchan->fs_path);
-	fcp_decoded_lifecycle = ss_btlv_get_ie_minlen(selected_file->fcp_decoded, TS_102_221_IEI_FCP_LIFE_CYCLE_ST, 1);
-	if (!fcp_decoded_lifecycle) {
+
+	//todo mutas remove when done
+	//fcp_decoded_lifecycle = ss_btlv_get_ie_minlen(selected_file->fcp_decoded, TS_102_221_IEI_FCP_LIFE_CYCLE_ST, 1);
+
+	rc = ss_fcp_get_tag_min_len(selected_file->fci, TS_102_221_IEI_FCP_LIFE_CYCLE_ST, 1, &lcsi);
+
+	if (rc < 0) {
 		SS_LOGP(SADMIN, LERROR, "missing lifecycle status IE -- cannot activate file\n");
 		/* TS 102 221 §10.2.2 - Status words of the commands */
 		return SS_SW_ERR_EXEC_NO_INFO_NV_UNCHANGED;
 	}
-	fcp_decoded_lifecycle->value->data[0] = 0x05;
-
-	/* Store encoded FCP again */
-	rc = ss_fcp_reencode(selected_file);
-	if (rc < 0)
-		return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
+	lcsi.data[0] = 0x05;
 
 	rc = ss_storage_update_def(&apdu->lchan->fs_path);
 	if (rc < 0)

@@ -22,6 +22,7 @@
 #include "apdu.h"
 #include "sw.h"
 #include "fcp.h"
+#include <errno.h>
 
 /*! Dump lchan status information.
  *  \param[in] lchan lchan to dump. */
@@ -29,7 +30,8 @@ void ss_uicc_lchan_dump(const struct ss_lchan *lchan)
 {
 	unsigned int i;
 	struct ss_file *active_adf;
-	struct ss_buf *active_adf_name = NULL;
+	struct ss_buf active_adf_name;
+	int rc = -ENOENT;
 
 	SS_LOGP(SLCHAN, LDEBUG, "lchan %u:\n", lchan->nr);
 	for (i = 0; i < SS_ARRAY_SIZE(lchan->pin_verfied); i++) {
@@ -40,9 +42,9 @@ void ss_uicc_lchan_dump(const struct ss_lchan *lchan)
 	SS_LOGP(SLCHAN, LDEBUG, " selected file: %s\n", ss_fs_utils_dump_path(&lchan->fs_path));
 	active_adf = ss_get_file_from_path(&lchan->adf_path);
 	if (active_adf)
-		active_adf_name = ss_fcp_get_df_name(active_adf->fcp_decoded);
+		rc = ss_fcp_get_df_name(active_adf->fci, &active_adf_name);
 	SS_LOGP(SLCHAN, LDEBUG, " active ADF: %s - %s\n", ss_fs_utils_dump_path(&lchan->adf_path),
-		active_adf_name ? ss_hexdump(active_adf_name->data, active_adf_name->len) : "(no AID)");
+		rc == 0 ? ss_hexdump(active_adf_name.data, active_adf_name.len) : "(no AID)");
 	SS_LOGP(SLCHAN, LDEBUG, " current record: %u\n", lchan->current_record);
 }
 

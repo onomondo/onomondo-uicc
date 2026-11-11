@@ -50,60 +50,38 @@ static void record_file_change(struct ss_apdu *apdu)
 /* Generate the FCP string as it is returned by the card to the outside world.
  * This is essentially the FCP string that is read from the definition files
  * but with additional IEs that reflect the current card state (PIN status) */
+//todo mutas: compare this with previous version in zed and see if its functional
 static int fcp_reencode_full(struct ss_file *selected_file, char *command_name)
 {
-	struct ber_tlv_ie *pin_stat_templ_ie;
-	struct ss_buf *pin_stat_templ;
+	struct ss_buf pst;
+	struct ss_buf *new_pst;
+	bool is_df = selected_file->fcp_file_descr->type == SS_FCP_DF_OR_ADF;
 	int rc;
 
 	/* Get information element (IE) for tag C6, PIN Status Template */
-	pin_stat_templ_ie = ss_btlv_get_ie(selected_file->fcp_decoded, TS_102_221_IEI_FCP_PIN_STAT_TMPL);
+	rc = ss_fcp_get_tag_min_len(selected_file->fci, TS_102_221_IEI_FCP_PIN_STAT_TMPL, 0, &pst);
 
-	/* PIN Status Template (tag C6) should only be added for DF/ADF files, not EF files.
-	 * See ETSI TS 102.221, Section 11.1.1.3.2, Table 11.4 - "Response for an EF with FCP template" */
-	if (!pin_stat_templ_ie && selected_file->fcp_file_descr->type == SS_FCP_DF_OR_ADF) {
-		pin_stat_templ = ss_uicc_pin_gen_pst_do();
-		if (!pin_stat_templ) {
-			SS_LOGP(SFILE, LDEBUG, "%s failed, could not generate PIN status template.\n", command_name);
-			return -EINVAL;
-		}
-		pin_stat_templ_ie = ss_btlv_new_ie(selected_file->fcp_decoded, "pin_status_template_do",
-						   TS_102_221_IEI_FCP_PIN_STAT_TMPL, pin_stat_templ->len,
-						   pin_stat_templ->data);
-		ss_buf_free(pin_stat_templ);
-		/* Note: There is no need to free the IE that we have just
-		 * created. Since it is now liked into the TLV tree it will
-		 * be freed along with all other elements in the tree when the
-		 * file struct is freed. Contrary to the IE, the pin_stat_templ,
-		 * we use as input for ss_btlv_new_ie(), must be freed. */
-		goto reencode;
-	} else if (pin_stat_templ_ie) {
-		/* The PIN Status Template should not be present on EF files.
-		 * If we encounter a template on a non-DF/ADF file, log it at error 
-		 * level for later investigation allow the template to be updated. */
-		if (selected_file->fcp_file_descr->type != SS_FCP_DF_OR_ADF) {
-			SS_LOGP(SFILE, LERROR,
-				"%s: PIN Status Template (C6) present on non-DF/ADF file (fid=%04x). Updating anyway.\n",
-				command_name, selected_file->fid);
-		}
-
-		/* No further checks performed if template already exists */
-		rc = ss_uicc_pin_update_pst_do(pin_stat_templ_ie->value);
-		if (rc < 0) {
-			SS_LOGP(SFILE, LDEBUG, "%s failed, could not update PIN status template.\n", command_name);
-			return -EINVAL;
-		}
-		goto reencode;
-	}
-
-reencode:
-	rc = ss_fcp_reencode(selected_file);
-	if (rc < 0) {
-		SS_LOGP(SFILE, LDEBUG, "%s failed, unable to re-encode FCP data.\n", command_name);
+	if(rc == -EINVAL) 
 		return -EINVAL;
+
+	/* C6 present: patch in place */
+	if (rc == 0) {                                  
+		if (!is_df)
+			SS_LOGP(SFILE, LERROR, "%s: C6 on non-DF/ADF (fid=%04x). Updating anyway.\n",
+				command_name, selected_file->fid);
+		return ss_uicc_pin_update_pst_do(&pst) < 0 ? -EINVAL : 0;
 	}
 
-	return 0;
+	/* EF without C6: nothing to do */
+	if (!is_df)
+		return 0;
+
+	new_pst = ss_uicc_pin_gen_pst_do();
+	if (!new_pst)
+		return -EINVAL;
+	rc = ss_fcp_add_ie(selected_file, TS_102_221_IEI_FCP_PIN_STAT_TMPL, new_pst);
+	ss_buf_free(new_pst);
+	return rc;
 }
 
 /*! STATUS (TS 102 221 Section 11.1.2) */
@@ -111,7 +89,7 @@ int ss_uicc_file_ops_cmd_status(struct ss_apdu *apdu)
 {
 	struct ss_file *current_df;
 	struct ss_file *active_adf;
-	struct ber_tlv_ie *df_name;
+	struct ss_buf df_name;
 	int rc;
 
 	switch (apdu->hdr.p1) {
@@ -163,17 +141,17 @@ int ss_uicc_file_ops_cmd_status(struct ss_apdu *apdu)
 		if (!active_adf)
 			return SS_SW_ERR_CMD_NOT_ALLOWED_NO_EF_SELECTED;
 
-		df_name = ss_btlv_get_ie(active_adf->fcp_decoded, TS_102_221_IEI_FCP_DF_NAME);
-		if (df_name) {
-			if (df_name->value->len + 2 > sizeof(apdu->rsp)) {
+		rc = ss_fcp_get_tag_min_len(active_adf->fci, TS_102_221_IEI_FCP_DF_NAME, 0, &df_name);
+		if (rc == 0) {
+			if (df_name.len + 2 > sizeof(apdu->rsp)) {
 				SS_LOGP(SFILE, LERROR, "DF name length %u exceeds the response buffer\n",
-					(unsigned)df_name->value->len);
+					(unsigned)df_name.len);
 				return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
 			}
 			apdu->rsp[0] = TS_102_221_IEI_FCP_DF_NAME;
-			apdu->rsp[1] = df_name->value->len;
-			memcpy(apdu->rsp + 2, df_name->value->data, df_name->value->len);
-			apdu->rsp_len = df_name->value->len + 2;
+			apdu->rsp[1] = df_name.len;
+			memcpy(apdu->rsp + 2, df_name.data, df_name.len);
+			apdu->rsp_len = df_name.len + 2;
 			return 0;
 		}
 
@@ -940,7 +918,8 @@ static int select_by_fid(struct ss_apdu *apdu)
 
 		/* Check if the file has a DF name, then check if the FID of
 		 * that file matches the FID we intended to select. */
-		if (ss_fcp_get_df_name(selected_file->fcp_decoded)) {
+		struct ss_buf df_name;
+		if (ss_fcp_get_df_name(selected_file->fci, &df_name) == 0) {
 			if (selected_file->fid == fid) {
 				SS_LOGP(SFILE, LDEBUG,
 					"success: file (%04x) is an ADF and was found in the current path.\n", fid);
@@ -960,7 +939,7 @@ static int select_by_df_name(struct ss_apdu *apdu)
 {
 	int rc;
 	uint32_t fid;
-	struct ss_buf *df_name;
+	struct ss_buf df_name;
 	struct ss_file *selected_file;
 
 	SS_LOGP(SFILE, LDEBUG, "selecting DF by name: %s\n", ss_hexdump(apdu->cmd, apdu->lc));
@@ -979,12 +958,11 @@ static int select_by_df_name(struct ss_apdu *apdu)
 				break;
 
 			/* NOTE: we are not taking ownership of the returned df_name. */
-			df_name = ss_fcp_get_df_name(selected_file->fcp_decoded);
-			if (df_name) {
+			if (ss_fcp_get_df_name(selected_file->fci, &df_name) == 0) {
 				SS_LOGP(SFILE, LDEBUG, "trying parent file: %s, DF_name: %s\n",
 					ss_fs_utils_dump_path(&apdu->lchan->fs_path),
-					ss_hexdump(df_name->data, df_name->len));
-				if (memcmp(df_name->data, apdu->cmd, apdu->lc) == 0)
+					ss_hexdump(df_name.data, df_name.len));
+				if (memcmp(df_name.data, apdu->cmd, apdu->lc) == 0)
 					goto leave;
 			}
 		}
@@ -1096,13 +1074,14 @@ static int select_path(struct ss_apdu *apdu, bool from_mf)
 static int update_active_adf(struct ss_lchan *lchan)
 {
 	struct ss_file *selected_file;
+	struct ss_buf df_name;
 	int rc;
 
 	selected_file = ss_get_file_from_path(&lchan->fs_path);
 	assert(selected_file);
 
 	/* Update active ADF (we recognize ADFs by the assigned DF Name) */
-	if (ss_fcp_get_df_name(selected_file->fcp_decoded) &&
+	if (ss_fcp_get_df_name(selected_file->fci, &df_name) == 0 &&
 	    ss_fs_utils_path_equals(&lchan->fs_path, &lchan->adf_path) == false) {
 		ss_path_reset(&lchan->adf_path);
 		rc = ss_fs_utils_path_select(&lchan->adf_path, &lchan->fs_path);
@@ -1185,7 +1164,6 @@ int ss_uicc_file_ops_cmd_select(struct ss_apdu *apdu)
 	}
 
 	SS_LOGP(SFILE, LDEBUG, "Successfully selected: %s\n", ss_fs_utils_dump_path(&apdu->lchan->fs_path));
-	ss_btlv_dump(selected_file->fcp_decoded, 1, SFILE, LDEBUG);
-
+	SS_LOGP(SFILE, LDEBUG, "FCI: %s\n", ss_hexdump(selected_file->fci->data, selected_file->fci->len));
 	return 0;
 }

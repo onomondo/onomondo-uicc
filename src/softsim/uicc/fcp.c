@@ -310,60 +310,156 @@ struct ss_buf *ss_fcp_gen(const struct ss_fcp_file_descr *fd, uint32_t fid, size
 	return result;
 }
 
-/*! (Re)-encode the encoded FCP string of a file.
- *  \param[inout] path path to the file.
- *  \returns 0 on success -EINVAL on failure. */
-int ss_fcp_reencode(struct ss_file *file)
+//todo mutas: remove when done, its just the old reencoder which is now replaced by the wrapper below
+// /*! (Re)-encode the encoded FCP string of a file.
+//  *  \param[inout] path path to the file.
+//  *  \returns 0 on success -EINVAL on failure. */
+// int ss_fcp_reencode(struct ss_file *file)
+// {
+// 	struct ss_list *fcp;
+// 	struct ber_tlv_ie *fcp_template;
+// 	struct ss_buf *fci;
+// 	int rc = 0;
+
+// 	/* Generate an FCP template envelope. We have to do that because the
+// 	 * FCP/FCI is stored without the envelope for easier access. */
+// 	fcp = SS_ALLOC(struct ss_list);
+// 	ss_list_init(fcp);
+// 	fcp_template = ss_btlv_new_ie_constr(fcp, "fcp-template", 0x62);
+
+// 	/* Temporarly attach the FCP to the envelope and re-encode it. */
+// 	ss_btlv_attach_to_constr(fcp_template, file->fcp_decoded);
+
+// 	fci = ss_btlv_encode_to_ss_buf(fcp);
+// 	if (!fci) {
+// 		rc = -EINVAL;
+// 		goto leave;
+// 	}
+
+// 	/* Exchange old fci data with re-encoded fci data */
+// 	if (file->fci)
+// 		ss_buf_free(file->fci);
+// 	file->fci = fci;
+
+// leave:
+// 	/* Split the FCI away from the envelope and free the envelope part we
+// 	 * have allocated above. */
+// 	ss_btlv_split_off_from_constr(fcp_template);
+// 	ss_btlv_free(fcp);
+// 	return rc;
+// }
+
+// Append an IE to the FCP template of file->fci. 
+// TODO mutas: discuss: This still decodes the whole fcp which means we dont really safe memory during appension (i think)?
+// maybe we can just append the new IE to the fci buffer instead of decoding and reencoding the whole fcp.  
+int ss_fcp_add_ie(struct ss_file *file, uint32_t tag, const struct ss_buf *value)
 {
-	struct ss_list *fcp;
-	struct ber_tlv_ie *fcp_template;
+	struct ss_list *decoded;
+	struct ber_tlv_ie *tmpl;
 	struct ss_buf *fci;
-	int rc = 0;
+	int rc = -EINVAL;
 
-	/* Generate an FCP template envelope. We have to do that because the
-	 * FCP/FCI is stored without the envelope for easier access. */
-	fcp = SS_ALLOC(struct ss_list);
-	ss_list_init(fcp);
-	fcp_template = ss_btlv_new_ie_constr(fcp, "fcp-template", 0x62);
+	decoded = ss_fcp_decode(file->fci);
+	if (!decoded)
+		return -EINVAL;
 
-	/* Temporarly attach the FCP to the envelope and re-encode it. */
-	ss_btlv_attach_to_constr(fcp_template, file->fcp_decoded);
-
-	fci = ss_btlv_encode_to_ss_buf(fcp);
-	if (!fci) {
-		rc = -EINVAL;
+	tmpl = ss_btlv_get_ie(decoded, TS_102_221_IEI_FCP_TMPL);
+	if (!tmpl || !ss_btlv_new_ie(tmpl->nested, "fcp_ie", tag, value->len, value->data))
 		goto leave;
-	}
 
-	/* Exchange old fci data with re-encoded fci data */
-	if (file->fci)
-		ss_buf_free(file->fci);
+	fci = ss_btlv_encode_to_ss_buf(decoded);
+	if (!fci)
+		goto leave;
+	// invalidates all views into the old fci!
+	ss_buf_free(file->fci);
 	file->fci = fci;
-
+	rc = 0;
 leave:
-	/* Split the FCI away from the envelope and free the envelope part we
-	 * have allocated above. */
-	ss_btlv_split_off_from_constr(fcp_template);
-	ss_btlv_free(fcp);
+	ss_btlv_free(decoded);
 	return rc;
 }
 
-/*! Get DF name from a decoded FCP.
- *  \param[in] fcp_decoded_envelope representation of the file descriptor.
- *  \returns buffer with DF name on success NULL on failure. */
-struct ss_buf *ss_fcp_get_df_name(const struct ss_list *fcp_decoded_envelope)
+
+//todo mutas: discuss: do we need this wrapper anymore? 
+/*! Get DF name from an encoded FCI.
+ *  \param[in] fci encoded FCI, including the 62 envelope.
+ *	\param[out] df_name user provided memory to store the DF name.
+ *  \returns 0 if found, -ENOENT if missing or empty, -EINVAL if malformed. */
+int ss_fcp_get_df_name(const struct ss_buf *fci, struct ss_buf *df_name)
 {
-	struct ber_tlv_ie *fcp_df_name_ie;
+	return  ss_fcp_get_tag_min_len(fci, TS_102_221_IEI_FCP_DF_NAME, 1, df_name);
+}
 
-	/*! The returned buffer is the value part of the IE in the TLV tree.
-	 *  the caller must not take ownership of the buffer (free it) */
+/* True if all bytes are 0xFF. ss_btlv_decode tolerates such padding after
+ * the last IE, so the lookup must as well. */
+static bool is_padding(const uint8_t *data, size_t len)
+{
+	size_t i;
 
-	/* Extract DF Name (if present) */
-	fcp_df_name_ie = ss_btlv_get_ie_minlen(fcp_decoded_envelope, TS_102_221_IEI_FCP_DF_NAME, 1);
-	if (!fcp_df_name_ie)
-		return NULL;
+	for (i = 0; i < len; i++) {
+		if (data[i] != 0xff)
+			return false;
+	}
+	return true;
+}
 
-	return fcp_df_name_ie->value;
+/*! Find a top-level IE in the FCP template (62) of an encoded FCI, without allocating.
+ *  \param[in] fci encoded FCI, including the 62 envelope.
+ *  \param[in] tag single-byte tag to look for (e.g. 0x84).
+ *  \param[in] min_len minimum value length; shorter counts as missing.
+ *  \param[out] out view of the value inside fci. Do not free. Only valid
+ *              until fci is changed or freed.
+ *  \returns 0 if found, -ENOENT if missing or too short, -EINVAL if malformed. */
+int ss_fcp_get_tag_min_len(const struct ss_buf *fci, uint8_t tag, size_t min_len, struct ss_buf *out)
+{
+	struct ber_tlv_hdr tmpl;
+	struct ber_tlv_hdr ie;
+	size_t pos = 0;
+	bool found = false;
+
+	if (!fci || !fci->data || !out)
+		return -EINVAL;
+
+	out->data = NULL;
+	out->len = 0;
+
+	/* Outer envelope must be the FCP template */
+	if (ss_btlv_parse_hdr(&tmpl, fci->data, fci->len) < 0)
+		return -EINVAL;
+	if (tmpl.tag_encoded != TS_102_221_IEI_FCP_TMPL)
+		return -EINVAL;
+
+	/* Walk all children: find the tag, and check that the rest is well formed */
+	while (pos < tmpl.value_len) {
+		if (ss_btlv_parse_hdr(&ie, tmpl.value + pos, tmpl.value_len - pos) < 0) {
+			if (is_padding(tmpl.value + pos, tmpl.value_len - pos))
+				break;
+			return -EINVAL;
+		}
+
+		/* First match wins, like ss_btlv_get_ie */
+		if (!found && ie.tag_encoded == tag) {
+			/* Drops const: the view may be used to patch fci in place */
+			// todo mutas: me no comprendo yet
+			// allocate out 
+			
+			out->data = (uint8_t *)ie.value;
+			out->len = ie.value_len;
+			found = true;
+		}
+
+		pos += ie.total_len;
+	}
+
+	if (!found)
+		return -ENOENT;
+	if(out->len < min_len) {
+		out->data = NULL;
+		out->len = 0;
+		return -ENOENT;
+	}
+
+	return 0;	
 }
 
 /*! Dump decoded file descriptor.

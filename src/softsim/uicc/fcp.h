@@ -59,7 +59,8 @@ struct ss_list *ss_fcp_decode(const struct ss_buf *fcp);
 int ss_fcp_dec_file_descr(struct ss_fcp_file_descr *fd, const struct ss_buf *fd_encoded);
 struct ss_buf *ss_fcp_gen_file_descr(const struct ss_fcp_file_descr *fd);
 struct ss_buf *ss_fcp_gen(const struct ss_fcp_file_descr *fd, uint32_t fid, size_t file_size);
-struct ss_buf *ss_fcp_get_df_name(const struct ss_list *fcp_decoded_envelope);
+int ss_fcp_get_df_name(const struct ss_buf *fci, struct ss_buf *df_name);
 void ss_fcp_dump_file_descr(const struct ss_fcp_file_descr *fd, uint8_t indent, enum log_subsys log_subsys,
 			    enum log_level log_level);
-int ss_fcp_reencode(struct ss_file *file);
+int ss_fcp_add_ie(struct ss_file *file, uint32_t tag, const struct ss_buf *value);
+int ss_fcp_get_tag_min_len(const struct ss_buf *fci, uint8_t tag, size_t min_len, struct ss_buf *out);

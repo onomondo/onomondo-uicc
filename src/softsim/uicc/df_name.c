@@ -25,8 +25,8 @@
 int ss_df_name_update(struct ss_list *path)
 {
 	struct ss_file *file;
-	struct ber_tlv_ie *fcp_df_name_ie;
-	struct ber_tlv_ie *fcp_fid_ie;
+	struct ss_buf fcp_df_name_ie;
+	struct ss_buf fcp_fid_ie;
 	int rc;
 	uint8_t record[16 + 2];
 	size_t free_record;
@@ -41,27 +41,31 @@ int ss_df_name_update(struct ss_list *path)
 	file = ss_get_file_from_path(path);
 
 	/* get FID */
-	fcp_fid_ie = ss_btlv_get_ie_minlen(file->fcp_decoded, TS_102_221_IEI_FCP_FILE_ID, 2);
-	if (!fcp_fid_ie)
+	//todo mutas: remove when done
+	//fcp_fid_ie = ss_btlv_get_ie_minlen(file->fcp_decoded, TS_102_221_IEI_FCP_FILE_ID, 2);
+	rc = ss_fcp_get_tag_min_len(file->fci, TS_102_221_IEI_FCP_FILE_ID, 2, &fcp_fid_ie);
+	if (rc < 0)
 		return -EINVAL;
 
 	/* Extract DF Name (if present) */
-	fcp_df_name_ie = ss_btlv_get_ie_minlen(file->fcp_decoded, TS_102_221_IEI_FCP_DF_NAME, 1);
-	if (!fcp_df_name_ie) {
+	//todo mutas: remove when done
+	//fcp_df_name_ie = ss_btlv_get_ie_minlen(file->fcp_decoded, TS_102_221_IEI_FCP_DF_NAME, 1);
+	rc = ss_fcp_get_tag_min_len(file->fci, TS_102_221_IEI_FCP_DF_NAME, 1, &fcp_df_name_ie);
+	if (rc < 0) {
 		/* Nothing to do, This file just has no DF_NAME assigned */
 		return 0;
 	}
 
-	if (fcp_df_name_ie->value->len > 16) {
+	if (fcp_df_name_ie.len > 16) {
 		SS_LOGP(SDFNAME, LERROR, "cannot register too long DF_NAME %s, len=%zu > 16\n",
-			ss_hexdump(fcp_df_name_ie->value->data, fcp_df_name_ie->value->len),
-			fcp_df_name_ie->value->len);
+			ss_hexdump(fcp_df_name_ie.data, fcp_df_name_ie.len),
+			fcp_df_name_ie.len);
 		return -EINVAL;
 	}
 	memset(record, 0, sizeof(record));
-	memcpy(record, fcp_df_name_ie->value->data, fcp_df_name_ie->value->len);
-	assert(fcp_fid_ie->value->len == 2);
-	memcpy(record + 16, fcp_fid_ie->value->data, fcp_fid_ie->value->len);
+	memcpy(record, fcp_df_name_ie.data, fcp_df_name_ie.len);
+	assert(fcp_fid_ie.len == 2);
+	memcpy(record + 16, fcp_fid_ie.data, fcp_fid_ie.len);
 
 	/* select lookup file and add new DF_NAME/FID_RECORD. If the file does
 	 * not exist, create it. */
@@ -98,7 +102,7 @@ int ss_df_name_update(struct ss_list *path)
 	free_record = ss_fs_utils_find_free_record(&path_copy);
 	if (!free_record) {
 		SS_LOGP(SDFNAME, LERROR, "failed to register DF_NAME=%s in lookup file %s - no free record found\n",
-			ss_hexdump(fcp_df_name_ie->value->data, fcp_df_name_ie->value->len),
+			ss_hexdump(fcp_df_name_ie.data, fcp_df_name_ie.len),
 			ss_fs_utils_dump_path(&path_copy));
 		rc = -EINVAL;
 		goto leave;
@@ -107,15 +111,15 @@ int ss_df_name_update(struct ss_list *path)
 	rc = ss_fs_write_file_record(&path_copy, free_record, record, sizeof(record));
 	if (rc < 0) {
 		SS_LOGP(SDFNAME, LERROR, "failed to register DF_NAME=%s in lookup file %s - could not write record\n",
-			ss_hexdump(fcp_df_name_ie->value->data, fcp_df_name_ie->value->len),
+			ss_hexdump(fcp_df_name_ie.data, fcp_df_name_ie.len),
 			ss_fs_utils_dump_path(&path_copy));
 		rc = -EINVAL;
 		goto leave;
 	}
 
 	SS_LOGP(SDFNAME, LDEBUG, "registered DF_NAME=%s for FID=%02x%02x in file %s on record number %zu\n",
-		ss_hexdump(fcp_df_name_ie->value->data, fcp_df_name_ie->value->len), fcp_fid_ie->value->data[0],
-		fcp_fid_ie->value->data[1], ss_fs_utils_dump_path(&path_copy), free_record);
+		ss_hexdump(fcp_df_name_ie.data, fcp_df_name_ie.len), fcp_fid_ie.data[0],
+		fcp_fid_ie.data[1], ss_fs_utils_dump_path(&path_copy), free_record);
 	rc = 0;
 leave:
 	ss_path_reset(&path_copy);

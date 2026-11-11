@@ -42,21 +42,21 @@ const uint8_t FCP_TAG_SECURITY_ATTRIB_COMPACT = 0x8c;
 const uint8_t FCP_TAG_SECURITY_ATTRIB_EXTENDED = 0xab;
 
 /** Extract the access rule reference from the FCP as described in TS 102 221 v15.0.0 Section 9.2.7 */
-static struct arr_ref arr_from_fcp(struct ss_list *fcp_decoded_envelope)
+static struct arr_ref arr_from_fcp(struct ss_buf *fci)
 {
-	struct ber_tlv_ie *fcp_decoded_arr;
+	struct ss_buf arr;
 
 	struct arr_ref result = { .type = ARR_REF_NONE };
 
-	fcp_decoded_arr = ss_btlv_get_ie(fcp_decoded_envelope, FCP_TAG_REFERENCED_FORMAT);
-	if (!fcp_decoded_arr)
+	int rc = ss_fcp_get_tag_min_len(fci, FCP_TAG_REFERENCED_FORMAT, 0, &arr);
+	if (rc < 0)
 		return result;
 
-	if (fcp_decoded_arr->value->len == 3) {
+	if (arr.len == 3) {
 		/* File ID, record number */
 		result.type = ARR_REF_IDENTIFIED;
-		result.file_id = (fcp_decoded_arr->value->data[0] << 8) | fcp_decoded_arr->value->data[1];
-		result.record_number = fcp_decoded_arr->value->data[2];
+		result.file_id = (arr.data[0] << 8) | arr.data[1];
+		result.record_number = arr.data[2];
 	} else {
 		/* File ID, pairs of SE ID and record numbers */
 
@@ -101,18 +101,16 @@ void ss_access_populate(struct ss_lchan *lchan)
 	 *
 	 * These are purely for debugging purposes (since without an EF.ARR
 	 * reference, access is denied unconditionally anyway). */
-	struct ber_tlv_ie *undecoded_element;
-	undecoded_element = ss_btlv_get_ie(selected_file->fcp_decoded, FCP_TAG_SECURITY_ATTRIB_COMPACT);
-	if (undecoded_element) {
+	struct ss_buf undecoded_element;
+	if (ss_fcp_get_tag_min_len(selected_file->fci, FCP_TAG_SECURITY_ATTRIB_COMPACT, 0, &undecoded_element) == 0) {
 		SS_LOGP(SACCESS, LERROR, "Compact security attribute present but not implemented.\n");
 	}
 
-	undecoded_element = ss_btlv_get_ie(selected_file->fcp_decoded, FCP_TAG_SECURITY_ATTRIB_EXTENDED);
-	if (undecoded_element) {
+	if (ss_fcp_get_tag_min_len(selected_file->fci, FCP_TAG_SECURITY_ATTRIB_EXTENDED, 0, &undecoded_element) == 0) {
 		SS_LOGP(SACCESS, LERROR, "Extended security attribute present but not implemented.\n");
 	}
 
-	struct arr_ref arr = arr_from_fcp(selected_file->fcp_decoded);
+	struct arr_ref arr = arr_from_fcp(selected_file->fci);
 	switch (arr.type) {
 	case ARR_REF_NONE:
 		SS_LOGP(SACCESS, LDEBUG, "No access list referenced, denying all access.\n");
@@ -255,14 +253,15 @@ bool ss_access_check_command(struct ss_apdu *apdu, enum ss_access_intention inte
 		return false;
 	}
 
-	struct ber_tlv_ie *lcsi_do = ss_btlv_get_ie_minlen(mf->fcp_decoded, TS_102_221_IEI_FCP_LIFE_CYCLE_ST, 1);
-	if (lcsi_do == NULL || lcsi_do->value->data[0] == 0) {
+	struct ss_buf lcsi_do;
+	int rc = ss_fcp_get_tag_min_len(mf->fci, TS_102_221_IEI_FCP_LIFE_CYCLE_ST, 1, &lcsi_do);
+	if (rc < 0 || lcsi_do.data[0] == 0) {
 		/* As above. */
 		SS_LOGP(SACCESS, LERROR, "MF's envelope contained no lifecycle information, rejecting all access.\n");
 		return false;
 	}
-	SS_LOGP(SACCESS, LDEBUG, "MF lifecycle is %02x\n", lcsi_do->value->data[0]);
-	if (lcsi_do->value->data[0] < 4) {
+	SS_LOGP(SACCESS, LDEBUG, "MF lifecycle is %02x\n", lcsi_do.data[0]);
+	if (lcsi_do.data[0] < 4) {
 		SS_LOGP(SACCESS, LINFO,
 			"MF in creation / initialization state (as indicated in the MF), bypassing authorizations.\n");
 		return true;

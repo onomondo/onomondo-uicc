@@ -9,102 +9,131 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <assert.h>
+#include <errno.h>
 #include <onomondo/softsim/log.h>
 #include <onomondo/softsim/list.h>
 #include <onomondo/softsim/utils.h>
 #include <onomondo/softsim/mem.h>
 #include "btlv.h"
 
-/* Advance the bufer and check if we are still in bounds. The parameter "inc"
- * sets how many bytes the buffer pointer (enc) should be be advanced. The
- * parameter "bytes_ahead" sets the minimum valid bytes that the caller expects
- * to be available after the buffer pointer (enc) has been advanced. */
-#define CHECK_AND_ADVANCE(inc, bytes_ahead)                                                                    \
-	if (len < bytes_used + inc + bytes_ahead) {                                                            \
-		SS_LOGP(SBTLV, LDEBUG,                                                                         \
-			"exceeding buffer bounds: len=%zu, inc=%zu, bytes_ahead=%zu, cannot decode IE\n", len, \
-			(size_t)inc, (size_t)bytes_ahead);                                                     \
-		return NULL;                                                                                   \
-	}                                                                                                      \
-	bytes_used += inc;                                                                                     \
-	enc += inc
+// /* Advance the bufer and check if we are still in bounds. The parameter "inc"
+//  * sets how many bytes the buffer pointer (enc) should be be advanced. The
+//  * parameter "bytes_ahead" sets the minimum valid bytes that the caller expects
+//  * to be available after the buffer pointer (enc) has been advanced. */
+// #define CHECK_AND_ADVANCE(inc, bytes_ahead)                                                                    \
+// 	if (len < bytes_used + inc + bytes_ahead) {                                                            \
+// 		SS_LOGP(SBTLV, LDEBUG,                                                                         \
+// 			"exceeding buffer bounds: len=%zu, inc=%zu, bytes_ahead=%zu, cannot decode IE\n", len, \
+// 			(size_t)inc, (size_t)bytes_ahead);                                                     \
+// 		return NULL;                                                                                   \
+// 	}                                                                                                      \
+// 	bytes_used += inc;                                                                                     \
+// 	enc += inc
 
 /* Return one decoded information element */
 static struct ber_tlv_ie *decode_ie(size_t *used_len, const uint8_t *enc, size_t len)
 {
-	struct ber_tlv_ie ie;
-	struct ber_tlv_ie *ie_ret;
-	uint8_t len_bytes;
-	uint8_t i;
-	size_t bytes_used = 0;
-	const uint8_t *value;
-	size_t ie_len;
+
+
+	struct ber_tlv_hdr hdr;
+	struct ber_tlv_ie *ie;
 
 	*used_len = 0;
 
-	if (len == 0)
+	if (ss_btlv_parse_hdr(&hdr, enc, len) < 0)
 		return NULL;
+	
+	*used_len = hdr.total_len;
 
-	memset(&ie, 0, sizeof(ie));
 
-	/* Header bits */
-	ie.cls = (*enc >> 6) & 3;
-	ie.constr = (*enc >> 5) & 1;
-
-	/* Decode tag field */
-	ie.tag_encoded = *enc;
-	if ((*enc & 0x1f) == 0x1f) {
-		CHECK_AND_ADVANCE(1, 1);
-		ie.tag = *enc & 0x7f;
-		ie.tag_encoded <<= 8;
-		ie.tag_encoded |= *enc;
-		if (*enc & 0x80) {
-			ie.tag = ie.tag << 8;
-			CHECK_AND_ADVANCE(1, 1);
-			ie.tag |= *enc;
-			ie.tag_encoded <<= 8;
-			ie.tag_encoded |= *enc;
-		}
-	} else
-		ie.tag = *enc & 0x1f;
-	CHECK_AND_ADVANCE(1, 1);
-
-	/* Decode length field */
-	if (*enc < 0x7f) {
-		ie_len = *enc;
-	} else {
-		len_bytes = *enc & 0x7f;
-
-		/* Make sure the decoded length field length makes sense */
-		if (len_bytes == 0 || len_bytes > SS_BERTLV_MAX_LEN_BYTES) {
-			SS_LOGP(SBTLV, LDEBUG, "invalid ber-tlv length field length (tag = 0x%02x)\n", ie.tag);
-			return NULL;
-		}
-
-		ie_len = 0;
-		for (i = 0; i < len_bytes; i++) {
-			ie_len <<= 8;
-			CHECK_AND_ADVANCE(1, 1);
-			ie_len |= *enc;
-		}
-	}
-	CHECK_AND_ADVANCE(1, ie_len);
-	value = enc;
-	CHECK_AND_ADVANCE(ie_len, 0);
-	*used_len = bytes_used;
-
-	/* Create output struct */
-	ie_ret = SS_ALLOC(struct ber_tlv_ie);
-	if (!ie_ret)
+	ie = SS_ALLOC(struct ber_tlv_ie);
+	if (!ie)
 		return NULL;
-	memcpy(ie_ret, &ie, sizeof(ie));
+	memset(ie, 0, sizeof(*ie));
 
-	/* Copy data part to the newly allocated item */
-	ie_ret->value = ss_buf_alloc(ie_len);
-	memcpy(ie_ret->value->data, value, ie_len);
+	ie->cls = hdr.cls;
+	ie->constr = hdr.constr;
+	ie->tag = hdr.tag;
+	ie->tag_encoded = hdr.tag_encoded;
 
-	return ie_ret;
+	ie->value = ss_buf_alloc(hdr.value_len);
+	memcpy(ie->value->data, hdr.value, hdr.value_len);
+
+	return ie;
+	// //@@@@@@@@@@@@@@@@
+	// TODO mutas, old code, remove after
+	// struct ber_tlv_ie ie;
+	// struct ber_tlv_ie *ie_ret;
+	// uint8_t len_bytes;
+	// uint8_t i;
+	// size_t bytes_used = 0;
+	// const uint8_t *value;
+	// size_t ie_len;
+
+	// *used_len = 0;
+
+	// if (len == 0)
+	// 	return NULL;
+
+	// memset(&ie, 0, sizeof(ie));
+
+	// /* Header bits */
+	// ie.cls = (*enc >> 6) & 3;
+	// ie.constr = (*enc >> 5) & 1;
+
+	// /* Decode tag field */
+	// ie.tag_encoded = *enc;
+	// if ((*enc & 0x1f) == 0x1f) {
+	// 	CHECK_AND_ADVANCE(1, 1);
+	// 	ie.tag = *enc & 0x7f;
+	// 	ie.tag_encoded <<= 8;
+	// 	ie.tag_encoded |= *enc;
+	// 	if (*enc & 0x80) {
+	// 		ie.tag = ie.tag << 8;
+	// 		CHECK_AND_ADVANCE(1, 1);
+	// 		ie.tag |= *enc;
+	// 		ie.tag_encoded <<= 8;
+	// 		ie.tag_encoded |= *enc;
+	// 	}
+	// } else
+	// 	ie.tag = *enc & 0x1f;
+	// CHECK_AND_ADVANCE(1, 1);
+
+	// /* Decode length field */
+	// if (*enc < 0x7f) {
+	// 	ie_len = *enc;
+	// } else {
+	// 	len_bytes = *enc & 0x7f;
+
+	// 	/* Make sure the decoded length field length makes sense */
+	// 	if (len_bytes == 0 || len_bytes > SS_BERTLV_MAX_LEN_BYTES) {
+	// 		SS_LOGP(SBTLV, LDEBUG, "invalid ber-tlv length field length (tag = 0x%02x)\n", ie.tag);
+	// 		return NULL;
+	// 	}
+
+	// 	ie_len = 0;
+	// 	for (i = 0; i < len_bytes; i++) {
+	// 		ie_len <<= 8;
+	// 		CHECK_AND_ADVANCE(1, 1);
+	// 		ie_len |= *enc;
+	// 	}
+	// }
+	// CHECK_AND_ADVANCE(1, ie_len);
+	// value = enc;
+	// CHECK_AND_ADVANCE(ie_len, 0);
+	// *used_len = bytes_used;
+
+	// /* Create output struct */
+	// ie_ret = SS_ALLOC(struct ber_tlv_ie);
+	// if (!ie_ret)
+	// 	return NULL;
+	// memcpy(ie_ret, &ie, sizeof(ie));
+
+	// /* Copy data part to the newly allocated item */
+	// ie_ret->value = ss_buf_alloc(ie_len);
+	// memcpy(ie_ret->value->data, value, ie_len);
+
+	// return ie_ret;
 }
 
 /* Get a description for an IE with a specified tag that is assigned to a specified parent (id) */
@@ -185,6 +214,71 @@ static struct ss_list *btlv_decode(const uint8_t *enc, size_t len, const struct 
 	} while (ie != NULL);
 
 	return list;
+}
+
+/*! Parse the header of one BER-TLV IE without allocating.
+ *  \param[out] hdr parsed header; hdr->value points into enc.
+ *  \param[in] enc encoded data.
+ *  \param[in] len number of bytes available at enc.
+ *  \returns 0 on success, -EINVAL if empty or malformed. */
+int ss_btlv_parse_hdr(struct ber_tlv_hdr *hdr, const uint8_t *enc, size_t len)
+{
+	size_t pos = 0;
+	size_t value_len;
+	uint8_t len_bytes;
+	uint8_t i;
+
+	memset(hdr, 0, sizeof(*hdr));
+
+	if (len == 0)
+		return -EINVAL;
+
+	/* Tag: class, constructed bit, 1..3 tag bytes */
+	hdr->cls = (enc[0] >> 6) & 3;
+	hdr->constr = (enc[0] >> 5) & 1;
+	hdr->tag_encoded = enc[0];
+
+	if ((enc[0] & 0x1f) == 0x1f) {
+		if (++pos >= len)
+			return -EINVAL;
+		hdr->tag = enc[pos] & 0x7f;
+		hdr->tag_encoded = (hdr->tag_encoded << 8) | enc[pos];
+		if (enc[pos] & 0x80) {
+			if (++pos >= len)
+				return -EINVAL;
+			hdr->tag = (hdr->tag << 8) | enc[pos];
+			hdr->tag_encoded = (hdr->tag_encoded << 8) | enc[pos];
+		}
+	} else {
+		hdr->tag = enc[0] & 0x1f;
+	}
+
+	/* Length: short form or long form */
+	if (++pos >= len)
+		return -EINVAL;
+	if (enc[pos] < 0x80) {
+		value_len = enc[pos];
+	} else {
+		len_bytes = enc[pos] & 0x7f;
+		if (len_bytes == 0 || len_bytes > SS_BERTLV_MAX_LEN_BYTES)
+			return -EINVAL;
+		value_len = 0;
+		for (i = 0; i < len_bytes; i++) {
+			if (++pos >= len)
+				return -EINVAL;
+			value_len = (value_len << 8) | enc[pos];
+		}
+	}
+	pos++; /* first value byte */
+
+	/* Value must fit. Subtract instead of add: no overflow. */
+	if (value_len > len - pos)
+		return -EINVAL;
+
+	hdr->value = enc + pos;
+	hdr->value_len = value_len;
+	hdr->total_len = pos + value_len;
+	return 0;
 }
 
 /*! Decode binary BER-TLV encoded data.

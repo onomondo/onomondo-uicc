@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <onomondo/softsim/utils.h>
 #include <onomondo/softsim/file.h>
 #include <onomondo/softsim/list.h>
 #include <onomondo/softsim/log.h>
@@ -28,7 +29,6 @@ static int non_mf_root_denied_test(void)
 	struct ss_lchan lchan;
 	struct ss_apdu apdu;
 	struct ss_file file;
-	uint8_t lifecycle = 0x01;
 
 	memset(&lchan, 0, sizeof(lchan));
 	memset(&apdu, 0, sizeof(apdu));
@@ -37,15 +37,15 @@ static int non_mf_root_denied_test(void)
 	apdu.lchan = &lchan;
 	ss_list_init(&lchan.fs_path);
 
+	uint8_t fci_bytes[] = { TS_102_221_IEI_FCP_TMPL, 0x03,
+			TS_102_221_IEI_FCP_LIFE_CYCLE_ST, 0x01, 0x01 };
+	struct ss_buf fci = { .data = fci_bytes, .len = sizeof(fci_bytes) };
+
 	file.fid = 0x7f10; /* DF.TELECOM, not the MF */
-	file.fcp_decoded = SS_ALLOC(struct ss_list);
-	ss_list_init(file.fcp_decoded);
-	ss_btlv_new_ie(file.fcp_decoded, "life_cycle_status", TS_102_221_IEI_FCP_LIFE_CYCLE_ST, 1, &lifecycle);
+	file.fci  = &fci;
 	ss_list_put(&lchan.fs_path, &file.list);
 
 	bool granted = ss_access_check_command(&apdu, SS_ACCESS_INTENTION_EF_READ);
-
-	ss_btlv_free(file.fcp_decoded);
 
 	if (granted) {
 		/* stderr, so ctest shows it: stdout goes to access_test.out */

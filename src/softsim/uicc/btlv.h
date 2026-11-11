@@ -50,6 +50,17 @@ struct ber_tlv_desc {
 	uint32_t tag_encoded;
 };
 
+struct ber_tlv_hdr {
+	enum ber_tlv_cls cls;
+	bool constr;
+	uint16_t tag;
+	uint32_t tag_encoded;
+	const uint8_t *value;   /* view into the input buffer */
+	size_t value_len;
+	size_t total_len;       /* tag + length + value bytes */
+};
+
+
 struct ss_list *ss_btlv_decode(const uint8_t *enc, size_t len, const struct ber_tlv_desc *descr);
 void ss_btlv_dump(const struct ss_list *list, uint8_t indent, enum log_subsys log_subsys, enum log_level log_level);
 void ss_btlv_free(struct ss_list *list);
@@ -62,4 +73,5 @@ struct ber_tlv_ie *ss_btlv_get_ie_minlen(const struct ss_list *list, uint16_t ta
 size_t ss_btlv_encode(uint8_t *enc, size_t len, struct ss_list *list);
 struct ss_buf *ss_btlv_encode_to_ss_buf(struct ss_list *list);
 void ss_btlv_attach_to_constr(struct ber_tlv_ie *ie, struct ss_list *list);
+int ss_btlv_parse_hdr(struct ber_tlv_hdr *hdr, const uint8_t *enc, size_t len);
 struct ss_list *ss_btlv_split_off_from_constr(struct ber_tlv_ie *ie);

@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdbool.h>
 #include <errno.h>
 #include <onomondo/softsim/softsim.h>
 #include <onomondo/softsim/log.h>
@@ -44,7 +43,8 @@ static void file_free(struct ss_file *file)
 	if (!file)
 		return;
 	ss_buf_free(file->fci);
-	ss_btlv_free(file->fcp_decoded);
+	// todo mutas: remove when done: 
+	//ss_btlv_free(file->fcp_decoded);
 	SS_FREE(file->fcp_file_descr);
 	ss_btlv_free(file->access);
 	SS_FREE(file);
@@ -89,19 +89,20 @@ void ss_path_reset(struct ss_list *path)
 	} while (rc == 0);
 }
 
-static struct ss_buf *file_descr_from_fcp(const struct ss_list *fcp_decoded_envelope)
-{
-	struct ber_tlv_ie *fcp_decoded_file_descr;
+//todo mutas: remove when done
+// static struct ss_buf *file_descr_from_fcp(const struct ss_list *fcp_decoded_envelope)
+// {
+// 	struct ber_tlv_ie *fcp_decoded_file_descr;
 
-	if (!fcp_decoded_envelope)
-		return NULL;
-	fcp_decoded_file_descr = ss_btlv_get_ie_minlen(fcp_decoded_envelope, 0x82, 2);
-	if (!fcp_decoded_file_descr)
-		return NULL;
+// 	if (!fcp_decoded_envelope)
+// 		return NULL;
+// 	fcp_decoded_file_descr = ss_btlv_get_ie_minlen(fcp_decoded_envelope, 0x82, 2);
+// 	if (!fcp_decoded_file_descr)
+// 		return NULL;
 
-	/* NOTE: The caller must not take ownership of the value */
-	return fcp_decoded_file_descr->value;
-}
+// 	/* NOTE: The caller must not take ownership of the value */
+// 	return fcp_decoded_file_descr->value;
+// }
 
 /**
  * Find a file relative to a given one, and read a record
@@ -172,7 +173,7 @@ int ss_fs_select(struct ss_list *path, uint32_t fid)
 {
 	int rc;
 	struct ss_file *selected_file;
-	struct ss_buf *file_descr;
+	struct ss_buf file_descr;
 
 	/* Selection of the MF always resets the path */
 	if (fid == FILE_MF)
@@ -197,37 +198,48 @@ int ss_fs_select(struct ss_list *path, uint32_t fid)
 		return -EINVAL;
 	}
 
-	/* Store parsed representation of the FCP */
-	selected_file->fcp_decoded = NULL;
-	struct ss_list *fci_decoded = ss_fcp_decode(selected_file->fci);
-	struct ber_tlv_ie *fcp_decoded_envelope = NULL;
+	// todo mutas: remove when done
+	// /* Store parsed representation of the FCP */
+	// selected_file->fcp_decoded = NULL;
+	// struct ss_list *fci_decoded = ss_fcp_decode(selected_file->fci);
+	// struct ber_tlv_ie *fcp_decoded_envelope = NULL;
 
-	if (fci_decoded)
-		fcp_decoded_envelope = ss_btlv_get_ie(fci_decoded, TS_102_221_IEI_FCP_TMPL);
-	if (fcp_decoded_envelope) {
-		selected_file->fcp_decoded = fcp_decoded_envelope->nested;
-		/* We're moved responsibility for freeing the nested elements to the
-		 * file; breaking the link allows easy cleanup. */
-		fcp_decoded_envelope->nested = NULL;
-		ss_btlv_free(fci_decoded);
-	}
+	// if (fci_decoded)
+	// 	fcp_decoded_envelope = ss_btlv_get_ie(fci_decoded, TS_102_221_IEI_FCP_TMPL);
+	// if (fcp_decoded_envelope) {
+	// 	selected_file->fcp_decoded = fcp_decoded_envelope->nested;
+	// 	/* We've moved responsibility for freeing the nested elements to the
+	// 	 * file; breaking the link allows easy cleanup. */
+	// 	fcp_decoded_envelope->nested = NULL;
+	// 	ss_btlv_free(fci_decoded);
+	// }
 
-	if (!selected_file->fcp_decoded) {
-		ss_fs_select_parent(path);
-		SS_LOGP(SBTLV, LERROR, "select fid=%04x failed, path=%s, unable to decode FCP\n", fid,
-			ss_fs_utils_dump_path(path));
-		return -EINVAL;
-	}
+	// if (!selected_file->fcp_decoded) {
+	// 	ss_fs_select_parent(path);
+	// 	SS_LOGP(SBTLV, LERROR, "select fid=%04x failed, path=%s, unable to decode FCP\n", fid,
+	// 		ss_fs_utils_dump_path(path));
+	// 	return -EINVAL;
+	// }
 
-	file_descr = file_descr_from_fcp(selected_file->fcp_decoded);
-	if (!file_descr) {
+	//todo mutas: DESIGN DEC:
+	// need to validate whole FCI: as we only parse 0x82 now.
+	// options:
+	//	A let ss_fcp_get_tag walk the full template
+	//  B add a validation function ss_fcp_validate_fci that checks for the presence of all required tags and their lengths
+
+	//file_descr = file_descr_from_fcp(selected_file->fcp_decoded);
+	rc = ss_fcp_get_tag_min_len(selected_file->fci, TS_102_221_IEI_FCP_FILE_DESCR, 2, &file_descr);
+	if (rc < 0) {
 		ss_fs_select_parent(path);
 		SS_LOGP(SBTLV, LERROR, "select fid=%04x failed, path=%s, unable to decode FD\n", fid,
 			ss_fs_utils_dump_path(path));
 	}
 
+	//todo mutas: memory leak? We did already point the path back to the parent but are allocating space for the description of the old file
+		SS_LOGP(SBTLV, LERROR, "SUCCESS ON SELECTING FILE fid=%04x, path=%s\n", fid,
+			ss_fs_utils_dump_path(path));
 	selected_file->fcp_file_descr = SS_ALLOC(struct ss_fcp_file_descr);
-	ss_fcp_dec_file_descr(selected_file->fcp_file_descr, file_descr);
+	ss_fcp_dec_file_descr(selected_file->fcp_file_descr, &file_descr);
 	return 0;
 }
 
