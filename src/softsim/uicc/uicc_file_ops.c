@@ -50,8 +50,7 @@ static void record_file_change(struct ss_apdu *apdu)
 /* Generate the FCP string as it is returned by the card to the outside world.
  * This is essentially the FCP string that is read from the definition files
  * but with additional IEs that reflect the current card state (PIN status) */
-// todo mutas TODAY: talk about change here
-//todo mutas: compare this with previous version in zed and see if its functional
+// test on 93
 static int fcp_reencode_full(struct ss_file *selected_file, char *command_name)
 {
 	struct ss_buf pst;

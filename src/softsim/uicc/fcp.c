@@ -442,7 +442,7 @@ int ss_fcp_add_ie(struct ss_file *file, uint32_t tag, const struct ss_buf *value
 	return 0;
 }
 
-//todo mutas TODAY: discuss: do we need this wrapper anymore?
+//todo mutas: remove wrapper and replace calls
 /*! Get DF name from an encoded FCI.
  *  \param[in] fci encoded FCI, including the 62 envelope.
  *	\param[out] df_name user provided memory to store the DF name.
@@ -460,17 +460,17 @@ int ss_fcp_get_df_name(const struct ss_buf *fci, struct ss_buf *df_name)
  *              until fci is changed or freed.
  *  \returns 0 if found, -ENOENT if missing or too short, -EINVAL if malformed. */
 int ss_fcp_get_tag_min_len(const struct ss_buf *fci, uint8_t tag, size_t min_len, struct ss_buf *out)
-{
-	struct ber_tlv_hdr tmpl;
-	struct ber_tlv_hdr ie;
-	size_t pos = 0;
-	const uint8_t *match = NULL;
-	size_t match_len = 0;
 
-	if (out) {
-		out->data = NULL;
-		out->len = 0;
-	}
+	struct ber_tlv_hdr tmpl;
+struct ber_tlv_hdr ie;
+size_t pos = 0;
+const uint8_t *match = NULL;
+size_t match_len = 0;
+
+if (out) {
+	out->data = NULL;
+	out->len = 0;
+}
 	if (!fci || !fci->data || !out)
 		return -EINVAL;
 
@@ -485,6 +485,7 @@ int ss_fcp_get_tag_min_len(const struct ss_buf *fci, uint8_t tag, size_t min_len
 	// alternatively I could implement a function that verifies the fci somewhere at the start
 	// e.g. we select a file, read the full fci, verify conformity and then continue with selecting IE's from it later
 	// this would allow us to break on match in line 500
+	// todo mutas: check for the count of this operation during a normal auth at startup and evaluate whether we want to do 1 validate call instead of one for each function call
 	/* Walk all children: find the tag, and check that the rest is well formed */
 	while (pos < tmpl.value_len) {
 		if (ss_btlv_parse_hdr(&ie, tmpl.value + pos, tmpl.value_len - pos) < 0) {
@@ -511,7 +512,6 @@ int ss_fcp_get_tag_min_len(const struct ss_buf *fci, uint8_t tag, size_t min_len
 	out->len = match_len;
 
 	return 0;
-}
 
 /*! Dump decoded file descriptor.
  *  \param[in] fd user provided memory with file descriptor struct.
