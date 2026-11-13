@@ -50,6 +50,7 @@ static void record_file_change(struct ss_apdu *apdu)
 /* Generate the FCP string as it is returned by the card to the outside world.
  * This is essentially the FCP string that is read from the definition files
  * but with additional IEs that reflect the current card state (PIN status) */
+// todo mutas TODAY: talk about change here
 //todo mutas: compare this with previous version in zed and see if its functional
 static int fcp_reencode_full(struct ss_file *selected_file, char *command_name)
 {
@@ -962,7 +963,7 @@ static int select_by_df_name(struct ss_apdu *apdu)
 				SS_LOGP(SFILE, LDEBUG, "trying parent file: %s, DF_name: %s\n",
 					ss_fs_utils_dump_path(&apdu->lchan->fs_path),
 					ss_hexdump(df_name.data, df_name.len));
-				if (memcmp(df_name.data, apdu->cmd, apdu->lc) == 0)
+				if (df_name.len >= apdu->lc && memcmp(df_name.data, apdu->cmd, apdu->lc) == 0)
 					goto leave;
 			}
 		}

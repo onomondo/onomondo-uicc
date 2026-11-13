@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <onomondo/softsim/log.h>
 #include <onomondo/softsim/mem.h>
 #include <onomondo/softsim/utils.h>
@@ -309,11 +310,68 @@ static void ss_btlv_decode_noise_test(void)
 	ss_btlv_free(decoded);
 }
 
+struct parse_hdr_case {
+	const char *name;
+	const char *hex;
+	int expected_rc;
+	uint32_t expected_tag;
+	size_t len;
+	size_t total_len;
+};
+
+static const struct parse_hdr_case parse_hdr_cases[] = {
+	/* name                         hex                        expected_rc       tag      vlen  total */
+	{ "short length", "82027821", 0, 0x82, 2, 4 },
+	{ "two-byte tag", "5f2001aa", 0, 0x5f20, 1, 4 },
+	{ "three-byte tag", "7f810501aa", 0, 0x7f8105, 1, 5 },
+	{ "empty input", "", -EINVAL },
+	{ "tag cut off", "5f", -EINVAL },
+	{ "length byte missing", "82", -EINVAL },
+	{ "long length cut off", "828201", -EINVAL },
+	{ "indefinite length 80", "8280", -EINVAL },
+	{ "too many length bytes", "828500000000010000", -EINVAL },
+	{ "value longer than buffer", "82050102", -EINVAL },
+	{ "huge length, no overflow", "8284ffffffff00", -EINVAL },
+};
+
+// Aborts via assert() on the first failing test case
+static void ss_btlv_parse_hdr_test(void)
+{
+	size_t i;
+
+	for (i = 0; i < SS_ARRAY_SIZE(parse_hdr_cases); i++) {
+		const struct parse_hdr_case *c = &parse_hdr_cases[i];
+		struct ss_buf *in = ss_buf_from_hexstr((char *)c->hex);
+		struct ber_tlv_hdr hdr;
+		int rc;
+
+		// name the case up front, assert() itself only prints the failed expression
+		fprintf(stderr, "TEST: parse_hdr: %s\n", c->name);
+
+		// call function under test
+		rc = ss_btlv_parse_hdr(&hdr, in->data, in->len);
+
+		// check if function result matches the expected rc
+		assert(rc == c->expected_rc);
+
+		if (rc == 0) {
+			// correct rc, check tag and length values
+			assert(hdr.tag_encoded == c->expected_tag);
+			assert(hdr.value_len == c->len);
+			assert(hdr.total_len == c->total_len);
+		}
+
+		ss_buf_free(in);
+	}
+}
+
+
 int main(int argc, char **argv)
 {
 	ss_btlv_decode_test_realistic();
 	ss_btlv_encode_test_realistic();
 	ss_btlv_encode_decode_test();
 	ss_btlv_decode_noise_test();
+	ss_btlv_parse_hdr_test();
 	return 0;
 }

@@ -310,6 +310,19 @@ struct ss_buf *ss_fcp_gen(const struct ss_fcp_file_descr *fd, uint32_t fid, size
 	return result;
 }
 
+/* True if all bytes are 0xFF. ss_btlv_decode tolerates such padding after
+ * the last IE, so the lookup must as well. */
+static bool is_padding(const uint8_t *data, size_t len)
+{
+	size_t i;
+
+	for (i = 0; i < len; i++) {
+		if (data[i] != 0xff)
+			return false;
+	}
+	return true;
+}
+
 //todo mutas: remove when done, its just the old reencoder which is now replaced by the wrapper below
 // /*! (Re)-encode the encoded FCP string of a file.
 //  *  \param[inout] path path to the file.
@@ -349,58 +362,94 @@ struct ss_buf *ss_fcp_gen(const struct ss_fcp_file_descr *fd, uint32_t fid, size
 // 	return rc;
 // }
 
-// Append an IE to the FCP template of file->fci. 
-// TODO mutas: discuss: This still decodes the whole fcp which means we dont really safe memory during appension (i think)?
-// maybe we can just append the new IE to the fci buffer instead of decoding and reencoding the whole fcp.  
+// Append an IE to the FCP template of file->fci.
+//todo mutas: remove when done, this is just a copy of the old used for impl reference
+// int ss_fcp_add_ie(struct ss_file *file, uint32_t tag, const struct ss_buf *value)
+// {
+// 	struct ss_list *decoded;
+// 	struct ber_tlv_ie *tmpl;
+// 	struct ss_buf *fci;
+// 	int rc = -EINVAL;
+
+// 	decoded = ss_fcp_decode(file->fci);
+// 	if (!decoded)
+// 		return -EINVAL;
+
+// 	tmpl = ss_btlv_get_ie(decoded, TS_102_221_IEI_FCP_TMPL);
+// 	if (!tmpl || !ss_btlv_new_ie(tmpl->nested, "fcp_ie", tag, value->len, value->data))
+// 		goto leave;
+
+// 	fci = ss_btlv_encode_to_ss_buf(decoded);
+// 	if (!fci)
+// 		goto leave;
+// 	// invalidates all views into the old fci!
+// 	ss_buf_free(file->fci);
+// 	file->fci = fci;
+// 	rc = 0;
+// leave:
+// 	ss_btlv_free(decoded);
+// 	return rc;
+// }
+
+// Append an IE to the FCP template of file->fci.
 int ss_fcp_add_ie(struct ss_file *file, uint32_t tag, const struct ss_buf *value)
 {
-	struct ss_list *decoded;
-	struct ber_tlv_ie *tmpl;
+	struct ber_tlv_hdr tmpl, ie;
+	size_t pos = 0, content_len, hdr_len;
 	struct ss_buf *fci;
-	int rc = -EINVAL;
+	uint8_t *p;
 
-	decoded = ss_fcp_decode(file->fci);
-	if (!decoded)
+	if (!file || !file->fci || !file->fci->data || !value)
 		return -EINVAL;
 
-	tmpl = ss_btlv_get_ie(decoded, TS_102_221_IEI_FCP_TMPL);
-	if (!tmpl || !ss_btlv_new_ie(tmpl->nested, "fcp_ie", tag, value->len, value->data))
-		goto leave;
+	if (tag > 0xff || (tag & 0x1f) == 0x1f || value->len > 0x7f)
+		return -EINVAL;
 
-	fci = ss_btlv_encode_to_ss_buf(decoded);
+	if (ss_btlv_parse_hdr(&tmpl, file->fci->data, file->fci->len) < 0 ||
+	    tmpl.tag_encoded != TS_102_221_IEI_FCP_TMPL)
+		return -EINVAL;
+
+	// find end of TLV content
+	while (pos < tmpl.value_len && ss_btlv_parse_hdr(&ie, tmpl.value + pos, tmpl.value_len - pos) == 0)
+		pos += ie.total_len;
+
+	if (!is_padding(tmpl.value + pos, tmpl.value_len - pos))
+		return -EINVAL;
+
+	content_len = pos + 2 + value->len; // new content length = old content length + new IE length
+	if (content_len > 0xff)
+		return -EINVAL;
+	hdr_len = content_len < 0x80 ? 2 : 3;
+
+	fci = ss_buf_try_alloc(hdr_len + content_len);
 	if (!fci)
-		goto leave;
-	// invalidates all views into the old fci!
+		return -ENOMEM;
+
+	p = fci->data;
+	*p++ = TS_102_221_IEI_FCP_TMPL;
+	if (hdr_len == 3)
+		*p++ = 0x81;
+	*p++ = (uint8_t)content_len;
+	memcpy(p, tmpl.value, pos); // copy old content
+
+	p += pos;
+	*p++ = (uint8_t)tag;
+	*p++ = (uint8_t)value->len;
+	memcpy(p, value->data, value->len); // copy new content
+
 	ss_buf_free(file->fci);
 	file->fci = fci;
-	rc = 0;
-leave:
-	ss_btlv_free(decoded);
-	return rc;
+	return 0;
 }
 
-
-//todo mutas: discuss: do we need this wrapper anymore? 
+//todo mutas TODAY: discuss: do we need this wrapper anymore?
 /*! Get DF name from an encoded FCI.
  *  \param[in] fci encoded FCI, including the 62 envelope.
  *	\param[out] df_name user provided memory to store the DF name.
  *  \returns 0 if found, -ENOENT if missing or empty, -EINVAL if malformed. */
 int ss_fcp_get_df_name(const struct ss_buf *fci, struct ss_buf *df_name)
 {
-	return  ss_fcp_get_tag_min_len(fci, TS_102_221_IEI_FCP_DF_NAME, 1, df_name);
-}
-
-/* True if all bytes are 0xFF. ss_btlv_decode tolerates such padding after
- * the last IE, so the lookup must as well. */
-static bool is_padding(const uint8_t *data, size_t len)
-{
-	size_t i;
-
-	for (i = 0; i < len; i++) {
-		if (data[i] != 0xff)
-			return false;
-	}
-	return true;
+	return ss_fcp_get_tag_min_len(fci, TS_102_221_IEI_FCP_DF_NAME, 1, df_name);
 }
 
 /*! Find a top-level IE in the FCP template (62) of an encoded FCI, without allocating.
@@ -415,13 +464,15 @@ int ss_fcp_get_tag_min_len(const struct ss_buf *fci, uint8_t tag, size_t min_len
 	struct ber_tlv_hdr tmpl;
 	struct ber_tlv_hdr ie;
 	size_t pos = 0;
-	bool found = false;
+	const uint8_t *match = NULL;
+	size_t match_len = 0;
 
+	if (out) {
+		out->data = NULL;
+		out->len = 0;
+	}
 	if (!fci || !fci->data || !out)
 		return -EINVAL;
-
-	out->data = NULL;
-	out->len = 0;
 
 	/* Outer envelope must be the FCP template */
 	if (ss_btlv_parse_hdr(&tmpl, fci->data, fci->len) < 0)
@@ -429,6 +480,11 @@ int ss_fcp_get_tag_min_len(const struct ss_buf *fci, uint8_t tag, size_t min_len
 	if (tmpl.tag_encoded != TS_102_221_IEI_FCP_TMPL)
 		return -EINVAL;
 
+	// todo mutas TODAY: we continue walking the template to verify form of the template
+	// we do this for ALL tag receivals on every call
+	// alternatively I could implement a function that verifies the fci somewhere at the start
+	// e.g. we select a file, read the full fci, verify conformity and then continue with selecting IE's from it later
+	// this would allow us to break on match in line 500
 	/* Walk all children: find the tag, and check that the rest is well formed */
 	while (pos < tmpl.value_len) {
 		if (ss_btlv_parse_hdr(&ie, tmpl.value + pos, tmpl.value_len - pos) < 0) {
@@ -438,28 +494,23 @@ int ss_fcp_get_tag_min_len(const struct ss_buf *fci, uint8_t tag, size_t min_len
 		}
 
 		/* First match wins, like ss_btlv_get_ie */
-		if (!found && ie.tag_encoded == tag) {
-			/* Drops const: the view may be used to patch fci in place */
-			// todo mutas: me no comprendo yet
-			// allocate out 
-			
-			out->data = (uint8_t *)ie.value;
-			out->len = ie.value_len;
-			found = true;
+		// we dont break the loop on match, to validate that the rest is well formed
+		if (!match && ie.tag_encoded == tag) {
+			match = ie.value;
+			match_len = ie.value_len;
 		}
 
 		pos += ie.total_len;
 	}
 
-	if (!found)
+	if (!match || match_len < min_len)
 		return -ENOENT;
-	if(out->len < min_len) {
-		out->data = NULL;
-		out->len = 0;
-		return -ENOENT;
-	}
 
-	return 0;	
+	// drop const
+	out->data = (uint8_t *)match;
+	out->len = match_len;
+
+	return 0;
 }
 
 /*! Dump decoded file descriptor.

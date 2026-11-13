@@ -221,23 +221,14 @@ int ss_fs_select(struct ss_list *path, uint32_t fid)
 	// 	return -EINVAL;
 	// }
 
-	//todo mutas: DESIGN DEC:
-	// need to validate whole FCI: as we only parse 0x82 now.
-	// options:
-	//	A let ss_fcp_get_tag walk the full template
-	//  B add a validation function ss_fcp_validate_fci that checks for the presence of all required tags and their lengths
-
 	//file_descr = file_descr_from_fcp(selected_file->fcp_decoded);
 	rc = ss_fcp_get_tag_min_len(selected_file->fci, TS_102_221_IEI_FCP_FILE_DESCR, 2, &file_descr);
 	if (rc < 0) {
 		ss_fs_select_parent(path);
 		SS_LOGP(SBTLV, LERROR, "select fid=%04x failed, path=%s, unable to decode FD\n", fid,
 			ss_fs_utils_dump_path(path));
+		return -EINVAL;
 	}
-
-	//todo mutas: memory leak? We did already point the path back to the parent but are allocating space for the description of the old file
-		SS_LOGP(SBTLV, LERROR, "SUCCESS ON SELECTING FILE fid=%04x, path=%s\n", fid,
-			ss_fs_utils_dump_path(path));
 	selected_file->fcp_file_descr = SS_ALLOC(struct ss_fcp_file_descr);
 	ss_fcp_dec_file_descr(selected_file->fcp_file_descr, &file_descr);
 	return 0;

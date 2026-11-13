@@ -26,6 +26,22 @@ static uint16_t transact(struct ss_context *ctx, const char *hex, size_t *out_le
 	return 0;
 }
 
+#define MF_FCP_PS(ps) "62298202782183023f00a5098001f18701008801008a01058b032f060fc60c9001" ps "83010183018183010a"
+
+/* STATUS / SELECT and compare the full FCP (response without SW) */
+static void expect_fcp(struct ss_context *ctx, const char *name, const char *hex, const char *exp_fcp)
+{
+	uint8_t cmd[256], resp[300], exp[300];
+	size_t cmd_len = ss_binary_from_hexstr(cmd, sizeof(cmd), hex);
+	size_t resp_len = ss_application_apdu_transact(ctx, resp, sizeof(resp), cmd, &cmd_len);
+	size_t exp_len = ss_binary_from_hexstr(exp, sizeof(exp), exp_fcp);
+
+	printf("%s: %s\n", name, ss_hexdump(resp, resp_len));
+	assert(resp_len == exp_len + 2);
+	assert(memcmp(resp, exp, exp_len) == 0);
+	assert(resp[resp_len - 2] == 0x90 && resp[resp_len - 1] == 0x00);
+}
+
 int main(void)
 {
 	struct ss_context *ctx;
@@ -68,6 +84,18 @@ int main(void)
 	printf("VERIFY PIN1 remaining tries after CHANGE PIN: %04x\n", sw);
 	assert(sw == 0x63c3);
 
+	/* The PIN status template (C6) follows the PIN state: patched in place
+	 * on the already selected MF, and generated fresh on a new SELECT. */
+	expect_fcp(ctx, "STATUS MF, PIN1 enabled", "80f2000001", MF_FCP_PS("a0"));
+	expect_fcp(ctx, "SELECT MF, PIN1 enabled", "00a40004023f00", MF_FCP_PS("a0"));
+
+	sw = transact(ctx, "002600010834333231ffffffff", NULL); /* DISABLE with the changed PIN "4321" */
+	printf("DISABLE PIN1: %04x\n", sw);
+	assert(sw == 0x9000);
+
+	expect_fcp(ctx, "STATUS MF, PIN1 disabled", "80f2000001", MF_FCP_PS("20"));
+
 	ss_free_ctx(ctx);
+
 	return 0;
 }

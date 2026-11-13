@@ -39,7 +39,7 @@ struct ss_file {
 	                     * information in here (eg. FMD), TS 102 221 usually only
 	                     * expects FCP data here. */
 	/*
-	WIP mutas: 
+	todo mutas: remove when done 
 	* Trying to remove the decoded FCP tree to save on some memory.
 	* See SOFTSIM-294 for more information
 	*/

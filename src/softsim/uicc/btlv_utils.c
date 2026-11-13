@@ -313,33 +313,34 @@ struct ber_tlv_ie *ss_btlv_get_ie_minlen(const struct ss_list *list, uint16_t ta
 	return ie;
 }
 
-/*! Attach a BER-TLV tree to an existing IE.
- *  \param[inout] ie BER-TLV IE struct to which the BER-TLV tree shall be attached.
- *  \param[in] list linked list begin of the BER-TLV tree. */
-void ss_btlv_attach_to_constr(struct ber_tlv_ie *ie, struct ss_list *list)
-{
-	/* Get rid of all current nested elements. Normally there should only
-	 * be an empty list and nothing else. */
-	ss_btlv_free(ie->nested);
+//todo mutas: remove when done, were just used for modifying the decoded FCP
+// /*! Attach a BER-TLV tree to an existing IE.
+//  *  \param[inout] ie BER-TLV IE struct to which the BER-TLV tree shall be attached.
+//  *  \param[in] list linked list begin of the BER-TLV tree. */
+// void ss_btlv_attach_to_constr(struct ber_tlv_ie *ie, struct ss_list *list)
+// {
+// 	/* Get rid of all current nested elements. Normally there should only
+// 	 * be an empty list and nothing else. */
+// 	ss_btlv_free(ie->nested);
 
-	/* May exist when the btlv tree (list) is a parsed result. There is
-	 * no replacement for this. The encoder will not use this field. */
-	ss_buf_free(ie->value);
-	ie->value = NULL;
+// 	/* May exist when the btlv tree (list) is a parsed result. There is
+// 	 * no replacement for this. The encoder will not use this field. */
+// 	ss_buf_free(ie->value);
+// 	ie->value = NULL;
 
-	/* Attach given list as the new nested BTLV elements. */
-	ie->nested = list;
-}
+// 	/* Attach given list as the new nested BTLV elements. */
+// 	ie->nested = list;
+// }
 
-/*! Split off a BER-TLV tree from an existing IE.
- *  \param[inout] ie BER-TLV IE struct to which the BER-TLV tree shall be splitted off.
- *  \returns linked list begin of the BER-TLV tree that is splitted off. */
-struct ss_list *ss_btlv_split_off_from_constr(struct ber_tlv_ie *ie)
-{
-	struct ss_list *result;
+// /*! Split off a BER-TLV tree from an existing IE.
+//  *  \param[inout] ie BER-TLV IE struct to which the BER-TLV tree shall be splitted off.
+//  *  \returns linked list begin of the BER-TLV tree that is splitted off. */
+// struct ss_list *ss_btlv_split_off_from_constr(struct ber_tlv_ie *ie)
+// {
+// 	struct ss_list *result;
 
-	result = ie->nested;
-	ie->nested = SS_ALLOC(struct ss_list);
-	ss_list_init(ie->nested);
-	return result;
-}
+// 	result = ie->nested;
+// 	ie->nested = SS_ALLOC(struct ss_list);
+// 	ss_list_init(ie->nested);
+// 	return result;
+// }

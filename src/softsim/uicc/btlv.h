@@ -72,6 +72,8 @@ struct ber_tlv_ie *ss_btlv_get_ie(const struct ss_list *list, uint32_t tag);
 struct ber_tlv_ie *ss_btlv_get_ie_minlen(const struct ss_list *list, uint16_t tag, size_t min_len);
 size_t ss_btlv_encode(uint8_t *enc, size_t len, struct ss_list *list);
 struct ss_buf *ss_btlv_encode_to_ss_buf(struct ss_list *list);
-void ss_btlv_attach_to_constr(struct ber_tlv_ie *ie, struct ss_list *list);
+// todo mutas: remove when done
+// void ss_btlv_attach_to_constr(struct ber_tlv_ie *ie, struct ss_list *list);
 int ss_btlv_parse_hdr(struct ber_tlv_hdr *hdr, const uint8_t *enc, size_t len);
-struct ss_list *ss_btlv_split_off_from_constr(struct ber_tlv_ie *ie);
+// todo mutas: remove when done
+//struct ss_list *ss_btlv_split_off_from_constr(struct ber_tlv_ie *ie);
