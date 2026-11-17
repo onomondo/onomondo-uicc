@@ -121,8 +121,8 @@ Tests never build when the repo is consumed via `add_subdirectory` (project-name
 | `access` | Access rules, incl. a guard against an `-DNDEBUG` bootstrap-bypass regression |
 | `pin`, `read_binary` | Command behavior over the real APDU path |
 | `ota`, `envelope` | OTA padding counts; end-to-end ENVELOPE → remote command |
-| `aes`, `des` | Crypto vectors |
-| `opt_out` | Only with `CONFIG_DISABLE_SMS`: CAT alive, SMS-PP DOWNLOAD answered `6F00` per TS 31.111 clause 7.1.1.1; `aes`, `des`, `envelope`, `ota` and `sms` are skipped there |
+| `aes` | Crypto vectors |
+| `opt_out` | Only with `CONFIG_DISABLE_SMS`: CAT alive, SMS-PP DOWNLOAD answered `6F00` per TS 31.111 clause 7.1.1.1; `aes`, `envelope`, `ota` and `sms` are skipped there |
 | `utils`, `storage`, `list` | Helpers, storage-path edge cases, intrusive list |
 | `suspend` | Only with `CONFIG_USE_EXPERIMENTAL_SUSPEND_COMMAND=y` |
 | `key_scrub` | Linux-only; wraps `free()` to prove K/OPc never reach the allocator in the clear |
