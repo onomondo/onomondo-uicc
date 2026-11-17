@@ -4,7 +4,9 @@
     "config:best-practices"
   ],
   "timezone": "Europe/Copenhagen",
-  "dependencyDashboard": true,
+  "dependencyDashboard": {
+    "enabled": true
+  },
   "rebaseWhen": "never",
   "lockFileMaintenance": {
     "enabled": true,
