@@ -32,7 +32,6 @@ set(uicc_collection
 	uicc_refresh.c
 	utils.c
 	utils_ota.c
-	utils_3des.c
 	proactive.c
 	uicc_suspend.c
 )
@@ -41,7 +40,7 @@ set(uicc_collection
 # only ever arrives over SMS and REFRESH is only fed by OTA, so they go with it.
 if(CONFIG_DISABLE_SMS)
 	list(REMOVE_ITEM uicc_collection sms.c uicc_sms_rx.c uicc_sms_tx.c uicc_remote_cmd.c utils_ota.c
-					 utils_3des.c fs_chg.c uicc_refresh.c)
+					 fs_chg.c uicc_refresh.c)
 endif()
 
 # Add log.c to get fcp_test working with CTest. It has otherwise been removed from the

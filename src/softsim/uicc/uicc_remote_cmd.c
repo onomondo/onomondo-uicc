@@ -24,7 +24,6 @@
 #include "sw.h"
 #include "uicc_pin.h"
 #include "utils.h"
-#include "utils_3des.h"
 #include "utils_ota.h"
 
 /* Information element identifier for command packets, as used in TS 23.048
@@ -248,9 +247,6 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param, size_t cmd_pac
 	param->kid_indication = kid >> 4;
 	if (param->in_ciphering || param->out_ciphering) {
 		switch (kic & 0x0F) {
-		case 0x05:
-			param->kic_algorithm = TRIPLE_DES_CBC2;
-			break;
 		case 0x02:
 			param->kic_algorithm = AES_CBC;
 			break;
@@ -259,9 +255,6 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param, size_t cmd_pac
 			return -SS_SW_WARN_NO_INFO_NV_UNCHANGED;
 		}
 		switch (kid & 0x0F) {
-		case 0x05:
-			param->kid_algorithm = TRIPLE_DES_CBC2;
-			break;
 		case 0x02:
 			param->kid_algorithm = AES_CMAC;
 			break;
@@ -289,9 +282,6 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param, size_t cmd_pac
 	case NONE:
 		SS_LOGP(SREMOTECMD, LDEBUG, "  KIC algorithm: NONE\n");
 		break;
-	case TRIPLE_DES_CBC2:
-		SS_LOGP(SREMOTECMD, LDEBUG, "  KIC algorithm: 3DES CBC2\n");
-		break;
 	case AES_CBC:
 		SS_LOGP(SREMOTECMD, LDEBUG, "  KIC algorithm: AES CBC\n");
 		break;
@@ -305,9 +295,6 @@ static int parse_cmd_hdr_clrtxt(struct command_parameters *param, size_t cmd_pac
 	switch (param->kid_algorithm) {
 	case NONE:
 		SS_LOGP(SREMOTECMD, LDEBUG, "  KID algorithm: NONE\n");
-		break;
-	case TRIPLE_DES_CBC2:
-		SS_LOGP(SREMOTECMD, LDEBUG, "  KID algorithm: 3DES CBC2\n");
 		break;
 	case AES_CBC:
 		SS_LOGP(SREMOTECMD, LDEBUG, "  KID algorithm: AES CBC\n");
@@ -719,16 +706,6 @@ static size_t process_commands(uint8_t *tar, size_t commands_len, uint8_t *comma
 static int decrypt(uint8_t *data, size_t data_len, uint8_t *key, size_t key_len, enum enc_algorithm alg)
 {
 	switch (alg) {
-	case TRIPLE_DES_CBC2:
-		assert(key_len == TRIPLE_DES_KEYLEN);
-		if (data_len % DES_BLOCKSIZE != 0) {
-			SS_LOGP(SREMOTECMD, LERROR,
-				"cannot decrypt, ciphertext length (%zu) must be a multiple of %u (padding error)\n",
-				data_len, DES_BLOCKSIZE);
-			return -EINVAL;
-		}
-		ss_utils_3des_decrypt(data, data_len, key);
-		break;
 	case AES_CBC:
 		if (data_len % AES_BLOCKSIZE != 0) {
 			SS_LOGP(SREMOTECMD, LERROR,
@@ -750,16 +727,6 @@ static int decrypt(uint8_t *data, size_t data_len, uint8_t *key, size_t key_len,
 static int encrypt(uint8_t *data, size_t data_len, uint8_t *key, size_t key_len, enum enc_algorithm alg)
 {
 	switch (alg) {
-	case TRIPLE_DES_CBC2:
-		assert(key_len == TRIPLE_DES_KEYLEN);
-		if (data_len % DES_BLOCKSIZE != 0) {
-			SS_LOGP(SREMOTECMD, LERROR,
-				"cannot encrypt, ciphertext length (%zu) must be a multiple of %u (padding error)\n",
-				data_len, DES_BLOCKSIZE);
-			return -EINVAL;
-		}
-		ss_utils_3des_encrypt(data, data_len, key);
-		break;
 	case AES_CBC:
 		if (data_len % AES_BLOCKSIZE != 0) {
 			SS_LOGP(SREMOTECMD, LERROR,
@@ -841,9 +808,6 @@ static void build_message(uint8_t *outbuf, size_t *outbuf_len, uint8_t *plaintex
 			/* NIST Special Publication 800-38A states that the padding for the AES should be 0x80 0x00 ... 0x00 */
 			outbuf[16 + param->out_integrity_len + plaintext_len] = 0x80;
 			memset(&outbuf[16 + param->out_integrity_len + plaintext_len + 1], 0, pcnt - 1);
-			break;
-		case TRIPLE_DES_CBC2:
-			memset(&outbuf[16 + param->out_integrity_len + plaintext_len], 0, pcnt);
 			break;
 		default:
 			break;

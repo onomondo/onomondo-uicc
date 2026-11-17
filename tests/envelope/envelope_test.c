@@ -93,6 +93,42 @@ static void command_packet_test(void)
 	ss_free_ctx(ctx);
 }
 
+/* Valid command packets with 3DES as the cipher (KIc 35) or as the checksum
+ * (KID 35), AES for the other: refused on the header with 6200. */
+static void triple_des_refused_test(void)
+{
+	struct ss_context *ctx;
+	uint8_t resp[300];
+	uint16_t sw;
+
+	ss_log_mask = 0;
+	ctx = ss_new_ctx();
+	ss_reset(ctx);
+	ss_log_mask = 0;
+
+	sw = transact_hex_apdu(ctx,
+			       "80c2000053"
+			       "d15182028381860510426587f98b4460039121437ff662408011"
+			       "9342803502700000301516393532b0001126de7ae87a053a18d7"
+			       "e9cbf59a8dbb58f58fa729f620acd843936b6fd7dc80a2a07448"
+			       "7d5b9df7e1",
+			       resp, sizeof(resp), NULL);
+	printf("ENVELOPE 3DES KIc: %04x\n", sw);
+	assert(sw == 0x6200);
+
+	sw = transact_hex_apdu(ctx,
+			       "80c200005b"
+			       "d15982028381860510426587f98b4c60039121437ff662408011"
+			       "9342803d02700000381516393235b000114b4bf2c97820de9af0"
+			       "b2e728f831db76aadbee8cdd724612edf4138bfca914d3a81985"
+			       "af68a9c22e4f33d541c6bbe5f2",
+			       resp, sizeof(resp), NULL);
+	printf("ENVELOPE 3DES KID: %04x\n", sw);
+	assert(sw == 0x6200);
+
+	ss_free_ctx(ctx);
+}
+
 /* Unciphered command packet whose encrypted part is a single byte. The
  * CNTR/PCNTR header is 6 bytes, so it must be rejected on length before
  * anything reads it -- first under the shipped strict MSL, then again after
@@ -363,6 +399,7 @@ static void concat_sm_table7_ie_order_test(void)
 int main(void)
 {
 	command_packet_test();
+	triple_des_refused_test();
 	short_header_msl_test();
 	padding_only_template_test();
 	empty_user_data_header_test();

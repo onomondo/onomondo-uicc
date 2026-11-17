@@ -12,12 +12,12 @@
 
 #define AES_BLOCKSIZE 16
 
-/* See also ETSI TS 102 225, section 5.1.1 and 5.1.2 */
+/* See also ETSI TS 102 225, section 5.1.1 and 5.1.2. The values are part of the
+ * port contract: an external crypto implementation may carry its own copy. */
 enum enc_algorithm {
-	NONE,
-	TRIPLE_DES_CBC2,
-	AES_CBC,
-	AES_CMAC,
+	NONE = 0,
+	AES_CBC = 2,
+	AES_CMAC = 3,
 };
 
 /*! Perform an in-place AES decryption with the common settings of OTA
@@ -35,20 +35,6 @@ void ss_utils_aes_decrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key
  *  \param[in] key 16 byte AES key.
  *  \param[in] key_len length of the AES key. */
 void ss_utils_aes_encrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key, size_t key_len);
-
-/*! Perform an in-place 3DES decryption with the common settings of OTA
- *  (CBC mode, 16-byte key, zero IV).
- *  \param[inout] buffer user provided memory with plaintext to decrypt.
- *  \param[in] buffer_len length of the plaintext data to decrypt (multiple of 8).
- *  \param[in] key 16 byte DES key. */
-void ss_utils_3des_decrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key);
-
-/*! Perform an in-place 3DES encryption with the common settings of OTA
- *  (CBC mode, 16-byte key, zero IV).
- *  \param[inout] buffer user provided memory with plaintext to encrypt.
- *  \param[in] buffer_len length of the plaintext data to encrypt (multiple of 8).
- *  \param[in] key 16 byte DES key. */
-void ss_utils_3des_encrypt(uint8_t *buffer, size_t buffer_len, const uint8_t *key);
 
 /*! Calculate cryptographic checksum (CC) using a specified algorithm.
  *  \param[out] cc user provided memory for resulting cryptographic checksum.

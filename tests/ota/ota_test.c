@@ -10,7 +10,6 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <onomondo/softsim/utils.h>
-#include "src/softsim/uicc/utils_3des.h"
 #include "src/softsim/uicc/utils_ota.h"
 
 static void calc_and_print_pcnt(enum enc_algorithm algorithm, size_t data_len, uint8_t pcnt_expected)
@@ -19,9 +18,6 @@ static void calc_and_print_pcnt(enum enc_algorithm algorithm, size_t data_len, u
 	uint8_t pcnt;
 
 	switch (algorithm) {
-	case TRIPLE_DES_CBC2:
-		algorithm_str = "DES_CBC2";
-		break;
 	case AES_CBC:
 		algorithm_str = "AES";
 		break;
@@ -42,23 +38,6 @@ static void calc_and_print_pcnt(enum enc_algorithm algorithm, size_t data_len, u
 
 static void ss_utils_ota_calc_pcnt_test(void)
 {
-	/* DES Aligned on blocksize */
-	calc_and_print_pcnt(TRIPLE_DES_CBC2, 0, 0);
-	calc_and_print_pcnt(TRIPLE_DES_CBC2, 8, 0);
-	calc_and_print_pcnt(TRIPLE_DES_CBC2, 16, 0);
-	calc_and_print_pcnt(TRIPLE_DES_CBC2, 24, 0);
-
-	/* DES Off by +1 */
-	calc_and_print_pcnt(TRIPLE_DES_CBC2, 1, 7);
-	calc_and_print_pcnt(TRIPLE_DES_CBC2, 9, 7);
-	calc_and_print_pcnt(TRIPLE_DES_CBC2, 17, 7);
-	calc_and_print_pcnt(TRIPLE_DES_CBC2, 25, 7);
-
-	/* DES Off by -1 */
-	calc_and_print_pcnt(TRIPLE_DES_CBC2, 7, 1);
-	calc_and_print_pcnt(TRIPLE_DES_CBC2, 15, 1);
-	calc_and_print_pcnt(TRIPLE_DES_CBC2, 23, 1);
-
 	/* AES Aligned on blocksize */
 	calc_and_print_pcnt(AES_CBC, 0, 0);
 	calc_and_print_pcnt(AES_CBC, 16, 0);
@@ -106,21 +85,6 @@ static void ss_utils_ota_calc_cc_test(void)
 		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x01, 0x23, 0x45,
 	};
 
-	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), TRIPLE_DES_CBC2, data1, sizeof(data1), data2_A,
-				  sizeof(data2_A));
-	printf("3DES-CMAC data1=%s, data2=%s, rc=%d, checksum=%s\n", ss_hexdump(data1, sizeof(data1)),
-	       ss_hexdump(data2_A, sizeof(data2_A)), rc, ss_hexdump(cc, sizeof(cc)));
-
-	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), TRIPLE_DES_CBC2, data1, sizeof(data1), data2_B,
-				  sizeof(data2_B));
-	printf("3DES-CMAC data1=%s, data2=%s, rc=%d, checksum=%s\n", ss_hexdump(data1, sizeof(data1)),
-	       ss_hexdump(data2_B, sizeof(data2_B)), rc, ss_hexdump(cc, sizeof(cc)));
-
-	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), TRIPLE_DES_CBC2, data1, sizeof(data1), data2_C,
-				  sizeof(data2_C));
-	printf("3DES-CMAC data1=%s, data2=%s, rc=%d, checksum=%s\n", ss_hexdump(data1, sizeof(data1)),
-	       ss_hexdump(data2_C, sizeof(data2_C)), rc, ss_hexdump(cc, sizeof(cc)));
-
 	rc = ss_utils_ota_calc_cc(cc, sizeof(cc), key, sizeof(key), AES_CMAC, data1, sizeof(data1), data2_A,
 				  sizeof(data2_A));
 	printf("AES-CMAC data1=%s, data2=%s, rc=%d, checksum=%s\n", ss_hexdump(data1, sizeof(data1)),
@@ -144,6 +108,8 @@ static void ss_utils_ota_calc_cc_test(void)
 
 int main(int argc, char **argv)
 {
+	/* Ports with their own copy of the enum rely on these values. */
+	assert(AES_CBC == 2 && AES_CMAC == 3);
 	ss_utils_ota_calc_pcnt_test();
 	ss_utils_ota_calc_cc_test();
 	return 0;
