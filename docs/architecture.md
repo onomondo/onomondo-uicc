@@ -8,7 +8,7 @@ The code view, for people changing this library.
 |---|---|---|
 | `uicc` | [`src/softsim/uicc/`](../src/softsim/uicc) | The card: APDU codec + dispatch, filesystem, PIN, authentication glue, CAT, OTA |
 | `milenage` | [`src/softsim/milenage/`](../src/softsim/milenage) | 3GPP AKA f1–f5*, plus the USIM-side SQN check (`milenage_usim.c`) |
-| `crypto` | [`src/softsim/crypto/`](../src/softsim/crypto) | Vendored AES and DES primitives (hostap/wpa_supplicant) |
+| `crypto` | [`src/softsim/crypto/`](../src/softsim/crypto) | Vendored AES primitives (hostap/wpa_supplicant) |
 | `storage` | [`src/softsim/`](../src/softsim) | Persistence backend: `storage.c` *or* `storage_compact.c`, plus the default POSIX port `fs.c` when applicable |
 | `utils` (`CONFIG_USE_UTILS`) | [`utils/`](../utils) | Profile decoding and provisioning — off the spec path |
 | `softsim` (exe, skipped by `CONFIG_BUILD_LIB_ONLY`) | [`src/softsim/main.c`](../src/softsim/main.c) | vsmartcard/VPCD TCP host (port `0x8C7B`), demo only |

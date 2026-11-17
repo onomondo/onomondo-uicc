@@ -159,7 +159,7 @@ builds, precisely so hosts write their own. Format strings use C99 length modifi
 
 ### Crypto
 
-Software AES/DES is built in (vendored hostap primitives). Two swap points:
+Software AES is built in (vendored hostap primitives). Two swap points:
 
 - `CONFIG_EXTERNAL_CRYPTO_IMPL` — provide exactly the three functions of
   [`crypto.h`](../include/onomondo/softsim/crypto.h): `ss_utils_aes_encrypt/decrypt`,
