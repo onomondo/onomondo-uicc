@@ -165,16 +165,6 @@ const struct ber_tlv_desc *ss_fcp_get_descr(void)
 	return bertlv_tree_descr;
 }
 
-/*! Decode file FCP (file control parameter).
- *  \param[in] pointer to ss_buf object containing the encoded FCP.
- *  \returns decoded FCP on success, NULL on failure. */
-struct ss_list *ss_fcp_decode(const struct ss_buf *fcp)
-{
-	struct ss_list *decoded_fcp;
-	decoded_fcp = ss_btlv_decode(fcp->data, fcp->len, ss_fcp_get_descr());
-	return decoded_fcp;
-}
-
 /*! Decode file descriptor.
  *  \param[out] user provided memory to store parsed file descriptor.
  *  \param[in] encoded representation of the file descriptor.
@@ -310,60 +300,174 @@ struct ss_buf *ss_fcp_gen(const struct ss_fcp_file_descr *fd, uint32_t fid, size
 	return result;
 }
 
-/*! (Re)-encode the encoded FCP string of a file.
- *  \param[inout] path path to the file.
- *  \returns 0 on success -EINVAL on failure. */
-int ss_fcp_reencode(struct ss_file *file)
+/* True if all bytes are 0xFF. ss_btlv_decode tolerates such padding after
+ * the last IE, so the lookup must as well. */
+static bool is_padding(const uint8_t *data, size_t len)
 {
-	struct ss_list *fcp;
-	struct ber_tlv_ie *fcp_template;
-	struct ss_buf *fci;
-	int rc = 0;
+	size_t i;
 
-	/* Generate an FCP template envelope. We have to do that because the
-	 * FCP/FCI is stored without the envelope for easier access. */
-	fcp = SS_ALLOC(struct ss_list);
-	ss_list_init(fcp);
-	fcp_template = ss_btlv_new_ie_constr(fcp, "fcp-template", 0x62);
-
-	/* Temporarly attach the FCP to the envelope and re-encode it. */
-	ss_btlv_attach_to_constr(fcp_template, file->fcp_decoded);
-
-	fci = ss_btlv_encode_to_ss_buf(fcp);
-	if (!fci) {
-		rc = -EINVAL;
-		goto leave;
+	for (i = 0; i < len; i++) {
+		if (data[i] != 0xff)
+			return false;
 	}
-
-	/* Exchange old fci data with re-encoded fci data */
-	if (file->fci)
-		ss_buf_free(file->fci);
-	file->fci = fci;
-
-leave:
-	/* Split the FCI away from the envelope and free the envelope part we
-	 * have allocated above. */
-	ss_btlv_split_off_from_constr(fcp_template);
-	ss_btlv_free(fcp);
-	return rc;
+	return true;
 }
 
-/*! Get DF name from a decoded FCP.
- *  \param[in] fcp_decoded_envelope representation of the file descriptor.
- *  \returns buffer with DF name on success NULL on failure. */
-struct ss_buf *ss_fcp_get_df_name(const struct ss_list *fcp_decoded_envelope)
+/* Append an IE to the FCP template of file->fci. */
+int ss_fcp_add_ie(struct ss_file *file, uint32_t tag, const struct ss_buf *value)
 {
-	struct ber_tlv_ie *fcp_df_name_ie;
+	struct ber_tlv_hdr tmpl, ie;
+	size_t pos = 0, content_len, hdr_len;
+	struct ss_buf *fci;
+	uint8_t *p;
 
-	/*! The returned buffer is the value part of the IE in the TLV tree.
-	 *  the caller must not take ownership of the buffer (free it) */
+	if (!file || !file->fci || !file->fci->data || !value)
+		return -EINVAL;
 
-	/* Extract DF Name (if present) */
-	fcp_df_name_ie = ss_btlv_get_ie_minlen(fcp_decoded_envelope, TS_102_221_IEI_FCP_DF_NAME, 1);
-	if (!fcp_df_name_ie)
-		return NULL;
+	if (tag > 0xff || (tag & 0x1f) == 0x1f || value->len > 0x7f)
+		return -EINVAL;
 
-	return fcp_df_name_ie->value;
+	if (ss_btlv_parse_hdr(&tmpl, file->fci->data, file->fci->len) < 0 ||
+	    tmpl.tag_encoded != TS_102_221_IEI_FCP_TMPL)
+		return -EINVAL;
+
+	/* find end of TLV content */
+	while (pos < tmpl.value_len && ss_btlv_parse_hdr(&ie, tmpl.value + pos, tmpl.value_len - pos) == 0)
+		pos += ie.total_len;
+
+	if (!is_padding(tmpl.value + pos, tmpl.value_len - pos))
+		return -EINVAL;
+
+	content_len = pos + 2 + value->len; /* new content length = old content length + new IE length */
+	if (content_len > 0xff)
+		return -EINVAL;
+	hdr_len = content_len < 0x80 ? 2 : 3;
+
+	fci = ss_buf_try_alloc(hdr_len + content_len);
+	if (!fci)
+		return -ENOMEM;
+
+	p = fci->data;
+	*p++ = TS_102_221_IEI_FCP_TMPL;
+	if (hdr_len == 3)
+		*p++ = 0x81;
+	*p++ = (uint8_t)content_len;
+	memcpy(p, tmpl.value, pos); /* copy old content */
+
+	p += pos;
+	*p++ = (uint8_t)tag;
+	*p++ = (uint8_t)value->len;
+	memcpy(p, value->data, value->len); /* copy new content */
+
+	ss_buf_free(file->fci);
+	file->fci = fci;
+	return 0;
+}
+
+/*! Find a top-level IE in the FCP template (62) of an encoded FCI, without allocating.
+ *  \pre fci has passed ss_fcp_normalize(). ss_fs_select() does this when it
+ *       loads a file. The lookup stops at the first match and does not check
+ *       the IEs after it.
+ *  \param[in] fci encoded FCI, including the 62 envelope. Not const: callers
+ *             may patch the value in place through out.
+ *  \param[in] tag single-byte BER-TLV tag; a multi-byte start (low bits 1f)
+ *             never matches and returns -ENOENT.
+ *  \param[in] min_len minimum value length; shorter counts as missing.
+ *  \param[out] out view of the value inside fci. Do not free. Only valid
+ *              until fci is changed or freed.
+ *  \returns 0 if found, -ENOENT if missing or too short, -EINVAL if malformed. */
+int ss_fcp_get_tag_min_len(struct ss_buf *fci, uint8_t tag, size_t min_len, struct ss_buf *out)
+{
+	struct ber_tlv_hdr tmpl;
+	struct ber_tlv_hdr ie;
+	size_t pos = 0;
+
+	if (out) {
+		out->data = NULL;
+		out->len = 0;
+	}
+	if (!fci || !fci->data || !out)
+		return -EINVAL;
+
+	/* Outer envelope must be the FCP template */
+	if (ss_btlv_parse_hdr(&tmpl, fci->data, fci->len) < 0)
+		return -EINVAL;
+	if (tmpl.tag_encoded != TS_102_221_IEI_FCP_TMPL)
+		return -EINVAL;
+
+	/* Walk the children until tag is found */
+	while (pos < tmpl.value_len) {
+		if (ss_btlv_parse_hdr(&ie, tmpl.value + pos, tmpl.value_len - pos) < 0) {
+			if (is_padding(tmpl.value + pos, tmpl.value_len - pos))
+				break;
+			return -EINVAL;
+		}
+
+		/* First match wins */
+		if (ie.tag_encoded == tag) {
+			if (ie.value_len < min_len)
+				return -ENOENT;
+			/* ie.value points into fci->data; take the offset to keep it writable */
+			out->data = fci->data + (ie.value - fci->data);
+			out->len = ie.value_len;
+			return 0;
+		}
+
+		pos += ie.total_len;
+	}
+
+	return -ENOENT;
+}
+
+/*! Check that a stored FCI holds a well-formed FCP template and cut it down
+ *  to that template.
+ *  Other well-formed TLVs around the 62 template and FF
+ *  padding at the end are accepted. They are dropped here, so SELECT and
+ *  STATUS return the template only. The first 62 wins. Inside the template,
+ *  every top-level IE must be well-formed, followed by FF padding only.
+ *  Nested IEs (e.g. inside A5) are not checked.
+ *  Call once when an fci enters memory; ss_fcp_get_tag_min_len() relies on it.
+ *  \param[inout] fci encoded FCI; on success it holds the 62 template only.
+ *  \returns 0 if valid, -EINVAL otherwise (fci unchanged). */
+int ss_fcp_normalize(struct ss_buf *fci)
+{
+	struct ber_tlv_hdr hdr, tmpl, ie;
+	const uint8_t *tmpl_start = NULL;
+	size_t pos = 0;
+
+	if (!fci || !fci->data)
+		return -EINVAL;
+
+	/* Top level: well-formed TLVs, then only FF padding. Find the first 62. */
+	while (pos < fci->len) {
+		if (ss_btlv_parse_hdr(&hdr, fci->data + pos, fci->len - pos) < 0) {
+			if (!is_padding(fci->data + pos, fci->len - pos))
+				return -EINVAL;
+			break;
+		}
+		if (!tmpl_start && hdr.tag_encoded == TS_102_221_IEI_FCP_TMPL) {
+			tmpl_start = fci->data + pos;
+			tmpl = hdr;
+		}
+		pos += hdr.total_len;
+	}
+	if (!tmpl_start)
+		return -EINVAL;
+
+	/* Inside the template: well-formed IEs, then only FF padding. */
+	pos = 0;
+	while (pos < tmpl.value_len) {
+		if (ss_btlv_parse_hdr(&ie, tmpl.value + pos, tmpl.value_len - pos) < 0) {
+			if (!is_padding(tmpl.value + pos, tmpl.value_len - pos))
+				return -EINVAL;
+			break;
+		}
+		pos += ie.total_len;
+	}
+
+	memmove(fci->data, tmpl_start, tmpl.total_len);
+	fci->len = tmpl.total_len;
+	return 0;
 }
 
 /*! Dump decoded file descriptor.
