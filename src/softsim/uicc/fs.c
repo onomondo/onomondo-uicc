@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdbool.h>
 #include <errno.h>
 #include <onomondo/softsim/softsim.h>
 #include <onomondo/softsim/log.h>
@@ -44,7 +43,6 @@ static void file_free(struct ss_file *file)
 	if (!file)
 		return;
 	ss_buf_free(file->fci);
-	ss_btlv_free(file->fcp_decoded);
 	SS_FREE(file->fcp_file_descr);
 	ss_btlv_free(file->access);
 	SS_FREE(file);
@@ -87,20 +85,6 @@ void ss_path_reset(struct ss_list *path)
 	do {
 		rc = ss_fs_select_parent(path);
 	} while (rc == 0);
-}
-
-static struct ss_buf *file_descr_from_fcp(const struct ss_list *fcp_decoded_envelope)
-{
-	struct ber_tlv_ie *fcp_decoded_file_descr;
-
-	if (!fcp_decoded_envelope)
-		return NULL;
-	fcp_decoded_file_descr = ss_btlv_get_ie_minlen(fcp_decoded_envelope, 0x82, 2);
-	if (!fcp_decoded_file_descr)
-		return NULL;
-
-	/* NOTE: The caller must not take ownership of the value */
-	return fcp_decoded_file_descr->value;
 }
 
 /**
@@ -172,7 +156,7 @@ int ss_fs_select(struct ss_list *path, uint32_t fid)
 {
 	int rc;
 	struct ss_file *selected_file;
-	struct ss_buf *file_descr;
+	struct ss_buf file_descr;
 
 	/* Selection of the MF always resets the path */
 	if (fid == FILE_MF)
@@ -197,38 +181,51 @@ int ss_fs_select(struct ss_list *path, uint32_t fid)
 		return -EINVAL;
 	}
 
-	/* Store parsed representation of the FCP */
-	selected_file->fcp_decoded = NULL;
-	struct ss_list *fci_decoded = ss_fcp_decode(selected_file->fci);
-	struct ber_tlv_ie *fcp_decoded_envelope = NULL;
-
-	if (fci_decoded)
-		fcp_decoded_envelope = ss_btlv_get_ie(fci_decoded, TS_102_221_IEI_FCP_TMPL);
-	if (fcp_decoded_envelope) {
-		selected_file->fcp_decoded = fcp_decoded_envelope->nested;
-		/* We're moved responsibility for freeing the nested elements to the
-		 * file; breaking the link allows easy cleanup. */
-		fcp_decoded_envelope->nested = NULL;
-		ss_btlv_free(fci_decoded);
-	}
-
-	if (!selected_file->fcp_decoded) {
+	/* Validate and normalize fcp form of fci */
+	rc = ss_fcp_normalize(selected_file->fci);
+	if (rc < 0) {
 		ss_fs_select_parent(path);
-		SS_LOGP(SBTLV, LERROR, "select fid=%04x failed, path=%s, unable to decode FCP\n", fid,
+		SS_LOGP(SFS, LERROR, "select fid=%04x failed, path=%s, malformed FCP\n", fid,
 			ss_fs_utils_dump_path(path));
 		return -EINVAL;
 	}
 
-	file_descr = file_descr_from_fcp(selected_file->fcp_decoded);
-	if (!file_descr) {
+	rc = ss_fcp_get_tag_min_len(selected_file->fci, TS_102_221_IEI_FCP_FILE_DESCR, 2, &file_descr);
+	if (rc < 0) {
 		ss_fs_select_parent(path);
 		SS_LOGP(SBTLV, LERROR, "select fid=%04x failed, path=%s, unable to decode FD\n", fid,
 			ss_fs_utils_dump_path(path));
+		return -EINVAL;
 	}
-
 	selected_file->fcp_file_descr = SS_ALLOC(struct ss_fcp_file_descr);
-	ss_fcp_dec_file_descr(selected_file->fcp_file_descr, file_descr);
+	if (!selected_file->fcp_file_descr) {
+		ss_fs_select_parent(path);
+		SS_LOGP(SFS, LERROR, "select fid=%04x failed, path=%s, out of memory\n", fid,
+			ss_fs_utils_dump_path(path));
+		return -ENOMEM;
+	}
+	if (ss_fcp_dec_file_descr(selected_file->fcp_file_descr, &file_descr) < 0) {
+		ss_fs_select_parent(path);
+		SS_LOGP(SFS, LERROR, "select fid=%04x failed, path=%s, invalid file descriptor\n", fid,
+			ss_fs_utils_dump_path(path));
+		return -EINVAL;
+	}
 	return 0;
+}
+
+/*! Delete a file in the DF at the tip of the path without selecting it.
+ *  Cleanup for a file that was created but cannot be selected.
+ *  \param[inout] path path to the parent DF; unchanged on return.
+ *  \param[in] fid file ID of the file to delete.
+ *  \returns 0 on success, -EINVAL on failure. */
+int ss_fs_delete_child(struct ss_list *path, uint32_t fid)
+{
+	int rc;
+
+	path_add(path, fid);
+	rc = ss_storage_delete(path);
+	ss_fs_select_parent(path);
+	return rc;
 }
 
 /*! Read record from file (tip of the path).
