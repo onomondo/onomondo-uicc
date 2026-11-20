@@ -43,10 +43,14 @@ struct ss_file {
 	                     * in-place patches keep it. Any new code that assigns fci
 	                     * must validate first. */
 	struct ss_fcp_file_descr *fcp_file_descr;
-	struct ss_list *access; /**< The access rule governing file operations for
-	                         * the SE that selected the file (or general access if
-	                         * no SE apply). A value of NULL indicates that no
-	                         * access rules have (or could be) loaded. */
+	struct ss_buf *access; /**< The access rule governing file operations for
+	                        * the SE that selected the file (or general access if
+	                        * no SE apply): the raw EF.ARR record, including its
+	                        * 0xFF padding, owned by the file. A value of NULL
+	                        * indicates that no access rules have (or could be)
+	                        * loaded.
+	                        * Invariant: well formed at the top level. Only set by
+	                        * ss_access_populate(), after arr_rule_valid(). */
 };
 
 struct ss_file *ss_get_file_from_path(const struct ss_list *path);
