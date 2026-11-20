@@ -13,7 +13,6 @@
 #include <onomondo/utils/ss_crypto_extension.h>
 #include "utils_ota.h"
 #include "utils.h"
-#include "utils_3des.h"
 #include "utils_aes.h"
 
 /*! Calculate the number of padding bytes (pcnt) for a given length.
@@ -25,9 +24,6 @@ uint8_t ss_utils_ota_calc_pcnt(enum enc_algorithm algorithm, size_t data_len)
 	uint8_t blocksize = 0;
 
 	switch (algorithm) {
-	case TRIPLE_DES_CBC2:
-		blocksize = DES_BLOCKSIZE;
-		break;
 	case AES_CBC:
 		blocksize = AES_BLOCKSIZE;
 		break;
@@ -53,7 +49,6 @@ uint8_t ss_utils_ota_calc_pcnt(enum enc_algorithm algorithm, size_t data_len)
 int ss_utils_ota_calc_cc(uint8_t *cc, size_t cc_len, uint8_t *key, size_t key_len, enum enc_algorithm alg,
 			 uint8_t *data1, size_t data1_len, uint8_t *data2, size_t data2_len)
 {
-	struct utils_3des_cc_ctx cc_des;
 	struct utils_aes_cc_ctx cc_aes;
 	int rc = -EINVAL;
 
@@ -74,25 +69,12 @@ int ss_utils_ota_calc_cc(uint8_t *cc, size_t cc_len, uint8_t *key, size_t key_le
 	 * separate buffers and to avoid copying the two buffers into a single
 	 * buffer we apply the checksum calculation on the two buffers
 	 * separately. This works as long as the first buffer does not require
-	 * to be padded (AES-CMAC and 3DES-CBC2 are block ciphers). The caller
-	 * must ensure that the length of the buffer (data1) is a multiple of 8
-	 * for 3DES-CBC2 and a multiple of 16 for AES-CMAC. Usually we have
-	 * multiple of 16 in both situations. The length of the second buffer
-	 * (data2) may be of arbitrary length. Both implementation (3DES-CBC2
-	 * and AES-CMAC) will apply an appropriate padding internally. */
+	 * to be padded (AES-CMAC is a block cipher mode). The caller must
+	 * ensure that the length of the buffer (data1) is a multiple of 16.
+	 * The length of the second buffer (data2) may be of arbitrary length;
+	 * AES-CMAC applies an appropriate padding internally. */
 
 	switch (alg) {
-	case TRIPLE_DES_CBC2:
-		assert(data1_len % DES_BLOCKSIZE == 0);
-		assert(key_len == TRIPLE_DES_KEYLEN);
-		assert(cc_len <= sizeof(cc_des.cbc));
-		ss_utils_3des_cc_setup(&cc_des, key);
-		ss_utils_3des_cc_feed(&cc_des, data1, data1_len);
-		ss_utils_3des_cc_feed(&cc_des, data2, data2_len);
-		ss_utils_3des_cc_cleanup(&cc_des);
-		memcpy(cc, cc_des.cbc, cc_len);
-		rc = 0;
-		break;
 	case AES_CMAC:
 		assert(data1_len % AES_BLOCKSIZE == 0);
 		assert(cc_len <= sizeof(cc_aes.cbc));

@@ -179,7 +179,7 @@ void ss_utils_aes_cc_setup(struct utils_aes_cc_ctx *cc, const uint8_t *key, size
 void ss_utils_aes_cc_feed(struct utils_aes_cc_ctx *cc, const uint8_t *data, size_t data_len, bool last)
 {
 	/*! Calculation of the cryptographic checksum (CC) using AES.
-	 *  (See also see also RFC 4493, section 2.2 and utils_3des.c */
+	 *  (See also RFC 4493, section 2.2) */
 
 	int j;
 	uint8_t padd;
