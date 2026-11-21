@@ -313,7 +313,9 @@ static bool is_padding(const uint8_t *data, size_t len)
 	return true;
 }
 
-/* Append an IE to the FCP template of file->fci. */
+/* Append an IE to the FCP template of file->fci.
+ * Ceiling: a one-byte tag, a value of up to 127 bytes and a template of up
+ * to 255 bytes, else -EINVAL; a bigger template needs a two-byte length. */
 int ss_fcp_add_ie(struct ss_file *file, uint32_t tag, const struct ss_buf *value)
 {
 	struct ber_tlv_hdr tmpl, ie;
