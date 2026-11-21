@@ -1,0 +1,11 @@
+verify ADM1: 9000
+select EF.ARR: 9000
+update the MF's rule: 9000
+select MF: 9000
+create DF, 4-byte file ID, DF name: 6a80
+create EF, 4-byte file ID: 6a80
+select 7F23: not created: 6a82
+select 2F77: not created: 6a82
+create DF 7F21, DF name: 9000
+select MF: 9000
+select it by DF name: 62258202782183027f218405a0000000aa8a01058b032f060fc60c90012083010183018183010a9000

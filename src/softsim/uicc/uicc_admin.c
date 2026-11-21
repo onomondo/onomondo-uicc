@@ -133,9 +133,10 @@ static int validate_fcp(struct ss_list *fcp_decoded_envelope)
 		}
 	}
 
+	/* TS 102 222 V17.1.0 Tables 3 and 4: the file ID is exactly 2 bytes; every FID reader relies on it. */
 	fcp_ie = ss_btlv_get_ie_minlen(fcp_decoded_envelope, TS_102_221_IEI_FCP_FILE_ID, 2);
-	if (!fcp_ie) {
-		SS_LOGP(SADMIN, LERROR, "invalid FCP: no file identifier (%02X)\n", TS_102_221_IEI_FCP_FILE_ID);
+	if (!fcp_ie || fcp_ie->value->len != 2) {
+		SS_LOGP(SADMIN, LERROR, "invalid FCP: no 2-byte file identifier (%02X)\n", TS_102_221_IEI_FCP_FILE_ID);
 		rc = -EINVAL;
 	}
 
