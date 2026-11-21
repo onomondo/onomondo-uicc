@@ -32,8 +32,8 @@ void ss_uicc_lchan_dump(const struct ss_lchan *lchan)
 	struct ss_buf active_adf_name = { 0 };
 
 	SS_LOGP(SLCHAN, LDEBUG, "lchan %u:\n", lchan->nr);
-	for (i = 0; i < SS_ARRAY_SIZE(lchan->pin_verfied); i++) {
-		if (lchan->pin_verfied[i])
+	for (i = 0; i < SS_ARRAY_SIZE(lchan->pin_verified) * 8; i++) {
+		if (ss_uicc_lchan_pin_bit(lchan, i))
 			SS_LOGP(SLCHAN, LDEBUG, " pin %u verified\n", i);
 	}
 
