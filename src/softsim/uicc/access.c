@@ -76,38 +76,22 @@ enum arr_next_rc {
 	ARR_NEXT_MALFORMED, /**< The data at the current position is not valid BER-TLV */
 };
 
-/** Iterate over the TLV elements of a raw access rule without allocating.
- *
- * \param[in] data Encoded access rule (an EF.ARR record, or the value of a
- *   constructed element such as an A4 CRT).
- * \param[in] len Number of bytes at \p data.
- * \param[inout] pos Offset of the next element; start with 0. Advanced past
- *   the element on ARR_NEXT_OK.
- * \param[out] ie Header of the element; ie->value points into \p data.
- *
- * Trailing 0xFF bytes (EF.ARR records are padded to the record length) end
- * the iteration, mirroring the tolerance of \ref ss_btlv_decode.
- */
+/** Step to the next element of a raw access rule (or of a constructed value
+ * in it), without allocating. Trailing 0xFF padding ends the walk, as in
+ * \ref ss_btlv_decode. */
 static enum arr_next_rc arr_next(const uint8_t *data, size_t len, size_t *pos, struct ber_tlv_hdr *ie)
 {
 	size_t i;
 
-	if (*pos >= len)
-		return ARR_NEXT_END;
-
-	if (data[*pos] == 0xff) {
-		for (i = *pos; i < len; i++) {
-			if (data[i] != 0xff)
-				return ARR_NEXT_MALFORMED;
-		}
-		return ARR_NEXT_END;
+	if (ss_btlv_parse_hdr(ie, data + *pos, len - *pos) == 0) {
+		*pos += ie->total_len;
+		return ARR_NEXT_OK;
 	}
-
-	if (ss_btlv_parse_hdr(ie, data + *pos, len - *pos) < 0)
-		return ARR_NEXT_MALFORMED;
-
-	*pos += ie->total_len;
-	return ARR_NEXT_OK;
+	for (i = *pos; i < len; i++) {
+		if (data[i] != 0xff)
+			return ARR_NEXT_MALFORMED;
+	}
+	return ARR_NEXT_END;
 }
 
 /** Check that a raw access rule is well-formed BER-TLV up to its padding.
