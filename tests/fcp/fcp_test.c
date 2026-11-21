@@ -180,7 +180,7 @@ static const struct tag_lookup_case tag_lookup_cases[] = {
 	{ "bytes after 62 are ignored", "62038a01059000", 0x8a, 1, 0, "05" },
 
 	/* padding and validation */
-	{ "FF padding at end", "62058a0105ffff", 0x8a, 1, 0, "05" },
+	{ "FF padding at end", "62058a0105ffff", 0x82, 1, -EINVAL, NULL },
 };
 
 static void ss_fcp_get_tag_test(void)
@@ -282,9 +282,6 @@ static const struct add_ie_case add_ie_cases[] = {
 	{ "62 long form -> short", "6281038a0105", 0xc6, PST, 0,
 	  "62118a0105"
 	  "c60c" PST },
-	{ "FF padding dropped", "62058a0105ffff", 0xc6, PST, 0,
-	  "62118a0105"
-	  "c60c" PST },
 	{ "bytes after 62 dropped", "62038a01059000", 0xc6, PST, 0,
 	  "62118a0105"
 	  "c60c" PST },
@@ -298,6 +295,7 @@ static const struct add_ie_case add_ie_cases[] = {
 	/* errors: fci must stay unchanged */
 	{ "outer tag not 62", "6f038a0105", 0xc6, PST, -EINVAL, NULL },
 	{ "malformed child", "62058a01058205", 0xc6, PST, -EINVAL, NULL },
+	{ "FF padding at end", "62058a0105ffff", 0xc6, PST, -EINVAL, NULL },
 	{ "padding then garbage", "62058a0105ff01", 0xc6, PST, -EINVAL, NULL },
 	{ "62 length exceeds buffer", "62058a0105", 0xc6, PST, -EINVAL, NULL },
 	{ "multi-byte tag 5F20", FCI_MF, 0x5f20, PST, -EINVAL, NULL },
@@ -478,19 +476,18 @@ static const struct normalize_case normalize_cases[] = {
 	{ "real FCI (ICCID)", FCI_ICCID, 0, FCI_ICCID },
 	{ "real FCI (MF, with A5)", FCI_MF, 0, FCI_MF },
 	{ "empty template", "6200", 0, "6200" },
-	{ "FF padding at end", "62058a0105ffff", 0, "62058a0105ffff" },
 	{ "62 long form length", "6281038a0105", 0, "6281038a0105" },
 
 	/* valid, cut down to the template */
-	{ "FF after the template", "62038a0105ffff", 0, "62038a0105" },
 	{ "TLV after the template", "62038a01059000", 0, "62038a0105" },
 	{ "TLV before the template", "c001aa62038a0105", 0, "62038a0105" },
-	{ "TLVs and FF around the template", "c001aa62038a0105c100ffff", 0, "62038a0105" },
 
 	{ "first of two templates", "62038a010562038a0103", 0, "62038a0105" },
 
 	/* invalid */
 	{ "malformed child after match", "62058a01058205", -EINVAL, NULL },
+	{ "FF padding at end", "62058a0105ffff", -EINVAL, NULL },
+	{ "FF after the template", "62038a0105ffff", -EINVAL, NULL },
 	{ "padding then garbage", "62058a0105ff01", -EINVAL, NULL },
 	{ "garbage after the template", "62038a010501", -EINVAL, NULL },
 	{ "outer tag not 62", "6f038a0105", -EINVAL, NULL },

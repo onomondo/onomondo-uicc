@@ -300,19 +300,6 @@ struct ss_buf *ss_fcp_gen(const struct ss_fcp_file_descr *fd, uint32_t fid, size
 	return result;
 }
 
-/* True if all bytes are 0xFF. ss_btlv_decode tolerates such padding after
- * the last IE, so the lookup must as well. */
-static bool is_padding(const uint8_t *data, size_t len)
-{
-	size_t i;
-
-	for (i = 0; i < len; i++) {
-		if (data[i] != 0xff)
-			return false;
-	}
-	return true;
-}
-
 /* Append an IE to the FCP template of file->fci.
  * Ceiling: a one-byte tag, a value of up to 127 bytes and a template of up
  * to 255 bytes, else -EINVAL; a bigger template needs a two-byte length. */
@@ -337,7 +324,7 @@ int ss_fcp_add_ie(struct ss_file *file, uint32_t tag, const struct ss_buf *value
 	while (pos < tmpl.value_len && ss_btlv_parse_hdr(&ie, tmpl.value + pos, tmpl.value_len - pos) == 0)
 		pos += ie.total_len;
 
-	if (!is_padding(tmpl.value + pos, tmpl.value_len - pos))
+	if (pos != tmpl.value_len)
 		return -EINVAL;
 
 	content_len = pos + 2 + value->len; /* new content length = old content length + new IE length */
@@ -399,11 +386,8 @@ int ss_fcp_get_tag_min_len(struct ss_buf *fci, uint8_t tag, size_t min_len, stru
 
 	/* Walk the children until tag is found */
 	while (pos < tmpl.value_len) {
-		if (ss_btlv_parse_hdr(&ie, tmpl.value + pos, tmpl.value_len - pos) < 0) {
-			if (is_padding(tmpl.value + pos, tmpl.value_len - pos))
-				break;
+		if (ss_btlv_parse_hdr(&ie, tmpl.value + pos, tmpl.value_len - pos) < 0)
 			return -EINVAL;
-		}
 
 		/* First match wins */
 		if (ie.tag_encoded == tag) {
@@ -423,10 +407,10 @@ int ss_fcp_get_tag_min_len(struct ss_buf *fci, uint8_t tag, size_t min_len, stru
 
 /*! Check that a stored FCI holds a well-formed FCP template and cut it down
  *  to that template.
- *  Other well-formed TLVs around the 62 template and FF
- *  padding at the end are accepted. They are dropped here, so SELECT and
+ *  Other well-formed TLVs around the 62 template are
+ *  accepted. They are dropped here, so SELECT and
  *  STATUS return the template only. The first 62 wins. Inside the template,
- *  every top-level IE must be well-formed, followed by FF padding only.
+ *  every top-level IE must be well-formed.
  *  Nested IEs (e.g. inside A5) are not checked.
  *  Call once when an fci enters memory; ss_fcp_get_tag_min_len() relies on it.
  *  \param[inout] fci encoded FCI; on success it holds the 62 template only.
@@ -440,13 +424,10 @@ int ss_fcp_normalize(struct ss_buf *fci)
 	if (!fci || !fci->data)
 		return -EINVAL;
 
-	/* Top level: well-formed TLVs, then only FF padding. Find the first 62. */
+	/* Top level: well-formed TLVs only. Find the first 62. */
 	while (pos < fci->len) {
-		if (ss_btlv_parse_hdr(&hdr, fci->data + pos, fci->len - pos) < 0) {
-			if (!is_padding(fci->data + pos, fci->len - pos))
-				return -EINVAL;
-			break;
-		}
+		if (ss_btlv_parse_hdr(&hdr, fci->data + pos, fci->len - pos) < 0)
+			return -EINVAL;
 		if (!tmpl_start && hdr.tag_encoded == TS_102_221_IEI_FCP_TMPL) {
 			tmpl_start = fci->data + pos;
 			tmpl = hdr;
@@ -456,14 +437,11 @@ int ss_fcp_normalize(struct ss_buf *fci)
 	if (!tmpl_start)
 		return -EINVAL;
 
-	/* Inside the template: well-formed IEs, then only FF padding. */
+	/* Inside the template: well-formed IEs only. */
 	pos = 0;
 	while (pos < tmpl.value_len) {
-		if (ss_btlv_parse_hdr(&ie, tmpl.value + pos, tmpl.value_len - pos) < 0) {
-			if (!is_padding(tmpl.value + pos, tmpl.value_len - pos))
-				return -EINVAL;
-			break;
-		}
+		if (ss_btlv_parse_hdr(&ie, tmpl.value + pos, tmpl.value_len - pos) < 0)
+			return -EINVAL;
 		pos += ie.total_len;
 	}
 
