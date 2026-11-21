@@ -96,6 +96,5 @@ int main(void)
 	expect_fcp(ctx, "STATUS MF, PIN1 disabled", "80f2000001", MF_FCP_PS("20"));
 
 	ss_free_ctx(ctx);
-
 	return 0;
 }

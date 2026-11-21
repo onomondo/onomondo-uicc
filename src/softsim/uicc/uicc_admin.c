@@ -406,9 +406,7 @@ int ss_uicc_admin_cmd_activate_file(struct ss_apdu *apdu)
 
 	struct ss_buf lcsi;
 	struct ss_file *selected_file = ss_get_file_from_path(&apdu->lchan->fs_path);
-
 	rc = ss_fcp_get_tag_min_len(selected_file->fci, TS_102_221_IEI_FCP_LIFE_CYCLE_ST, 1, &lcsi);
-
 	if (rc < 0) {
 		SS_LOGP(SADMIN, LERROR, "missing lifecycle status IE -- cannot activate file\n");
 		/* TS 102 221 §10.2.2 - Status words of the commands */

@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <onomondo/softsim/softsim.h>
 #include <onomondo/softsim/log.h>
@@ -185,7 +186,7 @@ int ss_fs_select(struct ss_list *path, uint32_t fid)
 	rc = ss_fcp_normalize(selected_file->fci);
 	if (rc < 0) {
 		ss_fs_select_parent(path);
-		SS_LOGP(SFS, LERROR, "select fid=%04x failed, path=%s, malformed FCP\n", fid,
+		SS_LOGP(SBTLV, LERROR, "select fid=%04x failed, path=%s, unable to decode FCP\n", fid,
 			ss_fs_utils_dump_path(path));
 		return -EINVAL;
 	}
@@ -197,6 +198,7 @@ int ss_fs_select(struct ss_list *path, uint32_t fid)
 			ss_fs_utils_dump_path(path));
 		return -EINVAL;
 	}
+
 	selected_file->fcp_file_descr = SS_ALLOC(struct ss_fcp_file_descr);
 	if (!selected_file->fcp_file_descr) {
 		ss_fs_select_parent(path);

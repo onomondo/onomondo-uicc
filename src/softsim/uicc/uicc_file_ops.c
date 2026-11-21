@@ -1172,5 +1172,6 @@ int ss_uicc_file_ops_cmd_select(struct ss_apdu *apdu)
 
 	SS_LOGP(SFILE, LDEBUG, "Successfully selected: %s\n", ss_fs_utils_dump_path(&apdu->lchan->fs_path));
 	SS_LOGP(SFILE, LDEBUG, "FCI: %s\n", ss_hexdump(selected_file->fci->data, selected_file->fci->len));
+
 	return 0;
 }

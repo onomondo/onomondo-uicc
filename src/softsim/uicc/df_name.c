@@ -45,6 +45,7 @@ int ss_df_name_update(struct ss_list *path)
 	if (rc < 0)
 		return -EINVAL;
 
+	/* Extract DF Name (if present) */
 	rc = ss_fcp_get_tag_min_len(file->fci, TS_102_221_IEI_FCP_DF_NAME, 1, &fcp_df_name_ie);
 	if (rc < 0) {
 		/* Nothing to do, This file just has no DF_NAME assigned */
