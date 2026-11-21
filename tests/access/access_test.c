@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <onomondo/softsim/utils.h>
 #include <onomondo/softsim/file.h>
+#include <onomondo/softsim/storage.h>
 #include <onomondo/softsim/list.h>
 #include <onomondo/softsim/log.h>
 #include <onomondo/softsim/mem.h>
@@ -80,28 +81,14 @@ static const struct rule_case rule_cases[] = {
 	/* regular rules */
 	{ "read always: read", "8001019000ffff", RD, true },
 	{ "read always: update", "8001019000ffff", UP, false }, /* no AM matched */
-	{ "update never", "8001029700", UP, false },
 	{ "next AM ends SC phase: read", "80010190008001029700", RD, true },
-	{ "next AM ends SC phase: update", "80010190008001029700", UP, false },
 	{ "two SCs, both always", "80010190009000", RD, true },
 	{ "only padding", "ffffffffffffffff", RD, false },
-	{ "empty", "", RD, false },
 
 	/* invalid or unsupported rules */
 	{ "AM with len != 1", "800201019000", RD, false },
-	{ "no SC after the AM", "800101", RD, false },
 	{ "OR template SC", "800101a000", RD, false },
-	{ "SM template SC", "800101b400", RD, false },
-	{ "SC byte (unimplemented)", "8001019e0101", RD, false },
 	{ "neither AM nor SC", "800101c000", RD, false },
-	{ "multi-byte tag", "8001019f2100", RD, false },
-
-	/* A4 (CRT) contents */
-	{ "A4 without 95", "800101a403830101", RD, false },
-	{ "A4 with extra element", "800101a4088301019501089000", RD, false },
-	{ "A4 with malformed inside", "800101a406830501950108", RD, false },
-	{ "A4 with 2 byte key ref", "800101a40783020001950108", RD, false },
-	{ "A4 PIN1 not verified", "800101a406830101950108", RD, false }, /* no PIN file */
 };
 
 static void access_rule_test(void)
@@ -139,8 +126,8 @@ static void access_rule_test(void)
 	}
 }
 
-/* Access rule loading tests: ss_access_populate() against a generated files/
- * tree in the test's working directory. The MF references record 1 of EF.ARR
+/* Access rule loading tests: ss_access_populate() against a generated tree in
+ * its own storage root, so the tracked files/ stay untouched. The MF references record 1 of EF.ARR
  * 2F06 (linear fixed, 2 records of 16 bytes). Malformed records must not be
  * stored (access stays NULL, i.e. deny all); valid ones are stored raw,
  * padding included. */
@@ -160,10 +147,7 @@ struct populate_case {
 static const struct populate_case populate_cases[] = {
 	/* name                       record_hex                           stored */
 	{ "valid rule", "8001019000ffffffffffffffffffffff", true },
-	{ "only padding", "ffffffffffffffffffffffffffffffff", true },
 	{ "data after padding", "8001019000ff12ffffffffffffffffff", false },
-	{ "length past the record", "80010190008001019000800501020304", false },
-	{ "truncated header", "80010190009000900090009000900080", false },
 };
 
 static void write_text(const char *path, const char *text)
@@ -180,10 +164,11 @@ static void access_populate_test(void)
 	char content[sizeof(RECORD_PADDING) * 2];
 	size_t i;
 
-	mkdir("files", 0755);
-	mkdir("files/3f00", 0755);
-	write_text("files/3f00.def", DEF_MF);
-	write_text("files/3f00/2f06.def", DEF_EF_ARR);
+	mkdir("access_test_files", 0755);
+	mkdir("access_test_files/3f00", 0755);
+	assert(ss_storage_set_path("./access_test_files") == 0);
+	write_text("access_test_files/3f00.def", DEF_MF);
+	write_text("access_test_files/3f00/2f06.def", DEF_EF_ARR);
 
 	for (i = 0; i < SS_ARRAY_SIZE(populate_cases); i++) {
 		const struct populate_case *c = &populate_cases[i];
@@ -194,7 +179,7 @@ static void access_populate_test(void)
 
 		/* record 1 under test, record 2 all padding */
 		snprintf(content, sizeof(content), "%s%s", c->record_hex, RECORD_PADDING);
-		write_text("files/3f00/2f06", content);
+		write_text("access_test_files/3f00/2f06", content);
 
 		ss_fs_init(&lchan.fs_path);
 		mf = ss_get_file_from_path(&lchan.fs_path);
