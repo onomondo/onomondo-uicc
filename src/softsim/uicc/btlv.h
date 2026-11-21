@@ -28,7 +28,8 @@ struct ber_tlv_ie {
 
 	/* Tag information */
 	enum ber_tlv_cls cls;
-	bool constr;
+	bool constr : 1;
+	bool padded : 1; /* decoder output only: padding or undecodable bytes inside the value, at any depth */
 	uint16_t tag;
 	uint32_t tag_encoded;
 

@@ -133,8 +133,10 @@ static const struct ber_tlv_desc *get_ie_descr(const struct ber_tlv_desc *descr,
  * is NULL.
  *
  * Consecutive 0xFF bytes at the trailing end are tolerated.
+ * Padding or undecodable bytes in the string, at any depth, are marked on parent.
  * */
-static struct ss_list *btlv_decode(const uint8_t *enc, size_t len, const struct ber_tlv_desc *descr, uint32_t id_parent)
+static struct ss_list *btlv_decode(const uint8_t *enc, size_t len, const struct ber_tlv_desc *descr, uint32_t id_parent,
+				   struct ber_tlv_ie *parent)
 {
 	struct ber_tlv_ie *ie;
 	const struct ber_tlv_desc *ie_descr;
@@ -151,6 +153,9 @@ static struct ss_list *btlv_decode(const uint8_t *enc, size_t len, const struct 
 		/* Decode IE and store it in the given list */
 		ie = decode_ie(&used_len, enc, remaining_len);
 		if (ie) {
+			/* '00' and 'FF' start no tag (ISO/IEC 7816-4:2005 5.2.2.1): this object is padding. */
+			if (*enc == 0x00 || *enc == 0xff)
+				parent->padded = true;
 			ss_list_put(list, &ie->list);
 			ie_descr = get_ie_descr(descr, ie->tag_encoded, id_parent);
 			if (ie_descr && ie_descr->title) {
@@ -158,6 +163,7 @@ static struct ss_list *btlv_decode(const uint8_t *enc, size_t len, const struct 
 				strcpy(ie->title, ie_descr->title);
 			}
 		} else if (remaining_len > 0) {
+			parent->padded = true;
 			for (i = used_len; i < used_len + remaining_len; ++i) {
 				if (enc[i] != 0xff) {
 					SS_LOGP(SBTLV, LERROR, "Error decoding BTLV (%s).\n",
@@ -173,10 +179,12 @@ static struct ss_list *btlv_decode(const uint8_t *enc, size_t len, const struct 
 		 * list of the IE. */
 		if (ie && ie->constr) {
 			if (ie_descr) {
-				ie->nested = btlv_decode(ie->value->data, ie->value->len, descr, ie_descr->id);
+				ie->nested = btlv_decode(ie->value->data, ie->value->len, descr, ie_descr->id, ie);
 			} else {
-				ie->nested = btlv_decode(ie->value->data, ie->value->len, NULL, 0);
+				ie->nested = btlv_decode(ie->value->data, ie->value->len, NULL, 0, ie);
 			}
+			if (ie->padded)
+				parent->padded = true;
 		}
 
 		/* Go to the next IE */
@@ -194,5 +202,7 @@ static struct ss_list *btlv_decode(const uint8_t *enc, size_t len, const struct 
  *  \returns pointer to allocated linked list with BER-TLV data (can be empty). */
 struct ss_list *ss_btlv_decode(const uint8_t *enc, size_t len, const struct ber_tlv_desc *descr)
 {
-	return btlv_decode(enc, len, descr, 0);
+	struct ber_tlv_ie top = { 0 }; /* top-level padding is not marked */
+
+	return btlv_decode(enc, len, descr, 0, &top);
 }
