@@ -47,40 +47,48 @@ static void record_file_change(struct ss_apdu *apdu)
 #endif
 }
 
-/* Bring the PIN status template (C6) in the FCP up to date before it is
- * returned by SELECT or STATUS: patch an existing C6 in place, or add one to a
- * DF/ADF that has none. EFs without C6 are left as they are. */
+/* Generate the FCP string as it is returned by the card to the outside world.
+ * This is essentially the FCP string that is read from the definition files
+ * but with additional IEs that reflect the current card state (PIN status) */
 static int fcp_update_pin_status(struct ss_file *selected_file, char *command_name)
 {
-	struct ss_buf pst;
-	struct ss_buf *new_pst;
-	bool is_df = selected_file->fcp_file_descr->type == SS_FCP_DF_OR_ADF;
+	struct ss_buf pin_stat_templ_ie;
+	struct ss_buf *pin_stat_templ;
 	int rc;
 
 	/* Get information element (IE) for tag C6, PIN Status Template */
-	rc = ss_fcp_get_tag_min_len(selected_file->fci, TS_102_221_IEI_FCP_PIN_STAT_TMPL, 0, &pst);
+	rc = ss_fcp_get_tag_min_len(selected_file->fci, TS_102_221_IEI_FCP_PIN_STAT_TMPL, 0, &pin_stat_templ_ie);
 
-	if (rc == -EINVAL)
-		return -EINVAL;
+	/* PIN Status Template (tag C6) should only be added for DF/ADF files, not EF files.
+	 * See ETSI TS 102.221, Section 11.1.1.3.2, Table 11.4 - "Response for an EF with FCP template" */
+	if (rc < 0 && selected_file->fcp_file_descr->type == SS_FCP_DF_OR_ADF) {
+		pin_stat_templ = ss_uicc_pin_gen_pst_do();
+		if (!pin_stat_templ) {
+			SS_LOGP(SFILE, LDEBUG, "%s failed, could not generate PIN status template.\n", command_name);
+			return -EINVAL;
+		}
+		rc = ss_fcp_add_ie(selected_file, TS_102_221_IEI_FCP_PIN_STAT_TMPL, pin_stat_templ);
+		ss_buf_free(pin_stat_templ);
+		return rc;
+	} else if (rc == 0) {
+		/* The PIN Status Template should not be present on EF files.
+		 * If we encounter a template on a non-DF/ADF file, log it at error 
+		 * level for later investigation allow the template to be updated. */
+		if (selected_file->fcp_file_descr->type != SS_FCP_DF_OR_ADF) {
+			SS_LOGP(SFILE, LERROR,
+				"%s: PIN Status Template (C6) present on non-DF/ADF file (fid=%04x). Updating anyway.\n",
+				command_name, selected_file->fid);
+		}
 
-	/* C6 present: patch in place */
-	if (rc == 0) {
-		if (!is_df)
-			SS_LOGP(SFILE, LERROR, "%s: C6 on non-DF/ADF (fid=%04x). Updating anyway.\n", command_name,
-				selected_file->fid);
-		return ss_uicc_pin_update_pst_do(&pst) < 0 ? -EINVAL : 0;
+		/* No further checks performed if template already exists */
+		rc = ss_uicc_pin_update_pst_do(&pin_stat_templ_ie);
+		if (rc < 0) {
+			SS_LOGP(SFILE, LDEBUG, "%s failed, could not update PIN status template.\n", command_name);
+			return -EINVAL;
+		}
 	}
 
-	/* EF without C6: nothing to do */
-	if (!is_df)
-		return 0;
-
-	new_pst = ss_uicc_pin_gen_pst_do();
-	if (!new_pst)
-		return -EINVAL;
-	rc = ss_fcp_add_ie(selected_file, TS_102_221_IEI_FCP_PIN_STAT_TMPL, new_pst);
-	ss_buf_free(new_pst);
-	return rc;
+	return 0;
 }
 
 /*! STATUS (TS 102 221 Section 11.1.2) */
