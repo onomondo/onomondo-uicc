@@ -109,17 +109,14 @@ static bool arr_rule_valid(const struct ss_buf *rule)
 	return rc == ARR_NEXT_END;
 }
 
-/** Populate an lchan's selected file's access rule
+/** Populate an lchan's selected file's access list
  *
  * \pre The lchan has a selected file.
  * \pre The lchan's current file has its access member unset.
  *
- * \post The lchan's current file has its access member set to the raw EF.ARR
- *   record (including its 0xFF padding) holding the rule that applies to the
- *   lchan (through its SE, but that is currently unimplemented). The record
- *   is only stored after \ref arr_rule_valid accepted it, and is owned by the
- *   file (released in file_free()). It is NULL on a load error or a malformed
- *   rule, which is treated as 'never allow'.
+ * \post The lchan's current file has its access member set to the rules that
+ *   apply to the lchan (through its SE, but that is currently unimplemented).
+ *   These are NULL on a load error, which is treated as 'never allow'.
  *
  * This currently only evaluates access rules through
  * refernces through TS 102 221 V15 section 9.2.7 access rule
@@ -164,25 +161,21 @@ void ss_access_populate(struct ss_lchan *lchan)
 		selected_file->access = NULL;
 		break;
 	case ARR_REF_IDENTIFIED:
-		SS_LOGP(SACCESS, LDEBUG, "Access referenced into file %04x record %02x\n", arr.file_id,
-			arr.record_number);
-
 		record = ss_fs_read_relative_file_record(&lchan->fs_path, arr.file_id, arr.record_number);
-		if (record == NULL) {
+		if (record != NULL) {
+			if (arr_rule_valid(record))
+				selected_file->access = record;
+			else
+				ss_buf_free(record);
+		}
+		SS_LOGP(SACCESS, LDEBUG, "Access referenced into file %04x record %02x, loaded:\n", arr.file_id,
+			arr.record_number);
+		if (selected_file->access == NULL) {
 			SS_LOGP(SACCESS, LDEBUG, "(No valid access condition loaded)\n");
-			break;
+		} else {
+			SS_LOGP(SACCESS, LDEBUG, "%s\n",
+				ss_hexdump(selected_file->access->data, selected_file->access->len));
 		}
-
-		if (!arr_rule_valid(record)) {
-			SS_LOGP(SACCESS, LERROR, "Malformed access rule %s, denying all access.\n",
-				ss_hexdump(record->data, record->len));
-			ss_buf_free(record);
-			break;
-		}
-
-		/* Move ownership of buffer to file */
-		selected_file->access = record;
-		SS_LOGP(SACCESS, LDEBUG, "Loaded access rule: %s\n", ss_hexdump(record->data, record->len));
 		break;
 	}
 }
@@ -213,29 +206,23 @@ static bool apdu_matches_sc_byte(struct ss_apdu *apdu, uint8_t sc_byte)
  *
  * For example, ADM1 is 0x0A.
  *
- * \param[in] data Value bytes of an A4 (CRT) element of an access rule.
- * \param[in] len Number of bytes at \p data.
- *
- * This extracts only the key reference value, and checks that the access
- * condition (which is a constructed value) is otherwise valid, ie. has a
- * 1 byte long key reference (83) IE and a 1 byte long usage qualifier (95) IE,
- * and nothing else. The value of the usage qualifier is not checked.
- *
- * \return the key reference, or 0 if the CRT is malformed or not understood.
+ * This extracts only the key ref value, and checks that the access condition
+ * (which is a constructed value) is otherwise valid, ie. has both a 1 long key
+ * reference (83) IE and a usager qualifer (95) IE with value 01.
  * */
 static uint8_t access_condition_extract(const uint8_t *data, size_t len)
 {
-	struct ber_tlv_hdr ie;
-	size_t pos = 0;
-	enum arr_next_rc rc;
 	uint8_t result = 0;
 	bool usage_qualifier_ok = false;
 	bool unexpected_ie = false;
 
-	while ((rc = arr_next(data, len, &pos, &ie)) == ARR_NEXT_OK) {
-		if (ie.tag_encoded == 0x83 && ie.value_len == 1) {
-			result = ie.value[0];
-		} else if (ie.tag_encoded == 0x95 && ie.value_len == 1) {
+	struct ber_tlv_hdr item;
+	size_t pos = 0;
+	enum arr_next_rc rc;
+	while ((rc = arr_next(data, len, &pos, &item)) == ARR_NEXT_OK) {
+		if (item.tag_encoded == 0x83 && item.value_len == 1) {
+			result = item.value[0];
+		} else if (item.tag_encoded == 0x95 && item.value_len == 1) {
 			usage_qualifier_ok = true;
 		} else {
 			unexpected_ie = true;
@@ -345,10 +332,6 @@ bool ss_access_check_command(struct ss_apdu *apdu, enum ss_access_intention inte
 	 * through the following SCs to reject if any doesn't match. There is no need
 	 * to go back to looking into AMs once at the SC stage: their content "shall
 	 * be unique" within the rulle according to TS 102 221 V15.0.0 section 9.2.4.
-	 *
-	 * ->access is only ever set by ss_access_populate() after arr_rule_valid()
-	 * accepted it, so the top level of the rule is well-formed here and the
-	 * iteration can only end at the end of the data or at the padding.
 	 * */
 
 	bool sc_phase = false;
@@ -359,9 +342,9 @@ bool ss_access_check_command(struct ss_apdu *apdu, enum ss_access_intention inte
 	                           * check they'd lead to acceptance based on ALL({})
 	                           * being true for every question) */
 	struct ber_tlv_hdr item;
-	const struct ss_buf *rule = selected_file->access;
 	size_t pos = 0;
-	while ((arr_next(rule->data, rule->len, &pos, &item)) == ARR_NEXT_OK) {
+	/* Only rules that arr_rule_valid() accepted are stored, so this ends at END */
+	while (arr_next(selected_file->access->data, selected_file->access->len, &pos, &item) == ARR_NEXT_OK) {
 		if (!sc_phase) {
 			switch (item.tag_encoded) {
 			/* The SCs according to ISO/IEC 7816-4:2005(e) table 23 */
