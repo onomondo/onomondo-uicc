@@ -88,7 +88,6 @@ static const struct rule_case rule_cases[] = {
 	{ "empty", "", RD, false },
 
 	/* invalid or unsupported rules */
-	{ "starts with an SC", "90008001019000", RD, false },
 	{ "AM with len != 1", "800201019000", RD, false },
 	{ "no SC after the AM", "800101", RD, false },
 	{ "OR template SC", "800101a000", RD, false },

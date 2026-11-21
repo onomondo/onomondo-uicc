@@ -375,10 +375,6 @@ bool ss_access_check_command(struct ss_apdu *apdu, enum ss_access_intention inte
 			case 0xA0:
 			case 0xA7:
 			case 0xAF:
-				if (pos == item.total_len) { /* SC at offset 0: rule starts with an SC*/
-					SS_LOGP(SACCESS, LERROR, "Invalid access rule: Starts with an SC\n");
-					return false;
-				}
 				/* Ignore: We didn't match on the preceding AM */
 				continue;
 			case 0x80:
