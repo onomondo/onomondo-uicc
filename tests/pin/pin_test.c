@@ -9,6 +9,8 @@
 #include <string.h>
 #include <onomondo/softsim/softsim.h>
 #include <onomondo/softsim/utils.h>
+#include "src/softsim/uicc/context.h"
+#include "src/softsim/uicc/uicc_pin.h"
 
 /* allow test to silence noisy logs when comparing output */
 extern uint32_t ss_log_mask;
@@ -30,6 +32,7 @@ int main(void)
 {
 	struct ss_context *ctx;
 	uint16_t sw;
+	const uint8_t adm1_verified[sizeof(ctx->lchan.pin_verfied)] = { [1] = 0x04 };
 
 	ss_log_mask = 0;
 	ctx = ss_new_ctx();
@@ -67,6 +70,15 @@ int main(void)
 	sw = transact(ctx, "0020000100", NULL);
 	printf("VERIFY PIN1 remaining tries after CHANGE PIN: %04x\n", sw);
 	assert(sw == 0x63c3);
+
+	/* A verified ADM1 sets key reference 0A (byte 1, bit 2) and no other
+	 * bit. PIN1 is enabled at this point but not verified. */
+	sw = transact(ctx, "0020000a0831323334ffffffff", NULL);
+	printf("VERIFY ADM1: %04x\n", sw);
+	assert(sw == 0x9000);
+	assert(memcmp(ctx->lchan.pin_verfied, adm1_verified, sizeof(adm1_verified)) == 0);
+	assert(ss_uicc_pin_verified(SS_PIN_ADM1, &ctx->lchan));
+	assert(!ss_uicc_pin_verified(SS_PIN_1, &ctx->lchan));
 
 	ss_free_ctx(ctx);
 	return 0;

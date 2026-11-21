@@ -385,7 +385,7 @@ static void setup_ctx_from_tar(struct ss_context *ctx, uint8_t *tar)
 	}
 
 	/* Unconditional default until the need for further customization arises */
-	ctx->lchan.pin_verfied[SS_PIN_ADM1] = true;
+	ctx->lchan.pin_verfied[SS_PIN_ADM1 / 8] |= 1 << (SS_PIN_ADM1 % 8);
 }
 
 /* Given a TAR and key IDs, provide key material.
