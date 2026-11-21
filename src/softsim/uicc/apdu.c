@@ -59,9 +59,13 @@ void ss_apdu_toss(struct ss_apdu *apdu)
 	} else {
 		if (apdu->lchan->last_apdu)
 			SS_FREE(apdu->lchan->last_apdu);
-		SS_LOGP(SLCHAN, LDEBUG, "freeing APDU %p (last), keeping APDU %p (current)\n", apdu->lchan->last_apdu,
-			apdu);
-		apdu->lchan->last_apdu = apdu;
+		/* Only data withheld here ('61xx') is fetchable (TS 102 221 12.1.1) */
+		if (apdu->lc && apdu->rsp_len) {
+			apdu->lchan->last_apdu = apdu;
+		} else {
+			apdu->lchan->last_apdu = NULL;
+			SS_FREE(apdu);
+		}
 	}
 }
 
