@@ -194,7 +194,7 @@ int ss_fs_utils_path_clone(struct ss_list *path_copy, const struct ss_list *path
 {
 	struct ss_file *path_cursor;
 
-	/*! NOTE: This currently does not copy the (original and decoded) FCP data, as it is
+	/*! NOTE: This currently does not copy the FCP data, as it is
 	 * not needed by the function's callers -- and would be even more
 	 * computationally expensive. */
 

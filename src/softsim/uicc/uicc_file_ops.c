@@ -148,7 +148,6 @@ int ss_uicc_file_ops_cmd_status(struct ss_apdu *apdu)
 		if (!active_adf)
 			return SS_SW_ERR_CMD_NOT_ALLOWED_NO_EF_SELECTED;
 
-		/* min 0 like the old ss_btlv_get_ie; an empty DF name is invalid but left as before */
 		rc = ss_fcp_get_tag_min_len(active_adf->fci, TS_102_221_IEI_FCP_DF_NAME, 0, &df_name);
 		if (rc == 0) {
 			if (df_name.len + 2 > sizeof(apdu->rsp)) {
