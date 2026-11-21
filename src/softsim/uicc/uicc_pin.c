@@ -249,7 +249,7 @@ int ss_uicc_pin_cmd_verify_pin(struct ss_apdu *apdu)
 	}
 
 	SS_LOGP(SPIN, LINFO, "valid PIN (%u), VERIFY PIN successful\n", pin->pin_no);
-	apdu->lchan->pin_verfied[pin->pin_no] = true;
+	apdu->lchan->pin_verfied[pin->pin_no / 8] |= 1 << (pin->pin_no % 8);
 	pin->tries = 0;
 	rc = update_pin_context(pin);
 	if (rc < 0)
@@ -486,7 +486,7 @@ bool ss_uicc_pin_verified(enum pin pin_no, const struct ss_lchan *lchan)
 
 	if (pin_no == pin->pin_no) {
 		if (pin->enabled)
-			result = lchan->pin_verfied[pin_no];
+			result = (lchan->pin_verfied[pin_no / 8] >> (pin_no % 8)) & 1;
 		else
 			result = true;
 	} else {

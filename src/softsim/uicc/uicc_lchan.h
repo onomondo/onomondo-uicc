@@ -21,8 +21,8 @@ struct ss_lchan {
 	/* Note: This flag field must not be read accessed directly. In order to
 	 * check PIN permission, the API functions in module uicc_pin.c must
 	 * be used. It may be written to if a PIN is implicitly provided for an
-	 * lchan, eg. in setup_ctx_from_tar. */
-	bool pin_verfied[256];
+	 * lchan, eg. in setup_ctx_from_tar. One bit per key reference. */
+	uint8_t pin_verfied[32];
 
 	/* Currently selected file (can be an EF, DF or ADF) */
 	struct ss_list fs_path;
