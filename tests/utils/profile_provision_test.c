@@ -460,12 +460,10 @@ static void provision_profile_without_ota_keys_test()
 	printf("Provisioning return value: %d\n", rc);
 	assert(rc == 0);
 
-	/* The key area comes out NUL, which truncates the record when it is read
-	 * back, so remote commands are rejected rather than verified against a key
-	 * the profile never carried. */
-	memcpy(expect, "b00011060101", A004_HEADER_SIZE);
-	memset(&expect[A004_HEADER_SIZE], 0, 2 * KEY_SIZE);
-	memset(&expect[A004_HEADER_SIZE + 2 * KEY_SIZE], 'f', A004_LEN - A004_HEADER_SIZE - 2 * KEY_SIZE);
+	/* The EF comes out erased: a key indication of 0xff matches no remote
+	 * command, so OTA is rejected rather than verified against a key the profile
+	 * never carried -- the template's test keys included. */
+	memset(expect, 'f', A004_LEN);
 	rc = read_ef("/3f00/a004", a004, sizeof(a004));
 	assert(rc == 0);
 	assert(memcmp(a004, expect, A004_LEN) == 0);
@@ -512,6 +510,47 @@ static void provision_profile_bad_storage_test()
 	assert(rc == 0);
 }
 
+/* A card counts as provisioned only while EF.IMSI holds a real subscriber: not
+ * the template's default, not a zeroed (unbound) IMSI, and not a missing EF. */
+static void check_provisioned_test()
+{
+	char imsi_saved[IMSI_LEN];
+	char imsi_path[SS_STORAGE_PATH_MAX + 1];
+	int rc;
+
+	printf("TEST: Check whether a SoftSIM profile is provisioned\n");
+
+	rc = onomondo_profile_provisioning(decrypted_profile_smsp_ok);
+	assert(rc == 0);
+	assert(onomondo_profile_check_provisioned() == 1);
+	printf("Provisioned IMSI reported as provisioned\n");
+
+	rc = read_ef("/3f00/7ff0/6f07", imsi_saved, sizeof(imsi_saved));
+	assert(rc == 0);
+
+	restore_ef("/3f00/7ff0/6f07", "080910100000000010", IMSI_LEN);
+	assert(onomondo_profile_check_provisioned() == 0);
+	printf("Default IMSI reported as not provisioned\n");
+
+	restore_ef("/3f00/7ff0/6f07", "000000000000000000", IMSI_LEN);
+	assert(onomondo_profile_check_provisioned() == 0);
+	restore_ef("/3f00/7ff0/6f07", (const char[IMSI_LEN]){ 0 }, IMSI_LEN);
+	assert(onomondo_profile_check_provisioned() == 0);
+	printf("Zeroed IMSI reported as not provisioned\n");
+
+	restore_ef("/3f00/7ff0/6f07", "0809", 4);
+	assert(onomondo_profile_check_provisioned() == 0);
+	printf("Short IMSI reported as not provisioned\n");
+
+	snprintf(imsi_path, sizeof(imsi_path), "%s%s", ss_storage_get_path(), "/3f00/7ff0/6f07");
+	rc = remove(imsi_path);
+	assert(rc == 0);
+	assert(onomondo_profile_check_provisioned() == 0);
+	printf("Missing IMSI reported as not provisioned\n");
+
+	restore_ef("/3f00/7ff0/6f07", imsi_saved, IMSI_LEN);
+}
+
 static void restore_ef_smsp()
 {
 	/* Build path to EF 6F42 and restore the original content */
@@ -548,5 +587,6 @@ int main(void)
 	provision_profile_missing_tag_test();
 	provision_profile_without_ota_keys_test();
 	provision_profile_bad_storage_test();
+	check_provisioned_test();
 	return 0;
 }

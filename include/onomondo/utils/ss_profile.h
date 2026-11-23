@@ -6,23 +6,58 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Field lengths in hex characters, as the profile string carries them. The
+ * parser checks each record's LEN against these. */
 #define IMSI_LEN 18
-#define CRC32_LEN 8 /* a 4 byte CRC as hex characters */
-#define A001_LEN 66
-#define A003_LEN 132
-#define A004_LEN 228
 #define ICCID_LEN 20
 #define KEY_SIZE 32
 #define PIN_SIZE 16
+#define SMSP_RECORD_SIZE 52
+#define SMSP_LEN (SMSP_RECORD_SIZE * 2) /* EF.SMSP record 1 */
+#define SMSC_LEN (12 * 2) /* EF.SMSP TS-Service Centre Address */
+#define CRC32_LEN 8 /* a 4 byte CRC */
+
+/* EF layout, in hex characters: where the provisioning writers put each field.
+ * The binary writer halves every offset and length. */
+#define A001_LEN 66 /* Ki | OPc | OP/OPc flag */
+#define A001_KI_OFFSET 0
+#define A001_OPC_OFFSET KEY_SIZE
+#define A001_FLAG_OFFSET (2 * KEY_SIZE) /* "00": the key is an OPc, "01": an OP */
+#define A003_LEN 132 /* PIN code file: 3 records of header | PIN | PUK */
+#define A003_RECORD_SIZE (A003_LEN / 3)
 #define PIN_OFFSET 12
 #define PUK_OFFSET (PIN_OFFSET + PIN_SIZE)
-#define SMSC_LEN (12 * 2) /* EF.SMSP TS-Service Centre Address */
-#define SMSP_RECORD_SIZE 52
-#define A003_RECORD_SIZE (A003_LEN / 3)
+#define A004_LEN 228 /* OTA keys: 3 records of header | KIC | KID */
 #define A004_HEADER_SIZE 12
+#define A004_KIC_OFFSET A004_HEADER_SIZE
+#define A004_KID_OFFSET (A004_HEADER_SIZE + KEY_SIZE)
+#define SMSC_OFFSET 74 /* TS-Service Centre Address inside an EF.SMSP record (TS 51.011) */
+
+/* Decoded sizes in bytes, for the binary writer. Spelled the same as the nRF
+ * port spells them, so both can be in scope. */
+#define ICCID_BIN_LEN (ICCID_LEN / 2)
+#define IMSI_BIN_LEN (IMSI_LEN / 2)
+#define A001_BIN_LEN (A001_LEN / 2)
+#define A003_BIN_LEN (A003_LEN / 2)
+#define A004_BIN_LEN (A004_LEN / 2)
+#define KEY_BIN_LEN (KEY_SIZE / 2)
+#define PIN_BIN_LEN (PIN_SIZE / 2)
+#define SMSC_BIN_LEN (SMSC_LEN / 2)
+#define SMSP_BIN_LEN (SMSP_LEN / 2)
+#define A003_BIN_RECORD_SIZE (A003_BIN_LEN / 3)
+#define PIN_BIN_OFFSET (PIN_OFFSET / 2)
+#define PUK_BIN_OFFSET (PUK_OFFSET / 2)
+#define A004_BIN_HEADER_SIZE (A004_HEADER_SIZE / 2)
+#define A004_BIN_RECORD_SIZE (A004_BIN_HEADER_SIZE + 2 * KEY_BIN_LEN)
+#define SMSC_BIN_OFFSET (SMSC_OFFSET / 2)
 
 #define IMSI_TAG 0x01
 #define ICCID_TAG 0x02
@@ -37,27 +72,56 @@
 #define PUK_TAG 0x0b
 #define SMSC_TAG 0x0c
 
+/* Bit for a field tag (IMSI_TAG..SMSC_TAG) in struct ss_profile.tags */
+#define SS_TAG_BIT(tag) ((uint16_t)(1u << (tag)))
+
 /* Records that describe the profile rather than carry a field live at the top of
  * the tag range: 0x01..0xef is profile data, 0xf0..0xff is structural. */
 #define CRC32_TAG 0xFE
 #define END_TAG 0xFF
 
-// Onomondo SoftSIM Profile Struct
+/* Return values of ss_profile_from_string(). The numbers are fixed: callers log
+ * them and tests check them (the nRF port reports 18 and 19 as a CRC failure). */
+enum ss_profile_err {
+	SS_PROFILE_OK = 0,
+	SS_PROFILE_ERR_MALFORMED = 1, /* too short, a record runs past the end, or a CRC record covers nothing */
+	SS_PROFILE_ERR_NOT_HEX = 3, /* a character that is not a hex digit */
+	SS_PROFILE_ERR_IMSI = 10, /* IMSI record of the wrong length, or its length byte not 1..8 */
+	SS_PROFILE_ERR_ICCID = 11, /* ICCID record of the wrong length */
+	SS_PROFILE_ERR_OPC = 12, /* OPc record of the wrong length */
+	SS_PROFILE_ERR_KI = 13, /* Ki record of the wrong length */
+	SS_PROFILE_ERR_KIC = 14, /* KIC record of the wrong length */
+	SS_PROFILE_ERR_KID = 15, /* KID record of the wrong length */
+	SS_PROFILE_ERR_SMSP = 16, /* SMSP record of the wrong length */
+	SS_PROFILE_ERR_SMSC = 17, /* SMSC record of the wrong length */
+	SS_PROFILE_ERR_CRC_LEN = 18, /* CRC32 record of the wrong length */
+	SS_PROFILE_ERR_CRC = 19, /* CRC32 does not match the profile */
+	SS_PROFILE_ERR_PIN = 20, /* PIN, PUK or ADM value no PIN code file record can hold */
+};
+
+/* Onomondo SoftSIM Profile Struct
+ *
+ * One field per profile record, as hex characters. A profile patches fields: the
+ * provisioning writer puts each field the profile carried at its place in its EF
+ * (see the EF layout above) and leaves everything else in the EF as it is. Which
+ * fields were carried is in tags; ask with ss_profile_has_tag().
+ *
+ * A platform may edit the struct between decoding and writing, e.g. replace a key
+ * with a reference to where it really lives. */
 struct ss_profile {
-	uint8_t _3F00_2FE2[ICCID_LEN];
-	uint8_t _3F00_7ff0_6f07[IMSI_LEN];
-	uint8_t _3F00_A001[A001_LEN];
-	uint8_t _3F00_A004[A004_LEN];
-	uint8_t _3F00_A003[A003_LEN];
-	uint8_t SMSP[SMSP_RECORD_SIZE * 2]; /* stored as hex characters in the profile (2 chars per byte) */
-	uint8_t SMSC[SMSC_LEN];
-	uint8_t k[16];
-	uint8_t kid[16];
-	uint8_t kic[16];
-	/* Set when the profile carried a PIN, PUK or ADM value. The PIN code file
-	 * holds state the card maintains, so it is written only for a profile that
-	 * has something to put in it. */
-	uint8_t pin_present;
+	uint8_t iccid[ICCID_LEN]; /* EF.ICCID */
+	uint8_t imsi[IMSI_LEN]; /* EF.IMSI */
+	uint8_t ki[KEY_SIZE]; /* A001 */
+	uint8_t opc[KEY_SIZE]; /* A001 */
+	uint8_t kic[KEY_SIZE]; /* A004 record 1 */
+	uint8_t kid[KEY_SIZE]; /* A004 record 1 */
+	uint8_t smsp[SMSP_LEN]; /* EF.SMSP record 1 */
+	uint8_t smsc[SMSC_LEN]; /* inside EF.SMSP record 1 */
+	uint8_t pin1[PIN_SIZE]; /* A003 record 1, padded with 'f' */
+	uint8_t pin2[PIN_SIZE]; /* A003 record 2 */
+	uint8_t adm[PIN_SIZE]; /* A003 record 3 */
+	uint8_t puk[PIN_SIZE]; /* A003 records 1 and 2 */
+	uint16_t tags; /* which field tags the profile carried */
 };
 
 /* Onomondo SoftSIM Profile Decoder
@@ -67,6 +131,7 @@ struct ss_profile {
  *
  * For future compatibility we use TLV encoding for the profile
  * I.e. TAG | LEN | DATA[LEN] || TAG | LEN | DATA[LEN] || TAG | LEN | DATA[LEN] || ...
+ * TAG and LEN are two hex characters each, DATA is LEN hex characters.
  *
  * Maximum length of the tlv encoded hex string, in characters, with all 13 value
  * carrying records present (an END record would add 4 more):
@@ -84,21 +149,28 @@ struct ss_profile {
  * integrity when present; its absence proves nothing. */
 
 /** Parse an TLV encoded string and get back the decoded struct.
- *  This decoder is made specifically to fit the Onomondo SoftSIM
- *  CLI tools decrypted output format.
- *  
+ *
+ *  The decoder reports what the profile carries and does not judge whether that is
+ *  enough to provision; see ss_profile_has_required_tags(). A field without a tag
+ *  is left zeroed. A PIN, PUK or ADM value is stored as the 16 hex characters of
+ *  its 8 byte record field.
+ *
  *  \param[in] len the length of the profile string.
  *  \param[in] input_string a pointer to the input data source of the profile,
  *             at least len characters long.
  *  \param[out] profile a pointer to the receiving profile struct. On any error
  *              return it is cleared, so a partly decoded profile never leaves
  *              key material behind.
- *  \returns return 0 if valid profile is decoded. error code otherwise: 1 for a
- *  malformed blob, 10..17 for a tag of the wrong length, 18 for a CRC record of
- *  the wrong length, 19 for a CRC that does not match the profile and 20 for a
- *  PIN, PUK or ADM value no PIN code file record can hold.
+ *  \returns SS_PROFILE_OK, or an enum ss_profile_err value.
  */
 uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile);
+
+/** Whether the profile carried a record with this field tag (IMSI_TAG..SMSC_TAG). */
+bool ss_profile_has_tag(const struct ss_profile *profile, uint8_t tag);
+
+/** Whether the profile carried every tag provisioning requires: IMSI, ICCID, Ki,
+ *  OPc, KIC and KID. */
+bool ss_profile_has_required_tags(const struct ss_profile *profile);
 
 /** Clear a decoded profile before its memory is released.
  *  ss_profile_from_string() already clears on error; call this once the profile
@@ -117,3 +189,7 @@ void ss_profile_wipe(struct ss_profile *profile);
  *  \param[in] len number of characters.
  *  \returns the CRC32 of data. */
 uint32_t ss_profile_crc32(const char *data, size_t len);
+
+#ifdef __cplusplus
+}
+#endif

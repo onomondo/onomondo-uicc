@@ -28,3 +28,9 @@ Provisioning return value: 0
 OTA key area left unusable
 TEST: Provision a SoftSIM profile into a storage path that does not exist
 Provisioning return value: -1
+TEST: Check whether a SoftSIM profile is provisioned
+Provisioned IMSI reported as provisioned
+Default IMSI reported as not provisioned
+Zeroed IMSI reported as not provisioned
+Short IMSI reported as not provisioned
+Missing IMSI reported as not provisioned
