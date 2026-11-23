@@ -18,7 +18,7 @@ struct ss_fcp_file_descr;
  * the MF (in their .list.previous).
  *
  * When an `ss_file` is created through a "select" operation, all its indirect
- * details (`aid`, `fci`, `fcp_decoded`) are present, both in the file and its
+ * details (`aid`, `fci`) are present, both in the file and its
  * parents. (`fcp_file_descr` is always present).
  *
  * The `access` property is not populated in "select" operations, but through
@@ -37,8 +37,11 @@ struct ss_file {
 	                     * This is the full data sent in response to SELECT
 	                     * calls; while ISO-IEC 7816-4 allows different
 	                     * information in here (eg. FMD), TS 102 221 usually only
-	                     * expects FCP data here. */
-	struct ss_list *fcp_decoded; /* The decoded form of the FCP that is part of the file control information */
+	                     * expects FCP data here.
+	                     * Invariant: well formed (ss_fcp_normalize()). Checked when
+	                     * the file is loaded (ss_fs_select()); ss_fcp_add_ie() and
+	                     * in-place patches keep it. Any new code that assigns fci
+	                     * must validate first. */
 	struct ss_fcp_file_descr *fcp_file_descr;
 	struct ss_list *access; /**< The access rule governing file operations for
 	                         * the SE that selected the file (or general access if

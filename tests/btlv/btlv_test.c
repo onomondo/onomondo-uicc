@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <onomondo/softsim/log.h>
 #include <onomondo/softsim/mem.h>
 #include <onomondo/softsim/utils.h>
@@ -339,6 +340,109 @@ static void ss_btlv_decode_noise_test(void)
 	ss_btlv_free(decoded);
 }
 
+struct parse_hdr_case {
+	const char *name;
+	const char *hex;
+	int expected_rc;
+	uint32_t expected_tag;
+	size_t len;
+	size_t total_len;
+};
+
+static const struct parse_hdr_case parse_hdr_cases[] = {
+	/* name                         hex                        expected_rc       tag      vlen  total */
+	{ "short length", "82027821", 0, 0x82, 2, 4 },
+	{ "two-byte tag", "5f2001aa", 0, 0x5f20, 1, 4 },
+	{ "three-byte tag", "7f810501aa", 0, 0x7f8105, 1, 5 },
+	{ "empty input", "", -EINVAL },
+	{ "tag cut off", "5f", -EINVAL },
+	{ "length byte missing", "82", -EINVAL },
+	{ "long length cut off", "828201", -EINVAL },
+	{ "indefinite length 80", "8280", -EINVAL },
+	{ "too many length bytes", "828500000000010000", -EINVAL },
+	{ "value longer than buffer", "82050102", -EINVAL },
+	{ "huge length, no overflow", "8284ffffffff00", -EINVAL },
+};
+
+/* Aborts via assert() on the first failing test case */
+static void ss_btlv_parse_hdr_test(void)
+{
+	size_t i;
+
+	for (i = 0; i < SS_ARRAY_SIZE(parse_hdr_cases); i++) {
+		const struct parse_hdr_case *c = &parse_hdr_cases[i];
+		struct ss_buf *in = ss_buf_from_hexstr((char *)c->hex);
+		struct ber_tlv_hdr hdr;
+		int rc;
+
+		/* name the case up front, assert() itself only prints the failed expression */
+		fprintf(stderr, "TEST: parse_hdr: %s\n", c->name);
+
+		/* call function under test */
+		rc = ss_btlv_parse_hdr(&hdr, in->data, in->len);
+
+		/* check if function result matches the expected rc */
+		assert(rc == c->expected_rc);
+
+		if (rc == 0) {
+			/* correct rc, check tag and length values */
+			assert(hdr.tag_encoded == c->expected_tag);
+			assert(hdr.value_len == c->len);
+			assert(hdr.total_len == c->total_len);
+		}
+
+		ss_buf_free(in);
+	}
+}
+
+/* Accept cases whose value is too long for a hex literal: the input is the
+ * header followed by value_len bytes. */
+struct parse_hdr_long_case {
+	const char *name;
+	const char *hdr_hex;
+	size_t value_len;
+	size_t total_len;
+};
+
+static const struct parse_hdr_long_case parse_hdr_long_cases[] = {
+	{ "zero length", "8200", 0, 2 }, /* short form, lower end */
+	{ "short length 127", "827f", 127, 129 }, /* short form, upper end */
+	{ "81 form, 128", "828180", 128, 131 }, /* first value that needs 81 */
+	{ "81 form, 255", "8281ff", 255, 258 }, /* largest 81 value */
+	{ "82 form, 256", "82820100", 256, 260 }, /* first value that needs 82 */
+};
+
+/* Aborts via assert() on the first failing test case */
+static void ss_btlv_parse_hdr_long_test(void)
+{
+	uint8_t buf[300];
+	size_t i;
+
+	for (i = 0; i < SS_ARRAY_SIZE(parse_hdr_long_cases); i++) {
+		const struct parse_hdr_long_case *c = &parse_hdr_long_cases[i];
+		struct ss_buf *hdr_bin = ss_buf_from_hexstr((char *)c->hdr_hex);
+		size_t len = hdr_bin->len + c->value_len;
+		struct ber_tlv_hdr hdr;
+
+		fprintf(stderr, "TEST: parse_hdr: %s\n", c->name);
+
+		memset(buf, 0xaa, sizeof(buf));
+		memcpy(buf, hdr_bin->data, hdr_bin->len);
+
+		assert(ss_btlv_parse_hdr(&hdr, buf, len) == 0);
+		assert(hdr.tag_encoded == 0x82);
+		assert(hdr.value_len == c->value_len);
+		assert(hdr.total_len == c->total_len);
+		assert(hdr.value == buf + hdr_bin->len);
+
+		/* one byte less and the value no longer fits */
+		if (c->value_len > 0)
+			assert(ss_btlv_parse_hdr(&hdr, buf, len - 1) == -EINVAL);
+
+		ss_buf_free(hdr_bin);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	ss_btlv_decode_test_realistic();
@@ -346,5 +450,7 @@ int main(int argc, char **argv)
 	ss_btlv_encode_test_realistic();
 	ss_btlv_encode_decode_test();
 	ss_btlv_decode_noise_test();
+	ss_btlv_parse_hdr_test();
+	ss_btlv_parse_hdr_long_test();
 	return 0;
 }

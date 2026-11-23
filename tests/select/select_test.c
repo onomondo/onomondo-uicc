@@ -124,6 +124,13 @@ int main(void)
 	step(ctx, "select by an unknown AID", "00a4040408a000000087100200", 0x6a88);
 	step_data(ctx, "select by a right truncated AID", "00a4040407a0000000871002", 0x9000, ADF_FCP);
 
+	/* An AID longer than the application's DF name matches no application.
+	 * With an EF under the ADF selected, the lookup walks up to the ADF and
+	 * compares its DF name. The extra byte '8a' is the tag that follows the
+	 * DF name in the FCP, so a comparison over Lc bytes reads past the DF
+	 * name and finds a match. */
+	step(ctx, "select EF.IMSI under the ADF", "00a4000c026f07", 0x9000);
+	step(ctx, "select by an AID longer than the DF name", "00a4040411" AID "8a", 0x6a88);
 	/* 6.9.1.2: STATUS reports the current directory, and keeps reporting
 	 * the application when an EF under it is selected. */
 	ss_reset(ctx);
