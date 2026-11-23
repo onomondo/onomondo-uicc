@@ -231,6 +231,21 @@ int ss_fs_select(struct ss_list *path, uint32_t fid)
 	return 0;
 }
 
+/*! Delete a file in the DF at the tip of the path without selecting it.
+ *  Cleanup for a file that was created but cannot be selected.
+ *  \param[inout] path path to the parent DF; unchanged on return.
+ *  \param[in] fid file ID of the file to delete.
+ *  \returns 0 on success, -EINVAL on failure. */
+int ss_fs_delete_child(struct ss_list *path, uint32_t fid)
+{
+	int rc;
+
+	path_add(path, fid);
+	rc = ss_storage_delete(path);
+	ss_fs_select_parent(path);
+	return rc;
+}
+
 /*! Read record from file (tip of the path).
  *  \param[in] path path to the file to be read.
  *  \param[in] record_no number of the record to be read.
