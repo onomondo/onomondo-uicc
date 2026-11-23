@@ -96,9 +96,7 @@ int ss_uicc_cat_cmd_term_profile(struct ss_apdu *apdu)
 	if (apdu->lc <= sizeof(apdu->ctx->proactive.term_profile)) {
 		term_profile_len = apdu->lc;
 	} else {
-		/* Note: the buffer size is chosen large enough, so that this
-		 * error should never occur. */
-		SS_LOGP(SPROACT, LERROR, "transmitted TERMINAL PROFILE too large for internal buffer\n");
+		/* Drop the RFU bytes past the ones ETSI defines */
 		term_profile_len = sizeof(apdu->ctx->proactive.term_profile);
 	}
 	memcpy(apdu->ctx->proactive.term_profile, apdu->cmd, term_profile_len);
