@@ -165,6 +165,36 @@ static void ss_btlv_decode_test_realistic(void)
 	ss_btlv_free(decoded);
 }
 
+/* Padding inside a template marks it, at any depth; padding after it does not. */
+static void ss_btlv_decode_padding_test(void)
+{
+	const struct {
+		const char *hex;
+		bool padded;
+	} cases[] = {
+		{ "6208800100a503c00140", false }, /* no padding */
+		{ "6208800100a503c00140ffff", false }, /* 'FF FF' after the template */
+		{ "620a800100a503c00140ffff", true }, /* 'FF FF' at its end */
+		{ "620a800100a503c001400000", true }, /* '00 00' at its end */
+		{ "620a800100ffffa503c00140", true }, /* 'FF FF' between two objects */
+		{ "620a800100a505c00140ffff", true }, /* 'FF FF' in a nested template */
+		{ "6209800100a504c0014000", true }, /* lone '00' in a nested template: undecodable */
+	};
+	uint8_t encoded[16];
+	size_t len;
+	struct ss_list *decoded;
+	struct ber_tlv_ie *ie;
+	size_t i;
+
+	for (i = 0; i < SS_ARRAY_SIZE(cases); i++) {
+		len = ss_binary_from_hexstr(encoded, sizeof(encoded), cases[i].hex);
+		decoded = ss_btlv_decode(encoded, len, NULL);
+		ie = ss_btlv_get_ie(decoded, TS_102_221_IEI_FCP_TMPL);
+		assert(ie && ie->padded == cases[i].padded);
+		ss_btlv_free(decoded);
+	}
+}
+
 /* Build up a BER-TLV linked list tree and encode it. The encoded result must
  * match a sample that has been taken from a real usim-card. */
 static void ss_btlv_encode_test_realistic(void)
@@ -312,6 +342,7 @@ static void ss_btlv_decode_noise_test(void)
 int main(int argc, char **argv)
 {
 	ss_btlv_decode_test_realistic();
+	ss_btlv_decode_padding_test();
 	ss_btlv_encode_test_realistic();
 	ss_btlv_encode_decode_test();
 	ss_btlv_decode_noise_test();

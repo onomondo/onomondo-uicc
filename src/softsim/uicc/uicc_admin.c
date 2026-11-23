@@ -251,8 +251,8 @@ int ss_uicc_admin_cmd_create_file(struct ss_apdu *apdu)
 
 	/* Extract fid */
 	fcp_tmpl_ie = ss_btlv_get_ie(fcp_decoded, TS_102_221_IEI_FCP_TMPL);
-	if (!fcp_tmpl_ie) {
-		SS_LOGP(SADMIN, LERROR, "missing FCP template -- cannot create file\n");
+	if (!fcp_tmpl_ie || fcp_tmpl_ie->padded) {
+		SS_LOGP(SADMIN, LERROR, "missing or padded FCP template -- cannot create file\n");
 		goto err_inval;
 	}
 

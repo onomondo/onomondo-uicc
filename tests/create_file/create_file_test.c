@@ -21,6 +21,7 @@
 #include <onomondo/softsim/file.h>
 #include <onomondo/softsim/list.h>
 #include <onomondo/softsim/mem.h>
+#include <onomondo/softsim/softsim.h>
 #include <onomondo/softsim/storage.h>
 #include <onomondo/softsim/utils.h>
 #include "src/softsim/uicc/fs.h"
@@ -37,6 +38,9 @@ extern uint32_t ss_log_mask;
 #define DF_FCP "62008202782183027f998a01058b032f060fc60990012083010183010a"
 #define EF_FCP "62008202412183026f018a01058b036f060580020004"
 #define SUB_DF_FCP "62008202782183025f018a01058b032f060fc60990012083010183010a"
+
+/* Transparent EF 2F70 under the MF, 4 bytes, no SFI (22 bytes, '62' header added per case) */
+#define EF2F70_FCP "8202412183022f708a01058b032f0610800200048800"
 
 static int create(struct ss_list *path, const char *fcp_hex)
 {
@@ -125,6 +129,34 @@ static void create_select_fail_cleanup(struct ss_list *path, const char *name, u
 	assert(ss_fs_select(path, FID_DF) == 0);
 }
 
+static uint16_t transact(struct ss_context *ctx, const char *hex)
+{
+	uint8_t cmd[300];
+	uint8_t rsp[300];
+	size_t cmd_len = ss_binary_from_hexstr(cmd, sizeof(cmd), hex);
+	size_t rsp_len = ss_application_apdu_transact(ctx, rsp, sizeof(rsp), cmd, &cmd_len);
+
+	assert(rsp_len >= 2);
+	return (uint16_t)((rsp[rsp_len - 2] << 8) | rsp[rsp_len - 1]);
+}
+
+/* CREATE FILE checks the template before access, so no ADM is needed: padding inside it is
+ * refused with 6A80, and the same template without padding reaches the access check (69xx). */
+static void create_padded_template(void)
+{
+	struct ss_context *ctx;
+
+	fprintf(stderr, "TEST: padded template refused\n");
+
+	ctx = ss_new_ctx();
+	ss_reset(ctx);
+
+	assert(transact(ctx, "00e000001a6218" EF2F70_FCP "ffff") == 0x6a80);
+	assert(transact(ctx, "00e00000186216" EF2F70_FCP) >> 8 == 0x69);
+
+	ss_free_ctx(ctx);
+}
+
 int main(void)
 {
 	struct ss_list path;
@@ -145,6 +177,8 @@ int main(void)
 	assert(ss_get_file_from_path(&path)->fid == FID_DF);
 	assert(ss_storage_delete(&path) == 0);
 	ss_path_reset(&path);
+
+	create_padded_template();
 
 	return 0;
 }
