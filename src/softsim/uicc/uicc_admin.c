@@ -313,7 +313,7 @@ int ss_uicc_admin_cmd_create_file(struct ss_apdu *apdu)
 	 * reloaded and properly parsed. */
 	rc = ss_fs_select(&apdu->lchan->fs_path, fid);
 	if (rc < 0) {
-		ss_storage_delete(&apdu->lchan->fs_path);
+		ss_fs_delete_child(&apdu->lchan->fs_path, fid);
 		return SS_SW_ERR_EXEC_MEMORY_PROBLEM;
 	}
 
