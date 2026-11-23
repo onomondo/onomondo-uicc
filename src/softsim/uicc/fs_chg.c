@@ -71,7 +71,8 @@ static int pack_path(uint8_t result[SS_FS_CHG_PATH_MAXLEN], const struct ss_list
 		uint16_t fid = path_cursor->fid;
 
 		/* The ADF (the DF with a DF name) is listed as '7FFF' */
-		if (ss_btlv_get_ie(path_cursor->fcp_decoded, TS_102_221_IEI_FCP_DF_NAME))
+		struct ss_buf df_name;
+		if (ss_fcp_get_tag_min_len(path_cursor->fci, TS_102_221_IEI_FCP_DF_NAME, 0, &df_name) == 0)
 			fid = 0x7FFF;
 
 		/* Record path */
