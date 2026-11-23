@@ -16,7 +16,8 @@ enum ss_uicc_refresh_states {
 };
 
 struct ss_uicc_refresh_state {
-	uint8_t filelist[SS_FS_CHG_BUF_SIZE];
+	/* Snapshot of the file changes, allocated while a REFRESH is pending */
+	uint8_t *filelist;
 	enum ss_uicc_refresh_states state;
 	unsigned int retry_counter;
 	/* A remote command changed EF.IMSI: the location files are reset when

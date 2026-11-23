@@ -26,6 +26,12 @@
 #define MODE_FILE_CHANGE_NOTIFICATION 0x01
 #define MODE_UICC_RESET 0x04
 
+static void drop_filelist(struct ss_uicc_refresh_state *state)
+{
+	SS_FREE(state->filelist);
+	state->filelist = NULL;
+}
+
 static void term_response_cb(struct ss_context *ctx, uint8_t *resp_data, uint8_t resp_data_len)
 {
 	struct ss_uicc_refresh_state *state = &ctx->proactive.refresh_state;
@@ -43,10 +49,12 @@ static void term_response_cb(struct ss_context *ctx, uint8_t *resp_data, uint8_t
 		SS_LOGP(SREFRESH, LERROR, "unsuccessful REFRESH command, giving up...\n");
 		state->state = SS_REFRESH_READY;
 		state->retry_counter = 0;
+		drop_filelist(state);
 	} else {
 		SS_LOGP(SREFRESH, LDEBUG, "successful REFRESH command, done!\n");
 		state->state = SS_REFRESH_READY;
 		state->retry_counter = 0;
+		drop_filelist(state);
 	}
 }
 
@@ -89,6 +97,9 @@ void ss_uicc_refresh_session_end(struct ss_context *ctx)
 	struct ss_list path;
 	size_t i;
 	int rc;
+
+	/* A REFRESH still pending is moot once the session ends */
+	drop_filelist(state);
 
 	/* An EF.IMSI change still waiting for its REFRESH is owed the reset too */
 	if (!ctx->fs_chg_is_borrowed && imsi_changed(ctx->fs_chg_filelist, ss_fs_chg_len(ctx->fs_chg_filelist)))
@@ -208,6 +219,11 @@ void ss_uicc_refresh_poll(struct ss_context *ctx)
 		}
 		SS_LOGP(SREFRESH, LDEBUG, "following file changes will be refreshed:\n");
 		ss_fs_chg_dump(ctx->fs_chg_filelist, 2, SREFRESH, LDEBUG);
+		state->filelist = SS_ALLOC_N(SS_FS_CHG_BUF_SIZE);
+		if (!state->filelist) {
+			SS_LOGP(SREFRESH, LERROR, "cannot snapshot the file changes, retrying...\n");
+			return;
+		}
 		memcpy(state->filelist, ctx->fs_chg_filelist, SS_FS_CHG_BUF_SIZE);
 		ctx->fs_chg_filelist[0] = 0;
 		state->state = SS_REFRESH_PENDING;
@@ -224,6 +240,7 @@ void ss_uicc_refresh_poll(struct ss_context *ctx)
 			 * should always be fine. */
 			SS_LOGP(SREFRESH, LERROR, "cannot send REFRESH, data is not accepted, giving up...\n");
 			state->state = SS_REFRESH_READY;
+			drop_filelist(state);
 			return;
 		}
 		SS_LOGP(SREFRESH, LDEBUG, "REFRESH command sent!\n");

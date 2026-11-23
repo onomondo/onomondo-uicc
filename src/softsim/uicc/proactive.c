@@ -248,13 +248,16 @@ int ss_proactive_put(struct ss_context *ctx, term_resp_cb term_resp_cb, const ui
 	ss_list_init(proact_cmd);
 	ss_btlv_new_ie(proact_cmd, "proactive-command", TS_101_220_IEI_PROACTIVE_CMD, len, data);
 
-	encoded_len = ss_btlv_encode(ctx->proactive.data, sizeof(ctx->proactive.data), proact_cmd);
+	ctx->proactive.data = ss_btlv_encode_to_ss_buf(proact_cmd);
 	ss_btlv_free(proact_cmd);
+	encoded_len = ctx->proactive.data->len;
 
 	/* '91 XX' announces the length in one byte (ETSI TS 102 221, 10.2.1.1):
 	 * refuse a command no FETCH could return and keep the slot free. */
 	if (encoded_len == 0 || encoded_len > 0xff) {
 		SS_LOGP(SPROACT, LERROR, "unable to put data, command does not fit a FETCH response!\n");
+		ss_buf_free(ctx->proactive.data);
+		ctx->proactive.data = NULL;
 		return -EINVAL;
 	}
 
@@ -271,7 +274,8 @@ int ss_proactive_put(struct ss_context *ctx, term_resp_cb term_resp_cb, const ui
  *  \param[inout] ctx softsim context. */
 void ss_proactive_reset(struct ss_context *ctx)
 {
-	memset(ctx->proactive.data, 0, sizeof(ctx->proactive.data));
+	ss_buf_free(ctx->proactive.data);
+	ctx->proactive.data = NULL;
 	ctx->proactive.data_len = 0;
 	ctx->proactive.term_resp_cb = NULL;
 	ctx->proactive.term_resp_poll_ctr = 0;
