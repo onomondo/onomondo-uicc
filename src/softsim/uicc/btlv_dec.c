@@ -21,14 +21,14 @@
  * parameter "bytes_ahead" sets the minimum valid bytes that the caller expects
  * to be available after the buffer pointer (enc) has been advanced. */
 #define CHECK_AND_ADVANCE(inc, bytes_ahead)                                                                    \
-	if (len < bytes_used + inc + bytes_ahead) {                                                            \
+	if ((size_t)(inc) > len - bytes_used || (size_t)(bytes_ahead) > len - bytes_used - (size_t)(inc)) {    \
 		SS_LOGP(SBTLV, LDEBUG,                                                                         \
 			"exceeding buffer bounds: len=%zu, inc=%zu, bytes_ahead=%zu, cannot decode IE\n", len, \
-			(size_t)inc, (size_t)bytes_ahead);                                                     \
+			(size_t)(inc), (size_t)(bytes_ahead));                                                 \
 		return NULL;                                                                                   \
 	}                                                                                                      \
-	bytes_used += inc;                                                                                     \
-	enc += inc
+	bytes_used += (inc);                                                                                   \
+	enc += (inc)
 
 /* Return one decoded information element */
 static struct ber_tlv_ie *decode_ie(size_t *used_len, const uint8_t *enc, size_t len)
@@ -71,7 +71,7 @@ static struct ber_tlv_ie *decode_ie(size_t *used_len, const uint8_t *enc, size_t
 	CHECK_AND_ADVANCE(1, 1);
 
 	/* Decode length field */
-	if (*enc < 0x7f) {
+	if (*enc < 0x80) {
 		ie_len = *enc;
 	} else {
 		len_bytes = *enc & 0x7f;
