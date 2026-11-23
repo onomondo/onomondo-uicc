@@ -74,7 +74,7 @@ static const struct ber_tlv_desc *get_ie_descr(const struct ber_tlv_desc *descr,
  * Padding or undecodable bytes in the string, at any depth, are marked on parent.
  * */
 static struct ss_list *btlv_decode(const uint8_t *enc, size_t len, const struct ber_tlv_desc *descr, uint32_t id_parent,
-				   struct ber_tlv_ie *parent)
+				   struct ber_tlv_ie *parent, unsigned int depth)
 {
 	struct ber_tlv_ie *ie;
 	const struct ber_tlv_desc *ie_descr;
@@ -116,10 +116,14 @@ static struct ss_list *btlv_decode(const uint8_t *enc, size_t len, const struct 
 		 * this function again recursively, but we use the nested
 		 * list of the IE. */
 		if (ie && ie->constr) {
-			if (ie_descr) {
-				ie->nested = btlv_decode(ie->value->data, ie->value->len, descr, ie_descr->id, ie);
+			if (depth + 1 >= SS_BERTLV_MAX_DEPTH) {
+				/* Too deep to decode: any content counts as undecodable */
+				ie->padded = ie->value->len > 0;
+			} else if (ie_descr) {
+				ie->nested = btlv_decode(ie->value->data, ie->value->len, descr, ie_descr->id, ie,
+							 depth + 1);
 			} else {
-				ie->nested = btlv_decode(ie->value->data, ie->value->len, NULL, 0, ie);
+				ie->nested = btlv_decode(ie->value->data, ie->value->len, NULL, 0, ie, depth + 1);
 			}
 			if (ie->padded)
 				parent->padded = true;
@@ -207,5 +211,5 @@ struct ss_list *ss_btlv_decode(const uint8_t *enc, size_t len, const struct ber_
 {
 	struct ber_tlv_ie top = { 0 }; /* top-level padding is not marked */
 
-	return btlv_decode(enc, len, descr, 0, &top);
+	return btlv_decode(enc, len, descr, 0, &top, 0);
 }

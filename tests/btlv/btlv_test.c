@@ -196,6 +196,36 @@ static void ss_btlv_decode_padding_test(void)
 	}
 }
 
+/* SS_BERTLV_MAX_DEPTH levels are decoded; content below them is undecodable. */
+static void ss_btlv_decode_depth_test(void)
+{
+	const struct {
+		size_t templates; /* nested FCP templates ('62') */
+		size_t leaf_len; /* followed by '80 01 2A' (3) or nothing (0) */
+		bool padded;
+	} cases[] = {
+		{ SS_BERTLV_MAX_DEPTH - 1, 3, false }, /* DO on the deepest decoded level */
+		{ SS_BERTLV_MAX_DEPTH, 3, true }, /* DO one level deeper */
+		{ SS_BERTLV_MAX_DEPTH, 0, false }, /* nothing below the deepest level */
+	};
+	uint8_t enc[2 * SS_BERTLV_MAX_DEPTH + 3];
+	struct ss_list *decoded;
+	struct ber_tlv_ie *ie;
+	size_t i, l;
+
+	for (i = 0; i < SS_ARRAY_SIZE(cases); i++) {
+		for (l = 0; l < cases[i].templates; l++) {
+			enc[2 * l] = TS_102_221_IEI_FCP_TMPL;
+			enc[2 * l + 1] = 2 * (cases[i].templates - l - 1) + cases[i].leaf_len;
+		}
+		memcpy(&enc[2 * l], "\x80\x01\x2a", cases[i].leaf_len);
+		decoded = ss_btlv_decode(enc, 2 * l + cases[i].leaf_len, NULL);
+		ie = ss_btlv_get_ie(decoded, TS_102_221_IEI_FCP_TMPL);
+		assert(ie && ie->padded == cases[i].padded);
+		ss_btlv_free(decoded);
+	}
+}
+
 /* Build up a BER-TLV linked list tree and encode it. The encoded result must
  * match a sample that has been taken from a real usim-card. */
 static void ss_btlv_encode_test_realistic(void)
@@ -447,6 +477,7 @@ int main(int argc, char **argv)
 {
 	ss_btlv_decode_test_realistic();
 	ss_btlv_decode_padding_test();
+	ss_btlv_decode_depth_test();
 	ss_btlv_encode_test_realistic();
 	ss_btlv_encode_decode_test();
 	ss_btlv_decode_noise_test();
