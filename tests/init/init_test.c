@@ -191,9 +191,7 @@ static void transact_short_response_buf_test(struct ss_context *ctx)
  * command with no Le byte at all, which is what the nRF91 modem sends.
  *
  * The EF is grown past the buffer for the duration of the case and restored
- * before anything is asserted: an assert aborts, and the build directory's copy
- * of files/ is made once at configure time, so a corrupted file would survive
- * into every later ctest run. */
+ * afterwards. */
 #define BIG_EF_PATH "./files/3f00/7ff0/6f38"
 #define BIG_EF_BYTES 300
 

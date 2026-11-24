@@ -107,7 +107,7 @@ recorded there surface later as a REFRESH proactive command
 ## Testing
 
 **Golden transcripts.** Most suites run a plain-C `main()`, redirect stdout, and
-`cmake -E compare_files --ignore-eol` against a committed `.ok` file. Consequence:
+compare it with `diff` against a committed `.ok` file. Consequence:
 changing log output breaks goldens; the fix is regenerate, review the diff, commit.
 `BUILD_TESTING` changes the build: it adds `log.c` to lib `uicc` and defines
 `CONFIG_USE_LOGS` ([`src/softsim/uicc/CMakeLists.txt`](../src/softsim/uicc/CMakeLists.txt))

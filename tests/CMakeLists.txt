@@ -4,6 +4,29 @@
 # Enable testing for current directory and below.
 enable_testing()
 
+# ss_add_test(<name> [FILES] [STDERR] [NO_OK] [LIBS <lib>...] [SOURCES <src>...]) builds <name>.c and SOURCES
+# and runs it in a fresh <name>.run directory, on a copy of files/ with FILES. Its stdout (plus stderr with
+# STDERR) must match <name>.ok, unless NO_OK.
+function(ss_add_test name)
+	cmake_parse_arguments(ARG "FILES;STDERR;NO_OK" "" "LIBS;SOURCES" ${ARGN})
+	add_executable(${name} ${name}.c ${ARG_SOURCES})
+	target_include_directories(${name} PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/include)
+	target_link_libraries(${name} PRIVATE ${ARG_LIBS})
+	set(cmd "rm -rf ${name}.run && mkdir ${name}.run && cd ${name}.run")
+	if(ARG_FILES)
+		string(APPEND cmd " && cp -R '${PROJECT_SOURCE_DIR}/files' .")
+	endif()
+	string(APPEND cmd " && '$<TARGET_FILE:${name}>' > ${name}.out")
+	if(ARG_STDERR)
+		string(APPEND cmd " 2>&1")
+	endif()
+	string(APPEND cmd " || { cat ${name}.out; exit 1; }")
+	if(NOT ARG_NO_OK)
+		string(APPEND cmd " && diff -u --strip-trailing-cr '${CMAKE_CURRENT_SOURCE_DIR}/${name}.ok' ${name}.out")
+	endif()
+	add_test(NAME ${name} COMMAND sh -c "${cmd}")
+endfunction()
+
 add_subdirectory(access)
 add_subdirectory(access_sw)
 add_subdirectory(apdu)
