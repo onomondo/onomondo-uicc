@@ -50,10 +50,26 @@ static void scrub(void *buf, size_t len)
 		p[i] = 0;
 }
 
+/* The writer builds every EF in hex characters, the layout ss_profile.h
+ * describes. A hex storage backend (storage.c) keeps EFs as that text; the
+ * compact backend (storage_compact.c) keeps the bytes the text spells. Every
+ * offset and length of the binary form is half the hex one, so the conversion
+ * happens here, at the storage boundary, and nowhere else. */
+#ifdef CONFIG_COMPACT_STORAGE
+/* The largest EF this writer reads or writes, in bytes */
+#define EF_BIN_MAX A004_BIN_LEN
+
+/* hex is a pair of characters the writer produced or the parser checked */
+static uint8_t hex_to_uint8(const char *hex)
+{
+	return (uint8_t)((hex[0] % 32 + 9) % 25 * 16 + (hex[1] % 32 + 9) % 25);
+}
+#endif
+
 /*! Read one EF inside storage, whole
  *  \param[in] rel_path path of the EF relative to the storage root
- *  \param[out] data buffer of len bytes
- *  \param[in] len number of bytes to read
+ *  \param[out] data buffer of len hex characters
+ *  \param[in] len number of hex characters to read
  *  \returns 0 on success, -1 if the EF could not be opened, -2 if it was opened
  *  and is shorter than len */
 static int read_ef(const char *rel_path, void *data, size_t len)
@@ -62,27 +78,57 @@ static int read_ef(const char *rel_path, void *data, size_t len)
 	ss_FILE f;
 	size_t got;
 	int path_len;
+	int rc = -2;
+#ifdef CONFIG_COMPACT_STORAGE
+	static const char hex_digits[] = "0123456789abcdef";
+	uint8_t bin[EF_BIN_MAX];
+	char *hex = data;
+	size_t i;
+
+	if (len % 2 || len / 2 > sizeof(bin))
+		return -2;
+#endif
 
 	path_len = snprintf(path, sizeof(path), "%s%s", ss_storage_get_path(), rel_path);
 	if (path_len < 0 || (size_t)path_len >= sizeof(path))
-		return -2;
+		goto exit;
 
 	f = ss_fopen(path, "r");
-	if (!f)
-		return -1;
+	if (!f) {
+		rc = -1;
+		goto exit;
+	}
 
+#ifdef CONFIG_COMPACT_STORAGE
+	got = ss_fread(bin, 1, len / 2, f) * 2;
+#else
 	got = ss_fread(data, 1, len, f);
+#endif
 	ss_fclose(f);
+	if (got != len)
+		goto exit;
 
-	return got == len ? 0 : -2;
+#ifdef CONFIG_COMPACT_STORAGE
+	for (i = 0; i < len / 2; i++) {
+		hex[2 * i] = hex_digits[bin[i] >> 4];
+		hex[2 * i + 1] = hex_digits[bin[i] & 0x0f];
+	}
+#endif
+	rc = 0;
+
+exit:
+#ifdef CONFIG_COMPACT_STORAGE
+	scrub(bin, sizeof(bin)); /* it held a PIN code file */
+#endif
+	return rc;
 }
 
 /*! Write one EF inside storage
  *  \param[in] rel_path path of the EF relative to the storage root
  *  \param[in] mode "w" to replace the EF, "r+" to update it without truncating
- *  \param[in] offset offset to write at
- *  \param[in] data data to write
- *  \param[in] len length of data
+ *  \param[in] offset offset to write at, in hex characters
+ *  \param[in] data hex characters to write
+ *  \param[in] len number of hex characters
  *  \returns 0 on success, -1 if the EF could not be opened, -2 if it was opened
  *  and not written whole */
 static int write_ef(const char *rel_path, char *mode, long offset, const void *data, size_t len)
@@ -91,19 +137,35 @@ static int write_ef(const char *rel_path, char *mode, long offset, const void *d
 	ss_FILE f;
 	size_t wrote;
 	int path_len;
+	int rc = -2;
+#ifdef CONFIG_COMPACT_STORAGE
+	uint8_t bin[EF_BIN_MAX];
+	const char *hex = data;
+	size_t i;
+
+	if (len % 2 || offset % 2 || len / 2 > sizeof(bin))
+		return -2;
+	for (i = 0; i < len / 2; i++)
+		bin[i] = hex_to_uint8(&hex[2 * i]);
+	data = bin;
+	offset /= 2;
+	len /= 2;
+#endif
 
 	path_len = snprintf(path, sizeof(path), "%s%s", ss_storage_get_path(), rel_path);
 	if (path_len < 0 || (size_t)path_len >= sizeof(path))
-		return -2;
+		goto exit;
 
 	/* "r+" does not create the EF, so a template tree missing it lands here. */
 	f = ss_fopen(path, mode);
-	if (!f)
-		return -1;
+	if (!f) {
+		rc = -1;
+		goto exit;
+	}
 
 	if (offset != 0 && ss_fseek(f, offset, SEEK_SET) != 0) {
 		ss_fclose(f);
-		return -2;
+		goto exit;
 	}
 
 	wrote = ss_fwrite(data, 1, len, f);
@@ -112,15 +174,19 @@ static int write_ef(const char *rel_path, char *mode, long offset, const void *d
 	 * different answer than one that was never there. The close carries that too:
 	 * a buffered write reports a full disk there. */
 	if (ss_fclose(f) != 0 || wrote != len)
-		return -2;
+		goto exit;
 
-	return 0;
+	rc = 0;
+
+exit:
+#ifdef CONFIG_COMPACT_STORAGE
+	scrub(bin, sizeof(bin)); /* it held key material */
+#endif
+	return rc;
 }
 
-/*! Write the decoded profile to the SoftSIM filesystem
- *  \param[in] profile Pointer to the decoded SoftSIM profile
- *  \returns 0 on success, -1 on failure */
-static int write_profile_to_fs(const struct ss_profile *profile)
+/* See in ss_provision.h */
+int ss_profile_write_to_fs(const struct ss_profile *profile)
 {
 	uint8_t a001[A001_LEN];
 	uint8_t a003[A003_LEN];
@@ -260,7 +326,7 @@ int onomondo_profile_provisioning(const char *at_profile)
 	if (rc != 0)
 		goto exit;
 
-	rc = write_profile_to_fs(profile);
+	rc = ss_profile_write_to_fs(profile);
 
 exit:
 	/* The struct holds Ki, OPc and the OTA keys; scrub before the allocator
