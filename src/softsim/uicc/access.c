@@ -173,6 +173,10 @@ static uint8_t access_condition_extract(struct ss_list *access_condition)
 	bool usage_qualifier_ok = false;
 	bool unexpected_ie = false;
 
+	/* NULL when the CRT's value could not be decoded: not understood, so deny */
+	if (!access_condition)
+		return 0;
+
 	struct ber_tlv_ie *item;
 	SS_LIST_FOR_EACH(access_condition, item, struct ber_tlv_ie, list) {
 		if (item->tag_encoded == 0x83 && item->value->len == 1) {
