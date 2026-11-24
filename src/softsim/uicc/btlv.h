@@ -13,6 +13,11 @@
 
 #define SS_BERTLV_MAX_LEN_BYTES 4
 
+/* Deepest nesting decoded: an FCP with expanded security attributes,
+ * '62' > 'AB' > 'A0' > 'A4' > '83' (TS 102 221 Annex E.3.4). Deeper content
+ * counts as undecodable (.padded). */
+#define SS_BERTLV_MAX_DEPTH 5
+
 enum ber_tlv_cls {
 	BER_TLV_UNIV_CLS,
 	BER_TLV_APPL_CLS,
