@@ -216,8 +216,8 @@ struct ss_proactive_task {
 struct ss_proactive_ctx {
 	/*! proactive SIM enabled (true after TERMINAL PROFILE command is received) */
 	bool enabled;
-	/*! TERMINAL PROFILE data */
-	uint8_t term_profile[256];
+	/*! TERMINAL PROFILE: the 39 bytes ETSI TS 102 223 V18.3.0 defines; later ones are RFU */
+	uint8_t term_profile[39];
 	/*! data to be fetched by FETCH command */
 	uint8_t data[256];
 	/*! length of data to be fetched by FETCH command */
