@@ -166,6 +166,7 @@ static const struct populate_case populate_cases[] = {
 	{ "data after padding", "8001019000ff12ffffffffffffffffff", false },
 	{ "length past the record", "80010190008001019000800501020304", false },
 	{ "truncated header", "80010190009000900090009000900080", false },
+	{ "FF-tagged element", "80010190008001029700ff0100ffffff", false },
 };
 
 static void write_text(const char *path, const char *text)

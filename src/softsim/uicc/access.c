@@ -84,9 +84,6 @@ enum arr_next_rc {
  * \param[inout] pos Offset of the next element; start with 0. Advanced past
  *   the element on ARR_NEXT_OK.
  * \param[out] ie Header of the element; ie->value points into \p data.
- *
- * Trailing 0xFF bytes (EF.ARR records are padded to the record length) end
- * the iteration, mirroring the tolerance of \ref ss_btlv_decode.
  */
 static enum arr_next_rc arr_next(const uint8_t *data, size_t len, size_t *pos, struct ber_tlv_hdr *ie)
 {
@@ -95,12 +92,12 @@ static enum arr_next_rc arr_next(const uint8_t *data, size_t len, size_t *pos, s
 	if (*pos >= len)
 		return ARR_NEXT_END;
 
-	if (ss_btlv_parse_hdr(ie, data + *pos, len - *pos) == 0) {
+	if (data[*pos] != 0xff && ss_btlv_parse_hdr(ie, data + *pos, len - *pos) == 0) {
 		*pos += ie->total_len;
 		return ARR_NEXT_OK;
 	}
 
-	/* not an element: only padding may follow */
+	/* not an element: only padding next*/
 	for (i = *pos; i < len; i++) {
 		if (data[i] != 0xff)
 			return ARR_NEXT_MALFORMED;
