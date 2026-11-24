@@ -6,3 +6,4 @@ c) GET RESPONSE repeated: 6f00
 d) GET RESPONSE after STATUS without data: 6f00
 e) GET RESPONSE after an intervening command: 6f00
 f) GET RESPONSE after 6Cxx and an intervening command: 6f00
+g) GET RESPONSE after a command on a closed lchan: 6f00

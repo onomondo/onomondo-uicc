@@ -19,6 +19,7 @@ extern uint32_t ss_log_mask;
  * Read-only: nothing here writes to files/. */
 #define SELECT_MF_FCP "00a40004023f00"
 #define STATUS_NO_DATA "80f2000c00"
+#define STATUS_LCHAN_1 "81f2000c00"
 
 static uint8_t resp[300];
 static size_t resp_len;
@@ -106,6 +107,15 @@ int main(void)
 	assert(sw == 0x9000);
 	sw = get_response(ctx, xx);
 	printf("f) GET RESPONSE after 6Cxx and an intervening command: %04x\n", sw);
+	assert(sw == 0x6f00);
+
+	sw = transact(ctx, SELECT_MF_FCP);
+	assert((sw >> 8) == 0x61);
+	xx = sw & 0xff;
+	sw = transact(ctx, STATUS_LCHAN_1);
+	assert(sw == 0x6881);
+	sw = get_response(ctx, xx);
+	printf("g) GET RESPONSE after a command on a closed lchan: %04x\n", sw);
 	assert(sw == 0x6f00);
 
 	ss_free_ctx(ctx);
