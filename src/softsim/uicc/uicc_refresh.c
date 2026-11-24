@@ -100,6 +100,7 @@ void ss_uicc_refresh_session_end(struct ss_context *ctx)
 
 	/* A REFRESH still pending is moot once the session ends */
 	drop_filelist(state);
+	state->state = SS_REFRESH_READY;
 
 	/* An EF.IMSI change still waiting for its REFRESH is owed the reset too */
 	if (!ctx->fs_chg_is_borrowed && imsi_changed(ctx->fs_chg_filelist, ss_fs_chg_len(ctx->fs_chg_filelist)))
