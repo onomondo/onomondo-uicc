@@ -58,7 +58,7 @@ static void rfm_clear_fplmn(struct ss_context *ctx)
 	assert(rctx);
 	ss_reset(rctx);
 	ss_fs_select(&rctx->lchan.fs_path, 0x7ff0);
-	rctx->lchan.pin_verfied[SS_PIN_ADM1] = true;
+	ss_uicc_lchan_pin_set(&rctx->lchan, SS_PIN_ADM1);
 	for (i = 0; i < SS_ARRAY_SIZE(cmds); i++) {
 		uint8_t cmd[64];
 		size_t w;

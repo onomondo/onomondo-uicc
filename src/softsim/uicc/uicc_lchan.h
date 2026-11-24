@@ -18,11 +18,9 @@ struct ss_lchan {
 	/* Number of the lchan */
 	uint8_t nr;
 
-	/* Note: This flag field must not be read accessed directly. In order to
-	 * check PIN permission, the API functions in module uicc_pin.c must
-	 * be used. It may be written to if a PIN is implicitly provided for an
-	 * lchan, eg. in setup_ctx_from_tar. */
-	bool pin_verfied[256];
+	/* Verified PINs, one bit for each of the 256 one-byte key references (TS 102 221 table 9.3).
+	 * Access only through ss_uicc_lchan_pin_set()/ss_uicc_lchan_pin_bit() below. */
+	uint8_t pin_verified[32];
 
 	/* Currently selected file (can be an EF, DF or ADF) */
 	struct ss_list fs_path;
@@ -38,6 +36,18 @@ struct ss_lchan {
 	/* Path to currently active (last selected) ADF */
 	struct ss_list adf_path;
 };
+
+/*! Mark key reference ref verified: bit ref % 8 of byte ref / 8. */
+static inline void ss_uicc_lchan_pin_set(struct ss_lchan *lchan, uint8_t ref)
+{
+	lchan->pin_verified[ref / 8] |= 1 << (ref % 8);
+}
+
+/*! Raw bit of key reference ref; it ignores PIN enable state, so access checks use ss_uicc_pin_verified(). */
+static inline bool ss_uicc_lchan_pin_bit(const struct ss_lchan *lchan, uint8_t ref)
+{
+	return (lchan->pin_verified[ref / 8] >> (ref % 8)) & 1;
+}
 
 void ss_uicc_lchan_dump(const struct ss_lchan *lchan);
 void ss_uicc_lchan_free(struct ss_context *ctx);

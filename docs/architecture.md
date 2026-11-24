@@ -32,7 +32,7 @@ One [`struct ss_context`](../src/softsim/uicc/context.h) per card:
 ```
 ss_context
 ├── lchan: ss_lchan                the one and only logical channel (uicc_lchan.h)
-│   ├── pin_verfied[256]           indexed by key reference; the typo is the field name.
+│   ├── pin_verified[32]           bitmap indexed by key reference.
 │   │                              Read only through uicc_pin.c; setup_ctx_from_tar is
 │   │                              the one sanctioned direct writer.
 │   ├── fs_path                    selected path as a list of ss_file, MF first
