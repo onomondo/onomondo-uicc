@@ -44,7 +44,7 @@ static void file_free(struct ss_file *file)
 		return;
 	ss_buf_free(file->fci);
 	SS_FREE(file->fcp_file_descr);
-	ss_btlv_free(file->access);
+	ss_buf_free(file->access);
 	SS_FREE(file);
 }
 
