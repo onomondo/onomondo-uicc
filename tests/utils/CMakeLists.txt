@@ -60,4 +60,28 @@ if(TARGET utils)
 			${CMAKE_CURRENT_BINARY_DIR}/profile_provision_test.out
 			${CMAKE_CURRENT_SOURCE_DIR}/profile_provision_test.ok
 	)
+
+	# Provisioning against the compact (binary) storage backend. Like
+	# tests/storage_compact, the backend is compiled in directly, together with
+	# the profile utils built for it, since the storage and utils libraries of
+	# this configuration are built for the hex backend.
+	add_executable(profile_provision_compact_test profile_provision_compact_test.c
+		${PROJECT_SOURCE_DIR}/utils/ss_profile.c
+		${PROJECT_SOURCE_DIR}/utils/ss_provision.c
+		${PROJECT_SOURCE_DIR}/src/softsim/storage_compact.c
+		${PROJECT_SOURCE_DIR}/src/softsim/fs.c
+	)
+	target_compile_definitions(profile_provision_compact_test PRIVATE CONFIG_COMPACT_STORAGE)
+	target_link_libraries(profile_provision_compact_test uicc)
+
+	add_test(NAME profile_provision_compact_test
+		COMMAND sh -c "$<TARGET_FILE:profile_provision_compact_test> > ${CMAKE_CURRENT_BINARY_DIR}/profile_provision_compact_test.out")
+	set_tests_properties(profile_provision_compact_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+	add_test(NAME profile_provision_compact_test_compare
+		COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol
+			${CMAKE_CURRENT_BINARY_DIR}/profile_provision_compact_test.out
+			${CMAKE_CURRENT_SOURCE_DIR}/profile_provision_compact_test.ok
+	)
+	set_tests_properties(profile_provision_compact_test_compare PROPERTIES DEPENDS profile_provision_compact_test)
 endif(TARGET utils)

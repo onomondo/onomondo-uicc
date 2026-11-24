@@ -1,0 +1,48 @@
+TEST: Provision a full SoftSIM profile into compact storage
+Provisioning return value: 0
+ICCID                          98001032547698103214
+IMSI                           080910101032540636
+A001 Ki                        000102030405060708090a0b0c0d0e0f
+A001 OPc                       aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+A001 flag                      00
+A003 record 1 header kept      0003000a0001
+A003 PIN1                      36383638ffffffff
+A003 PUK record 1              3739373937393739
+A003 PIN2 kept                 31323334ffffffff
+A003 PUK record 2              3739373937393739
+A003 ADM                       8034270253113864
+A004 header                    b00011060101
+A004 KIC                       11111111111111111111111111111111
+A004 KID                       22222222222222222222222222222222
+A004 record 2 erased           ffffffff
+SMSC                           07919408000000f0ffffffff
+TEST: Provision a SoftSIM profile without KIC or KID into compact storage
+Provisioning return value: 0
+A004 erased
+TEST: Provision PINs into compact storage with no PIN code file
+Provisioning return value: 0
+TEST: Provision PINs into compact storage with a short PIN code file
+Provisioning return value: -1
+Short PIN code file left untouched
+TEST: Provision a full SoftSIM profile the nRF91 way: keys in a key store
+Provisioning return value: 0
+A001 Ki slot: reference        04000000000000000000000000000000
+A001 OPc                       aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+A001 flag                      00
+A004 header                    b00011060101
+A004 KIC slot: reference       05000000000000000000000000000000
+A004 KID slot: reference       06000000000000000000000000000000
+ICCID                          98001032547698103214
+IMSI                           080910101032540636
+A003 PIN1                      36383638ffffffff
+Ki, KIC and KID in the key store, in no file
+Key slot references resolve to the stored keys
+TEST: Provision a SoftSIM profile without KIC or KID the nRF91 way
+Provisioning return value: 0
+Stale OTA keys removed from the key store, A004 erased
+TEST: Refuse a SoftSIM profile without OPc the nRF91 way
+Provisioning return value: -1
+Key store and files untouched
+TEST: Provision the nRF91 way into storage that refuses the IMSI
+Provisioning return value: -1
+Ki removed from the key store
