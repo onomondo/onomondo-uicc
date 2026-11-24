@@ -12,6 +12,7 @@ function(ss_add_test name)
 	add_executable(${name} ${name}.c ${ARG_SOURCES})
 	target_include_directories(${name} PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/include)
 	target_link_libraries(${name} PRIVATE ${ARG_LIBS})
+	target_compile_options(${name} PRIVATE -UNDEBUG) # the checks are assert()s
 	set(cmd "rm -rf ${name}.run && mkdir ${name}.run && cd ${name}.run")
 	if(ARG_FILES)
 		string(APPEND cmd " && cp -R '${PROJECT_SOURCE_DIR}/files' .")
