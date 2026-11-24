@@ -157,6 +157,23 @@ static void create_padded_template(void)
 	ss_free_ctx(ctx);
 }
 
+/* A template nested deeper than SS_BERTLV_MAX_DEPTH (5) is refused with 6A80; 5 levels reach
+ * the access check (69xx). The nesting is proprietary information ('A5'). */
+static void create_nested_template(void)
+{
+	struct ss_context *ctx;
+
+	fprintf(stderr, "TEST: too deeply nested template refused\n");
+
+	ctx = ss_new_ctx();
+	ss_reset(ctx);
+
+	assert(transact(ctx, "00e00000226220" EF2F70_FCP "a508a506a504a5028000") == 0x6a80);
+	assert(transact(ctx, "00e0000020621e" EF2F70_FCP "a506a504a5028000") >> 8 == 0x69);
+
+	ss_free_ctx(ctx);
+}
+
 int main(void)
 {
 	struct ss_list path;
@@ -179,6 +196,7 @@ int main(void)
 	ss_path_reset(&path);
 
 	create_padded_template();
+	create_nested_template();
 
 	return 0;
 }

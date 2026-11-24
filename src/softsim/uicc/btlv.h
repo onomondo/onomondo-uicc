@@ -15,11 +15,8 @@
 
 /* Deepest nesting decoded: an FCP with expanded security attributes,
  * '62' > 'AB' > 'A0' > 'A4' > '83' (TS 102 221 Annex E.3.4). Deeper content
- * counts as undecodable (.padded). A port may raise it, at one decoder stack
- * frame per level. */
-#ifndef SS_BERTLV_MAX_DEPTH
+ * counts as undecodable (.padded). */
 #define SS_BERTLV_MAX_DEPTH 5
-#endif
 
 enum ber_tlv_cls {
 	BER_TLV_UNIV_CLS,
