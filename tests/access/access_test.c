@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <onomondo/softsim/utils.h>
 #include <onomondo/softsim/file.h>
 #include <onomondo/softsim/list.h>
@@ -17,6 +18,7 @@
 #include "src/softsim/uicc/apdu.h"
 #include "src/softsim/uicc/btlv.h"
 #include "src/softsim/uicc/fcp.h"
+#include "src/softsim/uicc/fs.h"
 
 extern uint32_t ss_log_mask;
 
@@ -125,7 +127,7 @@ static void access_rule_test(void)
 		ss_list_init(&lchan.fs_path);
 		mf.fid = 0x3f00;
 		mf.fci = fci;
-		mf.access = ss_btlv_decode(rule->data, rule->len, NULL); /* as ss_access_populate() on master */
+		mf.access = rule;
 		ss_list_put(&lchan.fs_path, &mf.list);
 
 		/* call function under test */
@@ -134,9 +136,81 @@ static void access_rule_test(void)
 		/* check if the decision matches the expected one */
 		assert(granted == c->expected_granted);
 
-		ss_btlv_free(mf.access);
 		ss_buf_free(rule);
 		ss_buf_free(fci);
+	}
+}
+
+/* Access rule loading tests: ss_access_populate() against a generated files/
+ * tree in the test's working directory. The MF references record 1 of EF.ARR
+ * 2F06 (linear fixed, 2 records of 16 bytes). Malformed records must not be
+ * stored (access stays NULL, i.e. deny all); valid ones are stored raw,
+ * padding included. */
+
+/* Real MF definition from files/, rule reference changed to record 1 */
+#define DEF_MF "621b8202782183023f00a5098001f18701008801008a01058b032f0601"
+/* EF.ARR: linear fixed, record length 0x10, 2 records, size 0x20 */
+#define DEF_EF_ARR "621a8205422100100283022f068a01058b032f060180020020880130"
+#define RECORD_PADDING "ffffffffffffffffffffffffffffffff"
+
+struct populate_case {
+	const char *name;
+	const char *record_hex; /* record 1 of EF.ARR, 16 bytes */
+	bool expected_stored;
+};
+
+static const struct populate_case populate_cases[] = {
+	/* name                       record_hex                           stored */
+	{ "valid rule", "8001019000ffffffffffffffffffffff", true },
+	{ "only padding", "ffffffffffffffffffffffffffffffff", true },
+	{ "data after padding", "8001019000ff12ffffffffffffffffff", false },
+	{ "length past the record", "80010190008001019000800501020304", false },
+	{ "truncated header", "80010190009000900090009000900080", false },
+};
+
+static void write_text(const char *path, const char *text)
+{
+	FILE *f = fopen(path, "w");
+
+	assert(f);
+	fputs(text, f);
+	fclose(f);
+}
+
+static void access_populate_test(void)
+{
+	char content[sizeof(RECORD_PADDING) * 2];
+	size_t i;
+
+	mkdir("files", 0755);
+	mkdir("files/3f00", 0755);
+	write_text("files/3f00.def", DEF_MF);
+	write_text("files/3f00/2f06.def", DEF_EF_ARR);
+
+	for (i = 0; i < SS_ARRAY_SIZE(populate_cases); i++) {
+		const struct populate_case *c = &populate_cases[i];
+		struct ss_lchan lchan = { 0 };
+		struct ss_file *mf;
+
+		fprintf(stderr, "TEST: access_populate: %s\n", c->name);
+
+		/* record 1 under test, record 2 all padding */
+		snprintf(content, sizeof(content), "%s%s", c->record_hex, RECORD_PADDING);
+		write_text("files/3f00/2f06", content);
+
+		ss_fs_init(&lchan.fs_path);
+		mf = ss_get_file_from_path(&lchan.fs_path);
+		assert(mf);
+
+		/* call function under test */
+		ss_access_populate(&lchan);
+
+		/* stored (raw, byte for byte) or rejected as expected */
+		assert((mf->access != NULL) == c->expected_stored);
+		if (mf->access)
+			assert(strcmp(ss_hexdump(mf->access->data, mf->access->len), c->record_hex) == 0);
+
+		ss_path_reset(&lchan.fs_path);
 	}
 }
 
@@ -144,5 +218,6 @@ int main(void)
 {
 	ss_log_mask = 0;
 	access_rule_test();
+	access_populate_test();
 	return non_mf_root_denied_test();
 }
