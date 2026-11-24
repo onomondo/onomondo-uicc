@@ -60,7 +60,7 @@ void ss_apdu_toss(struct ss_apdu *apdu)
 		if (apdu->lchan->last_apdu)
 			SS_FREE(apdu->lchan->last_apdu);
 		/* Only data withheld here ('61xx') is fetchable (TS 102 221 12.1.1) */
-		if (apdu->lc && apdu->rsp_len) {
+		if ((apdu->sw >> 8) == 0x61) {
 			apdu->lchan->last_apdu = apdu;
 		} else {
 			apdu->lchan->last_apdu = NULL;
