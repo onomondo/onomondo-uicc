@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.5.1](https://github.com/onomondo/onomondo-uicc/compare/v2.5.0...v2.5.1) (2026-11-25)
+
+
+### Bug Fixes
+
+* **access:** deny malformed ARR instead of crashing ([#230](https://github.com/onomondo/onomondo-uicc/issues/230)) ([152fa81](https://github.com/onomondo/onomondo-uicc/commit/152fa818a262118e2b61ba451977186a48e54c6c))
+* **access:** stricten ARR rule walking ([#234](https://github.com/onomondo/onomondo-uicc/issues/234)) ([f9b163a](https://github.com/onomondo/onomondo-uicc/commit/f9b163a219cf308f5af11811aa55d5c907401463))
+* **btlv:** bound the nesting depth ([#227](https://github.com/onomondo/onomondo-uicc/issues/227)) ([df98b21](https://github.com/onomondo/onomondo-uicc/commit/df98b2161c1c03a5e13f3cedca1f32dd5d1e274d))
+* **fcp:** refuse padded CREATE FILE templates ([#215](https://github.com/onomondo/onomondo-uicc/issues/215)) ([41d1bf1](https://github.com/onomondo/onomondo-uicc/commit/41d1bf18123ed5d64401248a2340a9ddb78fe92f))
+* On failure of file creation dont delete the parent but the correct child  ([#220](https://github.com/onomondo/onomondo-uicc/issues/220)) ([d76828a](https://github.com/onomondo/onomondo-uicc/commit/d76828a09e6334c1fa229c240b4f434ce494e38a))
+* **uicc:** refuse file IDs longer than 2 bytes ([#214](https://github.com/onomondo/onomondo-uicc/issues/214)) ([50d5e92](https://github.com/onomondo/onomondo-uicc/commit/50d5e9255ea0094b4a838299a4bd22c5562bd9c6))
+
+
+### Performance Improvements
+
+* **access:** keep the EF.ARR record raw instead of decoding it ([#212](https://github.com/onomondo/onomondo-uicc/issues/212)) ([32de205](https://github.com/onomondo/onomondo-uicc/commit/32de205fb8513c034d4b7e4e30a65a6ea78477a8))
+* **cat:** store 39 TERMINAL PROFILE bytes ([#225](https://github.com/onomondo/onomondo-uicc/issues/225)) ([54c5024](https://github.com/onomondo/onomondo-uicc/commit/54c5024fa49577732792e75ffef458f753684a42))
+* **fcp:** decode FCP on demand ([#207](https://github.com/onomondo/onomondo-uicc/issues/207)) ([746f82a](https://github.com/onomondo/onomondo-uicc/commit/746f82a8580e8d882c016dd180704d6ec3b271a1))
+* keep the verified PINs in a bitmap ([#223](https://github.com/onomondo/onomondo-uicc/issues/223)) ([b9dcfb9](https://github.com/onomondo/onomondo-uicc/commit/b9dcfb9bf9ed1ed5fc721d21ca718de64495c5e4))
+
 ## [2.5.0](https://github.com/onomondo/onomondo-uicc/compare/v2.4.0...v2.5.0) (2026-11-04)
 
 
