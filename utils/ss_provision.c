@@ -17,6 +17,7 @@
 #include "onomondo/softsim/storage.h"
 #include "onomondo/utils/ss_profile.h"
 #include "onomondo/utils/ss_provision.h"
+#include "ss_utils_memzero.h"
 
 /* Relative paths used inside storage. These will be concatenated with the
  * configured storage path (see ss_storage_get_path()). */
@@ -27,7 +28,6 @@ static const char *A003_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "a003";
 static const char *A004_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "a004";
 static const char *SMSP_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "7ff0" PATH_SEPARATOR "6f42";
 
-/* The tags that fill each EF built from more than one field */
 #define A001_TAGS (SS_TAG_BIT(KI_TAG) | SS_TAG_BIT(OPC_TAG))
 #define A003_TAGS (SS_TAG_BIT(PIN_1_TAG) | SS_TAG_BIT(PIN_2_TAG) | SS_TAG_BIT(PIN_ADM_TAG) | SS_TAG_BIT(PUK_TAG))
 #define A004_TAGS (SS_TAG_BIT(KIC_TAG) | SS_TAG_BIT(KID_TAG))
@@ -35,22 +35,15 @@ static const char *SMSP_REL_PATH = PATH_SEPARATOR "3f00" PATH_SEPARATOR "7ff0" P
 /* A004 record 1 header: TAR b00011 | MSL 06 | KIC indication | KID indication.
  * An indication left at "ff" never matches an OTA request (uicc_remote_cmd.c),
  * so a key the profile did not carry can not be used. */
-#define A004_TAR_MSL "b0001106"
-#define A004_KEY_IND "01"
+static const char a004_tar_msl[8] = "b0001106";
+static const char a004_key_ind[2] = "01";
 
 /* A001 flag value: the key in the OPc slot is an OPc, not an OP */
-#define A001_FLAG_OPC "00"
+static const char a001_flag_opc[2] = "00";
 
-/*! Clear a buffer that held key material or PINs. Writes through a volatile
- *  pointer so the compiler keeps stores to storage it can see is dead. */
-static void scrub(void *buf, size_t len)
-{
-	volatile uint8_t *p = buf;
-	size_t i;
-
-	for (i = 0; i < len; i++)
-		p[i] = 0;
-}
+/* EF.IMSI as the template ships it: 08 09 10 10 00 00 00 00 10, IMSI
+ * 001010000000001. A card holding it is not provisioned. */
+static const char default_imsi[IMSI_LEN] = "080910100000000010";
 
 /* The writer builds every EF in hex characters, the layout ss_profile.h
  * describes. A hex storage backend (storage.c) keeps EFs as that text; the
@@ -70,7 +63,9 @@ static uint8_t hex_to_uint8(const char *hex)
 
 /*! Read one EF inside storage, whole
  *  \param[in] rel_path path of the EF relative to the storage root
- *  \param[out] data buffer of len hex characters
+ *  \param[out] data buffer of len hex characters. In the case the EF stores them
+ *  with the hex backend, lower case with the compact one; callers do not depend
+ *  on it, as write_ef() stores lower case whatever it is given.
  *  \param[in] len number of hex characters to read
  *  \returns 0 on success, -1 if the EF could not be opened, -2 if it was opened
  *  and is shorter than len */
@@ -120,7 +115,7 @@ static int read_ef(const char *rel_path, void *data, size_t len)
 
 exit:
 #ifdef CONFIG_COMPACT_STORAGE
-	scrub(bin, sizeof(bin)); /* it held a PIN code file */
+	ss_utils_memzero(bin, sizeof(bin)); /* it held a PIN code file */
 #endif
 	return rc;
 }
@@ -129,7 +124,9 @@ exit:
  *  \param[in] rel_path path of the EF relative to the storage root
  *  \param[in] mode "w" to replace the EF, "r+" to update it without truncating
  *  \param[in] offset offset to write at, in hex characters
- *  \param[in] data hex characters to write
+ *  \param[in] data hex characters to write, stored as given with the hex backend.
+ *  They are lower case, the format of the EFs: the parser normalizes every
+ *  profile field, and the fixed values here are lower case.
  *  \param[in] len number of hex characters
  *  \returns 0 on success, -1 if the EF could not be opened, -2 if it was opened
  *  and not written whole */
@@ -182,7 +179,7 @@ static int write_ef(const char *rel_path, char *mode, long offset, const void *d
 
 exit:
 #ifdef CONFIG_COMPACT_STORAGE
-	scrub(bin, sizeof(bin)); /* it held key material */
+	ss_utils_memzero(bin, sizeof(bin)); /* it held key material */
 #endif
 	return rc;
 }
@@ -204,24 +201,23 @@ int ss_profile_write_to_fs(const struct ss_profile *profile)
 	 * (TS 102 225, TS 31.115) and a device that never receives a secured packet
 	 * has no use for them, so the exporter emits them only when the profile has
 	 * them. The four below are the ones that leave an unusable card when missing. */
-	if (!ss_profile_has_tag(profile, ICCID_TAG))
-		missing = "ICCID";
-	else if (!ss_profile_has_tag(profile, IMSI_TAG))
-		missing = "IMSI";
-	else if (!ss_profile_has_tag(profile, KI_TAG))
-		missing = "Ki";
-	else if (!ss_profile_has_tag(profile, OPC_TAG))
-		missing = "OPc";
-
-	if (missing) {
-		SS_LOGP(SSTORAGE, LERROR, "profile carries no %s, refusing to provision it\n", missing);
+	if (!ss_profile_has_required_tags(profile)) {
+		SS_LOGP(SSTORAGE, LERROR, "profile carries no %s, refusing to provision it\n",
+			!ss_profile_has_tag(profile, ICCID_TAG) ? "ICCID" :
+			!ss_profile_has_tag(profile, IMSI_TAG)  ? "IMSI" :
+			!ss_profile_has_tag(profile, KI_TAG)    ? "Ki" : "OPc");
 		return -1;
 	}
 
-	if (write_ef(ICCID_REL_PATH, "w", 0, profile->iccid, ICCID_LEN) != 0)
+	/* EF.IMSI is what onomondo_profile_check_provisioned() judges by, so it
+	 * brackets the writes: set to the default first, written last. A provisioning
+	 * that fails partway then leaves a card that reports as not provisioned -- on
+	 * a first provisioning, and also over an earlier profile, whose IMSI would
+	 * otherwise vouch for EFs that are now half old, half new. */
+	if (write_ef(IMSI_REL_PATH, "w", 0, default_imsi, IMSI_LEN) != 0)
 		goto exit;
 
-	if (write_ef(IMSI_REL_PATH, "w", 0, profile->imsi, IMSI_LEN) != 0)
+	if (write_ef(ICCID_REL_PATH, "w", 0, profile->iccid, ICCID_LEN) != 0)
 		goto exit;
 
 	/* A001: Ki | OPc | flag. Both keys are required above, so the EF is always
@@ -229,7 +225,7 @@ int ss_profile_write_to_fs(const struct ss_profile *profile)
 	if ((profile->tags & A001_TAGS) == A001_TAGS) {
 		memcpy(&a001[A001_KI_OFFSET], profile->ki, KEY_SIZE);
 		memcpy(&a001[A001_OPC_OFFSET], profile->opc, KEY_SIZE);
-		memcpy(&a001[A001_FLAG_OFFSET], A001_FLAG_OPC, 2);
+		memcpy(&a001[A001_FLAG_OFFSET], a001_flag_opc, sizeof(a001_flag_opc));
 		if (write_ef(A001_REL_PATH, "w", 0, a001, A001_LEN) != 0)
 			goto exit;
 	}
@@ -273,13 +269,13 @@ int ss_profile_write_to_fs(const struct ss_profile *profile)
 	 * than leaving the template's keys usable. */
 	memset(a004, 'f', A004_LEN);
 	if (profile->tags & A004_TAGS) {
-		memcpy(a004, A004_TAR_MSL, sizeof(A004_TAR_MSL) - 1);
+		memcpy(a004, a004_tar_msl, sizeof(a004_tar_msl));
 		if (ss_profile_has_tag(profile, KIC_TAG)) {
-			memcpy(&a004[sizeof(A004_TAR_MSL) - 1], A004_KEY_IND, 2);
+			memcpy(&a004[sizeof(a004_tar_msl)], a004_key_ind, sizeof(a004_key_ind));
 			memcpy(&a004[A004_KIC_OFFSET], profile->kic, KEY_SIZE);
 		}
 		if (ss_profile_has_tag(profile, KID_TAG)) {
-			memcpy(&a004[sizeof(A004_TAR_MSL) - 1 + 2], A004_KEY_IND, 2);
+			memcpy(&a004[sizeof(a004_tar_msl) + sizeof(a004_key_ind)], a004_key_ind, sizeof(a004_key_ind));
 			memcpy(&a004[A004_KID_OFFSET], profile->kid, KEY_SIZE);
 		}
 	}
@@ -296,13 +292,17 @@ int ss_profile_write_to_fs(const struct ss_profile *profile)
 	    write_ef(SMSP_REL_PATH, "r+", SMSC_OFFSET, profile->smsc, SMSC_LEN) != 0)
 		goto exit;
 
+	/* Last: only now does the card report as provisioned */
+	if (write_ef(IMSI_REL_PATH, "w", 0, profile->imsi, IMSI_LEN) != 0)
+		goto exit;
+
 	rc = 0;
 
 exit:
 	/* The buffers held Ki, OPc, KIC, KID and the PINs */
-	scrub(a001, sizeof(a001));
-	scrub(a003, sizeof(a003));
-	scrub(a004, sizeof(a004));
+	ss_utils_memzero(a001, sizeof(a001));
+	ss_utils_memzero(a003, sizeof(a003));
+	ss_utils_memzero(a004, sizeof(a004));
 	return rc;
 }
 
@@ -338,9 +338,6 @@ exit:
 	SS_FREE(profile);
 	return rc;
 }
-
-/* EF.IMSI as the template ships it: a card holding it was never provisioned */
-static const char default_imsi[IMSI_LEN] = "080910100000000010";
 
 /*! Check whether a SoftSIM profile is provisioned
  *  A card counts as provisioned only while EF.IMSI holds a real subscriber: not

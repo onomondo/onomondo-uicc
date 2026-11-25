@@ -101,13 +101,15 @@ enum ss_profile_err {
 
 /* Onomondo SoftSIM Profile Struct
  *
- * One field per profile record, as hex characters. A profile patches fields: the
+ * One field per profile record, as lower case hex characters whatever case the
+ * profile carried them in, the format of the EFs. A profile patches fields: the
  * provisioning writer puts each field the profile carried at its place in its EF
  * (see the EF layout above) and leaves everything else in the EF as it is. Which
  * fields were carried is in tags; ask with ss_profile_has_tag().
  *
  * A platform may edit the struct between decoding and writing, e.g. replace a key
- * with a reference to where it really lives. */
+ * with a reference to where it really lives. An edited field stays lower case hex
+ * of the same length: the writer stores fields as they are, it does not convert. */
 struct ss_profile {
 	uint8_t iccid[ICCID_LEN]; /* EF.ICCID */
 	uint8_t imsi[IMSI_LEN]; /* EF.IMSI */

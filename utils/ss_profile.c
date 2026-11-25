@@ -10,10 +10,10 @@
 #include <string.h>
 #include "onomondo/softsim/log.h"
 #include "onomondo/utils/ss_profile.h"
+#include "ss_utils_memzero.h"
 
 #define SS_REQUIRED_TAGS                                                                                    \
-	(SS_TAG_BIT(IMSI_TAG) | SS_TAG_BIT(ICCID_TAG) | SS_TAG_BIT(KI_TAG) | SS_TAG_BIT(OPC_TAG) |          \
-	 SS_TAG_BIT(KIC_TAG) | SS_TAG_BIT(KID_TAG))
+	(SS_TAG_BIT(IMSI_TAG) | SS_TAG_BIT(ICCID_TAG) | SS_TAG_BIT(KI_TAG) | SS_TAG_BIT(OPC_TAG))
 
 /* EF.IMSI byte 1 is the number of bytes after it holding the IMSI (TS 31.102 4.2.2) */
 #define IMSI_MAX_DATA_LEN (IMSI_BIN_LEN - 1)
@@ -23,6 +23,7 @@ static bool ss_is_hex(const char *str, size_t len);
 static uint32_t ss_profile_uint32_from_hex(const char *hex);
 static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct ss_profile *profile);
 static bool ss_profile_copy_pin(uint8_t *field, const char *data, uint8_t data_len);
+static void ss_profile_copy_hex(uint8_t *field, const char *data, size_t len);
 
 uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile)
 {
@@ -74,43 +75,43 @@ static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct 
 			imsi_len = ss_hex_to_uint8(&input_string[data_start]);
 			if (imsi_len < 1 || imsi_len > IMSI_MAX_DATA_LEN)
 				return SS_PROFILE_ERR_IMSI;
-			memcpy(profile->imsi, &input_string[data_start], data_len);
+			ss_profile_copy_hex(profile->imsi, &input_string[data_start], data_len);
 			break;
 		}
 		case ICCID_TAG:
 			if (data_len != ICCID_LEN)
 				return SS_PROFILE_ERR_ICCID;
-			memcpy(profile->iccid, &input_string[data_start], data_len);
+			ss_profile_copy_hex(profile->iccid, &input_string[data_start], data_len);
 			break;
 		case OPC_TAG:
 			if (data_len != KEY_SIZE)
 				return SS_PROFILE_ERR_OPC;
-			memcpy(profile->opc, &input_string[data_start], data_len);
+			ss_profile_copy_hex(profile->opc, &input_string[data_start], data_len);
 			break;
 		case KI_TAG:
 			if (data_len != KEY_SIZE)
 				return SS_PROFILE_ERR_KI;
-			memcpy(profile->ki, &input_string[data_start], data_len);
+			ss_profile_copy_hex(profile->ki, &input_string[data_start], data_len);
 			break;
 		case KIC_TAG:
 			if (data_len != KEY_SIZE)
 				return SS_PROFILE_ERR_KIC;
-			memcpy(profile->kic, &input_string[data_start], data_len);
+			ss_profile_copy_hex(profile->kic, &input_string[data_start], data_len);
 			break;
 		case KID_TAG:
 			if (data_len != KEY_SIZE)
 				return SS_PROFILE_ERR_KID;
-			memcpy(profile->kid, &input_string[data_start], data_len);
+			ss_profile_copy_hex(profile->kid, &input_string[data_start], data_len);
 			break;
 		case SMSP_TAG:
 			if (data_len != SMSP_LEN)
 				return SS_PROFILE_ERR_SMSP;
-			memcpy(profile->smsp, &input_string[data_start], data_len);
+			ss_profile_copy_hex(profile->smsp, &input_string[data_start], data_len);
 			break;
 		case SMSC_TAG:
 			if (data_len != SMSC_LEN)
 				return SS_PROFILE_ERR_SMSC;
-			memcpy(profile->smsc, &input_string[data_start], data_len);
+			ss_profile_copy_hex(profile->smsc, &input_string[data_start], data_len);
 			break;
 		case PIN_1_TAG:
 			pin_fits = ss_profile_copy_pin(profile->pin1, &input_string[data_start], data_len);
@@ -191,16 +192,10 @@ bool ss_profile_has_required_tags(const struct ss_profile *profile)
 	return (profile->tags & SS_REQUIRED_TAGS) == SS_REQUIRED_TAGS;
 }
 
-/* See in ss_profile.h. Writes through a volatile pointer so the compiler keeps
- * stores to storage it can see is dead. The uicc library has ss_memzero() for
- * this, but utils links without it. */
+/* See in ss_profile.h */
 void ss_profile_wipe(struct ss_profile *profile)
 {
-	volatile char *clear_this = (volatile char *)profile;
-	size_t i;
-
-	for (i = 0; i < sizeof *profile; i++)
-		clear_this[i] = 0;
+	ss_utils_memzero(profile, sizeof *profile);
 }
 
 /* See in ss_profile.h */
@@ -250,6 +245,28 @@ static bool ss_is_hex(const char *str, size_t len)
 	return true;
 }
 
+/** Copy hex characters into a profile field, in lower case.
+ *
+ *  Hex case carries no meaning, but the EFs are lower case -- the template
+ *  files/, and everything the storage layer writes ("%02x") -- so every field
+ *  is normalized here, once: what a platform edits and what provisioning writes
+ *  is then in the files' format whatever case the profile arrived in. The
+ *  caller has already checked that data is hex.
+ *
+ *  \param[out] field the field to fill, len characters
+ *  \param[in] data hex characters
+ *  \param[in] len number of characters */
+static void ss_profile_copy_hex(uint8_t *field, const char *data, size_t len)
+{
+	size_t i;
+
+	for (i = 0; i < len; i++) {
+		char c = data[i];
+
+		field[i] = (uint8_t)((c >= 'A' && c <= 'F') ? c - 'A' + 'a' : c);
+	}
+}
+
 /** Copy a PIN, PUK or ADM value into its PIN_SIZE character field.
  *
  *  A PIN code file record holds a value in 8 bytes, which the profile carries as
@@ -270,7 +287,6 @@ static bool ss_is_hex(const char *str, size_t len)
 static bool ss_profile_copy_pin(uint8_t *field, const char *data, uint8_t data_len)
 {
 	char unwrapped[PIN_SIZE];
-	volatile char *scrub = unwrapped;
 	bool ok;
 	size_t i;
 
@@ -279,7 +295,7 @@ static bool ss_profile_copy_pin(uint8_t *field, const char *data, uint8_t data_l
 		return false;
 
 	if (data_len <= PIN_SIZE) {
-		memcpy(field, data, data_len);
+		ss_profile_copy_hex(field, data, data_len);
 		memset(&field[data_len], 'f', PIN_SIZE - data_len);
 		return true;
 	}
@@ -293,11 +309,9 @@ static bool ss_profile_copy_pin(uint8_t *field, const char *data, uint8_t data_l
 		unwrapped[i] = (char)ss_hex_to_uint8(&data[i * 2]);
 	ok = ss_is_hex(unwrapped, PIN_SIZE);
 	if (ok)
-		memcpy(field, unwrapped, PIN_SIZE);
+		ss_profile_copy_hex(field, unwrapped, PIN_SIZE);
 
-	/* volatile, so the compiler keeps stores to storage it can see is dead */
-	for (i = 0; i < PIN_SIZE; i++)
-		scrub[i] = 0;
+	ss_utils_memzero(unwrapped, sizeof(unwrapped));
 	return ok;
 }
 

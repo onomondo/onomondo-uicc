@@ -43,6 +43,15 @@ int onomondo_profile_provisioning(const char *profile);
  *  \returns 0 on success, -1 on failure */
 int ss_profile_write_to_fs(const struct ss_profile *profile);
 
+/** Check whether a SoftSIM profile is provisioned.
+ *
+ *  A card counts as provisioned only while EF.IMSI holds a real subscriber: not
+ *  the template's default IMSI, not a zeroed (unbound) IMSI, and not a missing
+ *  or short EF.
+ *
+ *  \returns 1 if provisioned, 0 otherwise */
+int onomondo_profile_check_provisioned(void);
+
 #ifdef __cplusplus
 }
 #endif

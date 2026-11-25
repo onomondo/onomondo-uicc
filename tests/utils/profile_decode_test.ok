@@ -7,11 +7,11 @@ Successfully validated IMSI : 080910101032540636
 Checking OPC
 Successfully validated OPC  : 00000000000000000000000000000000
 Checking Ki
-Successfully validated Ki   : 000102030405060708090A0B0C0D0E0F
+Successfully validated Ki   : 000102030405060708090a0b0c0d0e0f
 Checking KIC
-Successfully validated KIC  : 000102030405060708090A0B0C0D0E0F
+Successfully validated KIC  : 000102030405060708090a0b0c0d0e0f
 Checking KID
-Successfully validated KID  : 000102030405060708090A0B0C0D0E0F
+Successfully validated KID  : 000102030405060708090a0b0c0d0e0f
 Tags: required present, optional absent
 TEST: Decode a decrypted Onomondo SoftSIM profile with expected IMSI error
 Profile decode return value: 10
@@ -61,6 +61,8 @@ Profile struct cleared
 TEST: Decode a decrypted Onomondo SoftSIM profile that carries only some tags
 Profile decode return value: 0
 Missing KIC and KID reported, fields left zeroed
+Profile decode return value: 0
+Missing OPc reported as not enough to provision
 TEST: Decode a decrypted Onomondo SoftSIM profile carrying PIN, PIN2, PUK and ADM
 Profile decode return value: 0
 PIN1: 36383638ffffffff

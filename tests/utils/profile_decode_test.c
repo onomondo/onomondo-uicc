@@ -26,10 +26,13 @@ static const char *decrypted_profile_ok =
 static const char test_profile_imsi[] = "080910101032540636";
 static const char test_profile_iccid[] = "98001032547698103214";
 static const char test_profile_opc[] = "00000000000000000000000000000000";
-static const char test_profile_ki[] = "000102030405060708090A0B0C0D0E0F";
+/* The profile carries Ki, KIC and KID in upper case (0A0B...); the decoded
+ * fields hold them in lower case, the format of the EFs. */
+static const char test_profile_ki[] = "000102030405060708090a0b0c0d0e0f";
 
-/* Every field holds the hex characters of its record, exactly as the profile
- * carried them; the provisioning writer converts them for its storage. */
+/* Every field holds the hex characters of its record, in lower case whatever
+ * case the profile carried them in; the provisioning writer converts them for
+ * its storage. */
 static void check_field(const char *what, const uint8_t *field, size_t len, const char *expect)
 {
 	printf("Checking %s\n", what);
@@ -437,6 +440,10 @@ static void decode_softsim_profile_test_partial_is_not_an_error()
 		"02" "14" "98001032547698103214"
 		"03" "20" "00000000000000000000000000000000"
 		"04" "20" "000102030405060708090A0B0C0D0E0F";
+	static const char *profile_no_opc =
+		"01" "12" "080910101032540636"
+		"02" "14" "98001032547698103214"
+		"04" "20" "000102030405060708090A0B0C0D0E0F";
 	// clang-format on
 	static const uint8_t zero_key[KEY_SIZE] = { 0 };
 	struct ss_profile profile = { 0 };
@@ -447,12 +454,22 @@ static void decode_softsim_profile_test_partial_is_not_an_error()
 	rc = ss_profile_from_string(strlen(profile_no_keys), profile_no_keys, &profile);
 	printf("Profile decode return value: %d\n", rc);
 	assert(rc == 0);
-	/* A field without a tag is left zeroed, and the tags say what is missing. */
-	assert(!ss_profile_has_required_tags(&profile));
+	/* A field without a tag is left zeroed, and the tags say what is missing.
+	 * KIC and KID are optional OTA keys, so the profile still has every tag
+	 * provisioning requires. */
+	assert(ss_profile_has_required_tags(&profile));
 	assert(ss_profile_has_tag(&profile, KI_TAG));
 	assert(!ss_profile_has_tag(&profile, KIC_TAG) && !ss_profile_has_tag(&profile, KID_TAG));
 	assert(memcmp(profile.kic, zero_key, KEY_SIZE) == 0);
 	printf("Missing KIC and KID reported, fields left zeroed\n");
+
+	/* Without the OPc the profile still decodes, but is not enough to provision */
+	rc = ss_profile_from_string(strlen(profile_no_opc), profile_no_opc, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+	assert(!ss_profile_has_tag(&profile, OPC_TAG));
+	assert(!ss_profile_has_required_tags(&profile));
+	printf("Missing OPc reported as not enough to provision\n");
 }
 
 /* Unknown records are skipped, so a newer profile still decodes on this decoder;
