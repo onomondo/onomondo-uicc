@@ -123,21 +123,18 @@ void ss_fs_chg_dump(const uint8_t filelist[SS_FS_CHG_BUF_SIZE], uint8_t indent, 
 		}
 
 		do {
+			if (files - filelist + 2 > SS_FS_CHG_BUF_SIZE ||
+			    sizeof(path_prn) - (path_prn_ptr - path_prn) < 6) {
+				SS_LOGP(subsys, level, "Filelist invalid, end of path not detected!\n");
+				return;
+			}
 			snprintf(path_prn_ptr, sizeof(path_prn) - (path_prn_ptr - path_prn), "/%04x", fid);
 			path_prn_ptr += 5;
 
 			fid = *files << 8;
 			files++;
-			if (files - filelist > SS_FS_CHG_BUF_SIZE) {
-				SS_LOGP(subsys, level, "Filelist invalid, end of path not detected!");
-				return;
-			}
 			fid |= *files;
 			files++;
-			if (files - filelist > SS_FS_CHG_BUF_SIZE) {
-				SS_LOGP(subsys, level, "Filelist invalid, end of path not detected!");
-				return;
-			}
 
 		} while (fid != 0x3F00);
 
@@ -189,14 +186,12 @@ int ss_fs_chg_add(uint8_t filelist[SS_FS_CHG_BUF_SIZE], const struct ss_list *pa
 			return -EINVAL;
 
 		do {
+			if (files - filelist + 2 > SS_FS_CHG_BUF_SIZE)
+				return -EINVAL;
 			fid = *files << 8;
 			files++;
-			if (files - filelist > SS_FS_CHG_BUF_SIZE)
-				return -EINVAL;
 			fid |= *files;
 			files++;
-			if (files - filelist > SS_FS_CHG_BUF_SIZE)
-				return -EINVAL;
 		} while (fid != 0x3F00);
 		files -= 2;
 	}
@@ -245,14 +240,12 @@ int ss_fs_chg_len(const uint8_t filelist[SS_FS_CHG_BUF_SIZE])
 			return -EINVAL;
 
 		do {
+			if (files - filelist + 2 > SS_FS_CHG_BUF_SIZE)
+				return -EINVAL;
 			fid = *files << 8;
 			files++;
-			if (files - filelist > SS_FS_CHG_BUF_SIZE)
-				return -EINVAL;
 			fid |= *files;
 			files++;
-			if (files - filelist > SS_FS_CHG_BUF_SIZE)
-				return -EINVAL;
 		} while (fid != 0x3F00);
 		files -= 2;
 	}
