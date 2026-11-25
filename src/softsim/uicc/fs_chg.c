@@ -9,7 +9,6 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <assert.h>
 #include <onomondo/softsim/utils.h>
 #include <onomondo/softsim/file.h>
 #include <onomondo/softsim/list.h>
@@ -59,10 +58,6 @@ static int pack_path(uint8_t result[SS_FS_CHG_PATH_MAXLEN], const struct ss_list
 
 	memset(result, 0, SS_FS_CHG_PATH_MAXLEN);
 
-	/* A FID consists of two bytes, so we expect a buffer size that is
-	 * divisible by 2 */
-	assert(SS_FS_CHG_PATH_MAXLEN % 2 == 0);
-
 	SS_LIST_FOR_EACH(path, path_cursor, struct ss_file, list) {
 		/* Exclude internal files */
 		if (path_cursor->fid > 0xFFFF)
@@ -75,17 +70,14 @@ static int pack_path(uint8_t result[SS_FS_CHG_PATH_MAXLEN], const struct ss_list
 		if (ss_fcp_get_tag_min_len(path_cursor->fci, TS_102_221_IEI_FCP_DF_NAME, 0, &df_name) == 0)
 			fid = 0x7FFF;
 
-		/* Record path */
-		if (result_ptr - result > SS_FS_CHG_PATH_MAXLEN)
+		/* Record path, leaving room for the terminator */
+		if (result_ptr - result + 4 > SS_FS_CHG_PATH_MAXLEN)
 			return -EINVAL;
 		*result_ptr = (fid >> 8) & 0xff;
 		result_ptr++;
 		*result_ptr = fid & 0xff;
 		result_ptr++;
 	}
-
-	if (result_ptr - result + 2 > SS_FS_CHG_PATH_MAXLEN)
-		return -EINVAL;
 
 	/* Append 0x3f00 at the end of the path. This ending serves as a
 	 * termination and delimeter symbol */
