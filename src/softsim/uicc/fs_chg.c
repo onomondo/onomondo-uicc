@@ -9,7 +9,6 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <assert.h>
 #include <onomondo/softsim/utils.h>
 #include <onomondo/softsim/file.h>
 #include <onomondo/softsim/list.h>
@@ -58,10 +57,6 @@ static int pack_path(uint8_t result[SS_FS_CHG_PATH_MAXLEN], const struct ss_list
 		return -EINVAL;
 
 	memset(result, 0, SS_FS_CHG_PATH_MAXLEN);
-
-	/* A FID consists of two bytes, so we expect a buffer size that is
-	 * divisible by 2 */
-	assert(SS_FS_CHG_PATH_MAXLEN % 2 == 0);
 
 	SS_LIST_FOR_EACH(path, path_cursor, struct ss_file, list) {
 		/* Exclude internal files */
