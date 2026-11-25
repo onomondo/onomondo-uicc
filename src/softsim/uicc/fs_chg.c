@@ -117,8 +117,8 @@ void ss_fs_chg_dump(const uint8_t filelist[SS_FS_CHG_BUF_SIZE], uint8_t indent, 
 		files++;
 		fid |= *files;
 		files++;
-		if ((fid & 0xFF00) != 0x3F00) {
-			SS_LOGP(subsys, level, "Filelist invalid, path does not begin with 0x3FXX (MF)\n");
+		if (fid != 0x3F00) {
+			SS_LOGP(subsys, level, "Filelist invalid, path does not begin with 0x3F00 (MF)\n");
 			return;
 		}
 
@@ -139,7 +139,7 @@ void ss_fs_chg_dump(const uint8_t filelist[SS_FS_CHG_BUF_SIZE], uint8_t indent, 
 				return;
 			}
 
-		} while ((fid & 0xFF00) != 0x3F00);
+		} while (fid != 0x3F00);
 
 		SS_LOGP(subsys, level, "%s%s\n", indent_str, path_prn);
 
@@ -185,7 +185,7 @@ int ss_fs_chg_add(uint8_t filelist[SS_FS_CHG_BUF_SIZE], const struct ss_list *pa
 		files++;
 		fid |= *files;
 		files++;
-		if ((fid & 0xFF00) != 0x3F00)
+		if (fid != 0x3F00)
 			return -EINVAL;
 
 		do {
@@ -197,7 +197,7 @@ int ss_fs_chg_add(uint8_t filelist[SS_FS_CHG_BUF_SIZE], const struct ss_list *pa
 			files++;
 			if (files - filelist > SS_FS_CHG_BUF_SIZE)
 				return -EINVAL;
-		} while ((fid & 0xFF00) != 0x3F00);
+		} while (fid != 0x3F00);
 		files -= 2;
 	}
 
@@ -241,7 +241,7 @@ int ss_fs_chg_len(const uint8_t filelist[SS_FS_CHG_BUF_SIZE])
 		files++;
 		fid |= *files;
 		files++;
-		if ((fid & 0xFF00) != 0x3F00)
+		if (fid != 0x3F00)
 			return -EINVAL;
 
 		do {
