@@ -188,11 +188,124 @@ as 8 hex digits; `CONFIG_ALT_FILE_SEPARATOR` flattens the separators to `_`).
 - The [`files/`](../files) tree **is** the card: identity, keys, PINs and OTA keys are
   files (see [architecture.md](architecture.md#storage-stack)). Ship it to the target
   and point `ss_storage_set_path()` at it (default `./files`).
-- Personalization: a hex `TAG|LEN|DATA` profile string (tags in
-  [`ss_profile.h`](../include/onomondo/utils/ss_profile.h)) fed to
-  `onomondo_profile_provisioning()`
-  ([`ss_provision.h`](../include/onomondo/utils/ss_provision.h), needs
-  `CONFIG_USE_UTILS`) overwrites ICCID, IMSI, keys and SMSP in an existing tree.
 - ROM images: [`utils/files-c-array/toCArray.py`](../utils/files-c-array/toCArray.py)
   renders `files/` into C arrays (binary flavor for the compact backend, hex for the
   default).
+- Personalization writes a subscriber into that tree from a profile string. It needs
+  `CONFIG_USE_UTILS`; the API is in
+  [`ss_profile.h`](../include/onomondo/utils/ss_profile.h) (decode) and
+  [`ss_provision.h`](../include/onomondo/utils/ss_provision.h) (write).
+
+### The profile string
+
+Hex `TAG|LEN|DATA` records: `TAG` and `LEN` are two hex characters each, `DATA` is
+`LEN` hex characters. Records may come in any order; unknown tags are skipped.
+
+| Tag | Field | Written to |
+|---|---|---|
+| `01` | IMSI | EF.IMSI `3f00/7ff0/6f07` |
+| `02` | ICCID | EF.ICCID `3f00/2fe2` |
+| `03` / `04` | OPc / Ki | `3f00/a001`: Ki, OPc, OPc flag |
+| `05` / `06` | KIC / KID | `3f00/a004`, record 1 |
+| `07` / `0c` | SMSP / SMSC | EF.SMSP `3f00/7ff0/6f42`, record 1 (SMSC patched inside it) |
+| `08` / `09` / `0a` / `0b` | PIN1 / PIN2 / ADM / PUK | `3f00/a003`, the PIN code file |
+| `fe` | CRC32 of everything before it | — optional; checked when present |
+| `ff` | END | — records after it are ignored |
+
+ICCID, IMSI, Ki and OPc are required. Everything else is optional, and a field the
+profile does not carry leaves its EF as it is, with two deliberate exceptions:
+
+- `a004` is always rewritten. It starts erased and gets only the OTA keys the profile
+  carries, so a profile without KIC/KID turns OTA off instead of leaving the
+  template's keys usable.
+- `a003` is patched, never replaced: only the PINs the profile names change. Each new
+  PIN or PUK also gets its failed attempt counter reset to 0, so a blocked PIN works
+  again with its new value. Everything else in the record headers (enabled flag, max
+  tries, key reference) and every counter of a value the profile doesn't set is kept.
+  A tree without `a003` is accepted.
+
+### One call
+
+```c
+#include <onomondo/utils/ss_provision.h>
+
+if (onomondo_profile_provisioning(profile_string) != 0)
+	/* malformed, missing a required field, or a write failed */;
+```
+
+Decodes, writes and wipes the decoded keys from RAM. Returns `0` or `-1`; the reason
+goes to the log (`CONFIG_USE_LOGS`).
+
+### Decode, edit, write
+
+For a platform that must act on the profile between decoding and writing — typically
+moving Ki, KIC and KID into a hardware key store so the filesystem only holds
+references to them:
+
+```c
+#include <onomondo/utils/ss_profile.h>
+#include <onomondo/utils/ss_provision.h>
+
+struct ss_profile p;
+uint8_t rc = ss_profile_from_string(strlen(s), s, &p);  /* enum ss_profile_err */
+if (rc != SS_PROFILE_OK)
+	return rc;                                       /* p is already wiped */
+
+/* Validate first: a refused profile must not replace the keys of the current one. */
+if (!ss_profile_has_required_tags(&p)) {        /* ICCID, IMSI, Ki, OPc */
+	ss_profile_wipe(&p);
+	return -1;
+}
+
+/* platform_protect_key() is yours to write; see below. */
+int err = platform_protect_key(KI_TAG, p.ki);
+if (!err && ss_profile_has_tag(&p, KIC_TAG))
+	err = platform_protect_key(KIC_TAG, p.kic);
+if (!err && ss_profile_has_tag(&p, KID_TAG))
+	err = platform_protect_key(KID_TAG, p.kid);
+
+if (!err)
+	err = ss_profile_write_to_fs(&p);    /* writes each field whose tag is set, as found */
+if (err)
+	platform_forget_key(KI_TAG);         /* keep key store and files consistent */
+ss_profile_wipe(&p);                         /* the caller wipes, always */
+```
+
+The library defines no key store. `platform_protect_key(tag, field)` stands for
+whatever the platform does with a key, in two steps:
+
+1. Take the key out of `field` (`KEY_SIZE` hex characters) and keep it wherever the
+   platform keeps keys: a secure element, PSA key slots, a crypto peripheral.
+2. Overwrite `field` in place with what the EF should hold instead, as `KEY_SIZE` hex
+   characters. That can be a slot number, a key ID, or a handle — anything the
+   platform's key loader can map back to the key. The library never reads it; it
+   only writes it where the key would have gone.
+
+`platform_forget_key()` undoes step 1 when writing fails, so the device reads as
+not provisioned rather than as provisioned with keys that don't match its files.
+
+- Every field in `struct ss_profile` is lower case hex characters, whatever case the
+  string used: lower case is the format of the EFs. An edited field must stay lower
+  case hex of the same length; the writer stores fields as they are.
+- The writer decides on the tags, never on field contents: an edited field is written
+  as long as its tag stays set.
+- At run time the card code reads the reference from the EF and hands it to the
+  crypto; with `CONFIG_EXTERNAL_KEY_LOAD` that is `ss_load_key_external()` (see
+  [Crypto](#crypto)), which must resolve it to the key. That path does not cover the
+  MILENAGE Ki/OPc read from `a001` yet, so a Ki reference also needs the platform's
+  own MILENAGE.
+- [`profile_provision_test.c`](../tests/utils/profile_provision_test.c) runs this flow
+  against a hypothetical key store, with the record tag as the reference.
+
+### Storage form
+
+Callers always hand over hex; the writer stores each EF in the backend's form: hex
+text with the default backend, the bytes it spells with `CONFIG_COMPACT_STORAGE`
+(every offset and length halved). `CONFIG_ALT_FILE_SEPARATOR` works with both. The
+provisioning tests run against all four combinations.
+
+### Is the card provisioned?
+
+`onomondo_profile_check_provisioned()` returns `1` while EF.IMSI holds a real
+subscriber, and `0` when it is missing, short, all zeros, or still the template's
+default IMSI (`080910100000000010`).
