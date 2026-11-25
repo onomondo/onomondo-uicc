@@ -82,5 +82,7 @@
 <<< Card APDU response 621a8205422100360183026fe48a01058b036f0604800200368801c09000 <<<
 >>> Card APDU request 00dc010436a0348001078120ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8204ffffffff8304ffffffff8401ff >>>
 <<< Card APDU response 9000 <<<
+>>> Card APDU request 00a40304000005 >>>
+<<< Card APDU response 9000 <<<
 >>> Card APDU request 00a408040000022fe20001 >>>
 <<< Card APDU response 62178202412183022fe28a01058b032f06038002000a8801109000 <<<
