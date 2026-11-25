@@ -171,6 +171,17 @@ struct ss_profile {
  */
 uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss_profile *profile);
 
+/** Whether a provisioning string is the unbind command "00" rather than a profile.
+ *
+ *  Only "00" exactly. The parser refuses it (a record needs at least 4
+ *  characters), so no profile can be mistaken for it. Line endings are the
+ *  caller's to strip, as for a profile.
+ *
+ *  \param[in] data the string, not necessarily NUL terminated; may be NULL.
+ *  \param[in] len its length in characters.
+ *  \returns true for exactly "00". */
+bool ss_profile_is_unbind(const char *data, size_t len);
+
 /** Whether the profile carried a record with this field tag (IMSI_TAG..SMSC_TAG). */
 bool ss_profile_has_tag(const struct ss_profile *profile, uint8_t tag);
 

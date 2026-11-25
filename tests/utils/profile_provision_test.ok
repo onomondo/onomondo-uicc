@@ -69,6 +69,34 @@ TEST: A provisioning that fails partway does not report as provisioned
 First provisioning cut short: not provisioned
 Provisioning over an earlier profile cut short: not provisioned
 Retry provisions the card
+TEST: Unbind a provisioned SoftSIM
+Unbind return value: 0
+IMSI                           080910100000000010
+ICCID                          00000000000000000000
+A001 Ki                        00000000000000000000000000000000
+A001 OPc                       00000000000000000000000000000000
+A001 flag                      00
+A004 erased, OTA off
+PINs and SMSP kept
+Unbound card reported as not provisioned
+TEST: Provision a SoftSIM again after unbinding it
+Provisioning return value: 0
+IMSI                           080910101032540636
+A001 Ki                        000102030405060708090a0b0c0d0e0f
+Card provisioned again
+TEST: Unbind a SoftSIM that is not provisioned
+Unbind return value: 0
+Unbind return value: 0
+Card stays not provisioned
+TEST: Strings close to the unbind string do not unbind
+Provisioning return value: 1
+Provisioning return value: 1
+Provisioning return value: -1
+Provisioning return value: 3
+Card keeps its profile
+TEST: Unbind into storage that refuses A001
+Unbind return value: -1
+Card reported as not provisioned
 TEST: Provision a full SoftSIM profile with its keys in a key store
 Provisioning return value: 0
 A001 Ki slot: reference        04000000000000000000000000000000
@@ -91,3 +119,14 @@ Key store and files untouched
 TEST: Provision with a key store into storage that refuses the IMSI
 Provisioning return value: -1
 Ki removed from the key store
+TEST: Unbind a SoftSIM whose keys are in a key store
+Unbind return value: 0
+Key store emptied
+A001 Ki slot                   00000000000000000000000000000000
+Zero reference resolves to no key
+OTA key references erased
+Unbound card reported as not provisioned
+TEST: Unbind with a key store into storage that refuses A001
+Unbind return value: -1
+Keys kept for the retry
+Card reported as not provisioned

@@ -303,19 +303,60 @@ exit:
 	return rc;
 }
 
-/*! Provision a SoftSIM profile from e.g. an AT command string
- *  \param[in] profile Profile string as received from AT command
- *  \returns 0 on success */
-int onomondo_profile_provisioning(const char *at_profile)
+/*! Fill the profile that "00" provisions: the smallest one the writer accepts.
+ *  Default IMSI, so the card reads as not provisioned; ICCID, Ki and OPc zeroed.
+ *  With no KIC or KID the writer erases A004, and with no PIN or SMSP tags it
+ *  leaves A003 and EF.SMSP alone. The fields are hex characters, so they are
+ *  filled with '0', not with byte 0.
+ *  \param[out] profile the profile to fill */
+static void set_unbind_profile(struct ss_profile *profile)
+{
+	memset(profile, 0, sizeof *profile);
+	memcpy(profile->imsi, default_imsi, IMSI_LEN);
+	memset(profile->iccid, '0', ICCID_LEN);
+	memset(profile->ki, '0', KEY_SIZE);
+	memset(profile->opc, '0', KEY_SIZE);
+	profile->tags = SS_TAG_BIT(IMSI_TAG) | SS_TAG_BIT(ICCID_TAG) | SS_TAG_BIT(KI_TAG) | SS_TAG_BIT(OPC_TAG);
+}
+
+/* See in ss_provision.h */
+int onomondo_profile_unbind(void)
 {
 	struct ss_profile *profile = SS_ALLOC(*profile);
-	size_t input_string_size;
 	int rc;
 
 	if (!profile)
 		return -1;
 
+	set_unbind_profile(profile);
+	rc = ss_profile_write_to_fs(profile);
+
+	ss_profile_wipe(profile);
+	SS_FREE(profile);
+	return rc;
+}
+
+/*! Provision a SoftSIM profile from e.g. an AT command string
+ *  \param[in] profile Profile string as received from AT command, or "00" to
+ *  unbind the card (see onomondo_profile_unbind())
+ *  \returns 0 on success */
+int onomondo_profile_provisioning(const char *at_profile)
+{
+	struct ss_profile *profile;
+	size_t input_string_size;
+	int rc;
+
+	if (!at_profile)
+		return -1;
+
 	input_string_size = strlen(at_profile);
+	if (ss_profile_is_unbind(at_profile, input_string_size))
+		return onomondo_profile_unbind();
+
+	profile = SS_ALLOC(*profile);
+	if (!profile)
+		return -1;
+
 	if (input_string_size > UINT16_MAX) {
 		rc = -1;
 		goto exit;

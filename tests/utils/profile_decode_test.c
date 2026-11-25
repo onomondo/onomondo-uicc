@@ -496,6 +496,35 @@ static void decode_softsim_profile_test_unknown_and_end()
 	check_field("IMSI", profile.imsi, IMSI_LEN, test_profile_imsi);
 }
 
+/* "00" is the unbind command, never a profile: the parser refuses it, and only
+ * "00" exactly is recognised. The check takes a length, so a port can hand it a
+ * buffer that is not NUL terminated. */
+static void decode_softsim_profile_test_is_unbind()
+{
+	static const char buffer[] = { '0', '0', '1', '2' }; /* "00" followed by more, no NUL */
+	struct ss_profile profile = { 0 };
+	uint8_t rc;
+
+	printf("TEST: Recognise the unbind command\n");
+	assert(ss_profile_is_unbind("00", 2));
+	assert(ss_profile_is_unbind(buffer, 2));
+	printf("\"00\" is the unbind command, NUL terminated or not\n");
+
+	assert(!ss_profile_is_unbind(NULL, 2));
+	assert(!ss_profile_is_unbind("", 0));
+	assert(!ss_profile_is_unbind("0", 1));
+	assert(!ss_profile_is_unbind("000", 3));
+	assert(!ss_profile_is_unbind("0000", 4));
+	assert(!ss_profile_is_unbind("00\r\n", 4));
+	assert(!ss_profile_is_unbind("01", 2));
+	assert(!ss_profile_is_unbind(buffer, 4));
+	printf("Anything else is not\n");
+
+	rc = ss_profile_from_string(2, "00", &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == SS_PROFILE_ERR_MALFORMED);
+}
+
 int main(int argc, char **argv)
 {
 	decode_softsim_profile_test_ok();
@@ -508,5 +537,6 @@ int main(int argc, char **argv)
 	decode_softsim_profile_test_partial_is_not_an_error();
 	decode_softsim_profile_test_pins();
 	decode_softsim_profile_test_unknown_and_end();
+	decode_softsim_profile_test_is_unbind();
 	return 0;
 }

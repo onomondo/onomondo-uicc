@@ -96,3 +96,7 @@ TEST: Decode a decrypted Onomondo SoftSIM profile with records after END
 Profile decode return value: 0
 Checking IMSI
 Successfully validated IMSI : 080910101032540636
+TEST: Recognise the unbind command
+"00" is the unbind command, NUL terminated or not
+Anything else is not
+Profile decode return value: 1

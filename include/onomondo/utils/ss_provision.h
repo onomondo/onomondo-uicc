@@ -19,9 +19,27 @@ struct ss_profile;
  *  The default provisioning path: ss_profile_from_string() followed by
  *  ss_profile_write_to_fs(), with the decoded profile cleared afterwards.
  *
- *  \param[in] profile the TLV hex profile string, NUL terminated
- *  \returns 0 on success, -1 on failure */
+ *  The string "00" (see ss_profile_is_unbind()) unbinds the card instead, as
+ *  onomondo_profile_unbind() does.
+ *
+ *  \param[in] profile the TLV hex profile string, or "00"; NUL terminated
+ *  \returns 0 on success, a non-zero value on failure */
 int onomondo_profile_provisioning(const char *profile);
+
+/** Unbind the card: remove the subscription instead of loading one.
+ *
+ *  EF.IMSI gets the template's default IMSI, ICCID, Ki and OPc are zeroed, and
+ *  A004 is erased, which turns OTA off. The PIN code file and EF.SMSP are kept.
+ *  The default IMSI is written first, so an unbind that fails partway still
+ *  leaves a card that reads as not provisioned; afterwards
+ *  onomondo_profile_check_provisioned() returns 0. Unbinding a card that is not
+ *  provisioned succeeds.
+ *
+ *  With a key store the EFs only held references: destroy the key slots once
+ *  this returned 0 (and the platform persisted its filesystem).
+ *
+ *  \returns 0 on success, -1 on failure */
+int onomondo_profile_unbind(void);
 
 /** Write a decoded profile to the SoftSIM filesystem.
  *
@@ -46,8 +64,8 @@ int ss_profile_write_to_fs(const struct ss_profile *profile);
 /** Check whether a SoftSIM profile is provisioned.
  *
  *  A card counts as provisioned only while EF.IMSI holds a real subscriber: not
- *  the template's default IMSI, not a zeroed (unbound) IMSI, and not a missing
- *  or short EF.
+ *  the template's default IMSI (also what unbinding with "00" writes), not a
+ *  zeroed IMSI, and not a missing or short EF.
  *
  *  \returns 1 if provisioned, 0 otherwise */
 int onomondo_profile_check_provisioned(void);
