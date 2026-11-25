@@ -70,17 +70,14 @@ static int pack_path(uint8_t result[SS_FS_CHG_PATH_MAXLEN], const struct ss_list
 		if (ss_fcp_get_tag_min_len(path_cursor->fci, TS_102_221_IEI_FCP_DF_NAME, 0, &df_name) == 0)
 			fid = 0x7FFF;
 
-		/* Record path */
-		if (result_ptr - result + 2 > SS_FS_CHG_PATH_MAXLEN)
+		/* Record path, leaving room for the terminator */
+		if (result_ptr - result + 4 > SS_FS_CHG_PATH_MAXLEN)
 			return -EINVAL;
 		*result_ptr = (fid >> 8) & 0xff;
 		result_ptr++;
 		*result_ptr = fid & 0xff;
 		result_ptr++;
 	}
-
-	if (result_ptr - result + 2 > SS_FS_CHG_PATH_MAXLEN)
-		return -EINVAL;
 
 	/* Append 0x3f00 at the end of the path. This ending serves as a
 	 * termination and delimeter symbol */
