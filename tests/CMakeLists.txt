@@ -39,7 +39,7 @@ add_subdirectory(stray_terminal_response)
 add_subdirectory(proactive)
 if(NOT CONFIG_DISABLE_SMS)
 	add_subdirectory(aes)
-	add_subdirectory(fs_chg_pack_path)
+	add_subdirectory(fs_chg)
 	add_subdirectory(ota)
 	# exercises the whole ENVELOPE -> SMS -> remote command -> REFRESH chain
 	add_subdirectory(envelope)
