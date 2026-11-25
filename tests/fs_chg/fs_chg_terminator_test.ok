@@ -1,3 +1,5 @@
 files=2 len=11 list=023f003f206f073f002fe2
  REFRESH    ERROR /3f00/3f20/6f07
  REFRESH    ERROR /3f00/2fe2
+no terminator: add=-22 len=-22
+ REFRESH    ERROR Filelist invalid, end of path not detected!

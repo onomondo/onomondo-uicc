@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <onomondo/softsim/file.h>
 #include <onomondo/softsim/list.h>
 #include <onomondo/softsim/log.h>
@@ -51,6 +52,16 @@ int main(void)
 	for (i = 0; i < len; i++)
 		printf("%02x", filelist[i]);
 	printf("\n");
+	fflush(stdout);
+
+	ss_fs_chg_dump(filelist, 0, SREFRESH, LERROR);
+
+	/* A list with no terminator is refused, not read past its end */
+	memset(filelist + 3, 0x6f, SS_FS_CHG_BUF_SIZE - 3);
+	filelist[0] = 1;
+	rc = add(filelist, ef_iccid, 2);
+	len = ss_fs_chg_len(filelist);
+	printf("no terminator: add=%d len=%d\n", rc, len);
 	fflush(stdout);
 
 	ss_fs_chg_dump(filelist, 0, SREFRESH, LERROR);
