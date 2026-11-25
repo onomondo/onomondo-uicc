@@ -9,7 +9,7 @@ struct ss_list;
 
 /* Both overridable at build time. A packed path is 2 bytes per FID plus a
  * 2-byte 0x3F00 terminator, so the deepest standard path (MF/DF/DF/EF) packs
- * into 10 bytes; pack_path() requires an even SS_FS_CHG_PATH_MAXLEN. The
+ * into 10 bytes. The
  * list is a byte budget holding variable-length paths, sized here for
  * SS_FS_CHG_MAX_FILES worst-case ones. It is allocated twice per SIM session
  * (standalone and inside the REFRESH state), so a port on a small heap may
