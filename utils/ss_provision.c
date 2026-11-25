@@ -6,6 +6,8 @@
  * Author: Onomondo ApS
  */
 
+#include <ctype.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -335,4 +337,37 @@ exit:
 	ss_profile_wipe(profile);
 	SS_FREE(profile);
 	return rc;
+}
+
+/* EF.IMSI as the template ships it: a card holding it was never provisioned */
+static const char default_imsi[IMSI_LEN] = "080910100000000010";
+
+/*! Check whether a SoftSIM profile is provisioned
+ *  A card counts as provisioned only while EF.IMSI holds a real subscriber: not
+ *  the template's default, not a zeroed (unbound) IMSI, and not a missing or
+ *  short EF.
+ *  \returns 1 if provisioned, 0 otherwise */
+int onomondo_profile_check_provisioned(void)
+{
+	char imsi[IMSI_LEN];
+	bool zeroed = true;
+	size_t i;
+
+	if (read_ef(IMSI_REL_PATH, imsi, IMSI_LEN) != 0)
+		return 0;
+
+	for (i = 0; i < IMSI_LEN; i++) {
+		if (!isxdigit((unsigned char)imsi[i]))
+			return 0;
+		if (imsi[i] != '0')
+			zeroed = false;
+	}
+	if (zeroed)
+		return 0;
+
+	for (i = 0; i < IMSI_LEN; i++) {
+		if (tolower((unsigned char)imsi[i]) != default_imsi[i])
+			return 1;
+	}
+	return 0;
 }
