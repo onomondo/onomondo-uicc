@@ -41,7 +41,7 @@ extern "C" {
 #define A004_KID_OFFSET (A004_HEADER_SIZE + KEY_SIZE)
 #define SMSC_OFFSET 74 /* TS-Service Centre Address inside an EF.SMSP record (TS 51.011) */
 
-/* Decoded sizes in bytes, for the binary writer. Spelled the same as the nRF
+/* Decoded sizes in bytes, for the binary writer. Spelled the same as the platform
  * port spells them, so both can be in scope. */
 #define ICCID_BIN_LEN (ICCID_LEN / 2)
 #define IMSI_BIN_LEN (IMSI_LEN / 2)
@@ -81,7 +81,7 @@ extern "C" {
 #define END_TAG 0xFF
 
 /* Return values of ss_profile_from_string(). The numbers are fixed: callers log
- * them and tests check them (the nRF port reports 18 and 19 as a CRC failure). */
+ * them and tests check them (platform ports report 18 and 19 as a CRC failure). */
 enum ss_profile_err {
 	SS_PROFILE_OK = 0,
 	SS_PROFILE_ERR_MALFORMED = 1, /* too short, a record runs past the end, or a CRC record covers nothing */
@@ -170,8 +170,8 @@ uint8_t ss_profile_from_string(uint16_t len, const char *input_string, struct ss
 /** Whether the profile carried a record with this field tag (IMSI_TAG..SMSC_TAG). */
 bool ss_profile_has_tag(const struct ss_profile *profile, uint8_t tag);
 
-/** Whether the profile carried every tag provisioning requires: IMSI, ICCID, Ki,
- *  OPc, KIC and KID. */
+/** Whether the profile carried every tag provisioning requires: IMSI, ICCID, Ki
+ *  and OPc. KIC and KID are optional OTA keys. */
 bool ss_profile_has_required_tags(const struct ss_profile *profile);
 
 /** Clear a decoded profile before its memory is released.

@@ -12,8 +12,7 @@
 #include "onomondo/utils/ss_profile.h"
 #include "ss_utils_memzero.h"
 
-#define SS_REQUIRED_TAGS                                                                                    \
-	(SS_TAG_BIT(IMSI_TAG) | SS_TAG_BIT(ICCID_TAG) | SS_TAG_BIT(KI_TAG) | SS_TAG_BIT(OPC_TAG))
+#define SS_REQUIRED_TAGS (SS_TAG_BIT(IMSI_TAG) | SS_TAG_BIT(ICCID_TAG) | SS_TAG_BIT(KI_TAG) | SS_TAG_BIT(OPC_TAG))
 
 /* EF.IMSI byte 1 is the number of bytes after it holding the IMSI (TS 31.102 4.2.2) */
 #define IMSI_MAX_DATA_LEN (IMSI_BIN_LEN - 1)
@@ -139,7 +138,8 @@ static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct 
 				return SS_PROFILE_ERR_MALFORMED;
 			/* The record covers every character in front of it, which is exactly
 			 * what the parser has walked past to get here. */
-			if (ss_profile_crc32(input_string, pos) != ss_profile_uint32_from_hex(&input_string[data_start]))
+			if (ss_profile_crc32(input_string, pos) !=
+			    ss_profile_uint32_from_hex(&input_string[data_start]))
 				return SS_PROFILE_ERR_CRC;
 			/* Nothing behind the record is covered by it, so the record ends the
 			 * profile. Older decoders skip it as an unknown tag, which is only

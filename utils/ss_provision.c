@@ -204,8 +204,9 @@ int ss_profile_write_to_fs(const struct ss_profile *profile)
 	if (!ss_profile_has_required_tags(profile)) {
 		SS_LOGP(SSTORAGE, LERROR, "profile carries no %s, refusing to provision it\n",
 			!ss_profile_has_tag(profile, ICCID_TAG) ? "ICCID" :
-			!ss_profile_has_tag(profile, IMSI_TAG)  ? "IMSI" :
-			!ss_profile_has_tag(profile, KI_TAG)    ? "Ki" : "OPc");
+			!ss_profile_has_tag(profile, IMSI_TAG)	? "IMSI" :
+			!ss_profile_has_tag(profile, KI_TAG)	? "Ki" :
+								  "OPc");
 		return -1;
 	}
 
@@ -284,8 +285,7 @@ int ss_profile_write_to_fs(const struct ss_profile *profile)
 
 	/* EF.SMSP and the SMSC inside it are optional: a profile carrying neither
 	 * keeps what the template shipped. */
-	if (ss_profile_has_tag(profile, SMSP_TAG) &&
-	    write_ef(SMSP_REL_PATH, "r+", 0, profile->smsp, SMSP_LEN) != 0)
+	if (ss_profile_has_tag(profile, SMSP_TAG) && write_ef(SMSP_REL_PATH, "r+", 0, profile->smsp, SMSP_LEN) != 0)
 		goto exit;
 
 	if (ss_profile_has_tag(profile, SMSC_TAG) &&

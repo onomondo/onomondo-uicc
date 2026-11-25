@@ -217,9 +217,9 @@ static struct {
 	size_t len;
 	char hex[EF_HEX_MAX];
 } template_efs[] = {
-	{ "/3f00/2fe2", ICCID_EF, ICCID_LEN },	   { "/3f00/7ff0/6f07", IMSI_EF, IMSI_LEN },
-	{ "/3f00/a001", A001_EF, A001_LEN },	   { "/3f00/a003", A003_EF, A003_LEN },
-	{ "/3f00/a004", A004_EF, A004_LEN },	   { "/3f00/7ff0/6f42", SMSP_EF, SMSP_EF_LEN },
+	{ "/3f00/2fe2", ICCID_EF, ICCID_LEN }, { "/3f00/7ff0/6f07", IMSI_EF, IMSI_LEN },
+	{ "/3f00/a001", A001_EF, A001_LEN },   { "/3f00/a003", A003_EF, A003_LEN },
+	{ "/3f00/a004", A004_EF, A004_LEN },   { "/3f00/7ff0/6f42", SMSP_EF, SMSP_EF_LEN },
 };
 
 #define TEMPLATE_EF_COUNT (sizeof(template_efs) / sizeof(template_efs[0]))
@@ -837,8 +837,7 @@ static int provision_with_keystore(const char *profile_string)
 
 	/* Validated before the key store is touched: a refused profile must not
 	 * have replaced the keys of the one provisioned before it. */
-	if (!ss_profile_has_tag(&profile, ICCID_TAG) || !ss_profile_has_tag(&profile, IMSI_TAG) ||
-	    !ss_profile_has_tag(&profile, KI_TAG) || !ss_profile_has_tag(&profile, OPC_TAG)) {
+	if (!ss_profile_has_required_tags(&profile)) {
 		ss_profile_wipe(&profile);
 		return -1;
 	}

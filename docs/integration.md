@@ -250,8 +250,7 @@ if (rc != SS_PROFILE_OK)
 	return rc;                                       /* p is already wiped */
 
 /* Validate first: a refused profile must not replace the keys of the current one. */
-if (!ss_profile_has_tag(&p, ICCID_TAG) || !ss_profile_has_tag(&p, IMSI_TAG) ||
-    !ss_profile_has_tag(&p, KI_TAG) || !ss_profile_has_tag(&p, OPC_TAG)) {
+if (!ss_profile_has_required_tags(&p)) {        /* ICCID, IMSI, Ki, OPc */
 	ss_profile_wipe(&p);
 	return -1;
 }
