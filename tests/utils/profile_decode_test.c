@@ -2,7 +2,7 @@
  * Copyright (c) 2024 Onomondo ApS. All rights reserved.
  *
  * SPDX-License-Identifier: GPL-3.0-only
- * 
+ *
  * Author: Onomondo ApS
  */
 
@@ -23,12 +23,30 @@ static const char *decrypted_profile_ok =
 	"06" "20" "000102030405060708090A0B0C0D0E0F";
 // clang-format on
 
-static const uint8_t test_profile_ki_uint8[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-						 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F };
-static const uint8_t test_profile_imsi[] = { "080910101032540636" };
-static const uint8_t test_profile_iccid[] = { "98001032547698103214" };
-static const uint8_t test_profile_opc[] = { "00000000000000000000000000000000" };
-static const uint8_t test_profile_ki[] = { "000102030405060708090A0B0C0D0E0F" };
+static const char test_profile_imsi[] = "080910101032540636";
+static const char test_profile_iccid[] = "98001032547698103214";
+static const char test_profile_opc[] = "00000000000000000000000000000000";
+/* The profile carries Ki, KIC and KID in upper case (0A0B...); the decoded
+ * fields hold them in lower case, the format of the EFs. */
+static const char test_profile_ki[] = "000102030405060708090a0b0c0d0e0f";
+
+/* Every field holds the hex characters of its record, in lower case whatever
+ * case the profile carried them in; the provisioning writer converts them for
+ * its storage. */
+static void check_field(const char *what, const uint8_t *field, size_t len, const char *expect)
+{
+	printf("Checking %s\n", what);
+	assert(memcmp(field, expect, len) == 0);
+	printf("Successfully validated %-5s: %.*s\n", what, (int)len, (const char *)field);
+}
+
+static void assert_cleared(const struct ss_profile *profile)
+{
+	static const uint8_t zero[sizeof(struct ss_profile)] = { 0 };
+
+	assert(memcmp(profile, zero, sizeof(*profile)) == 0);
+	printf("Profile struct cleared\n");
+}
 
 static void decode_softsim_profile_test_ok()
 {
@@ -42,86 +60,27 @@ static void decode_softsim_profile_test_ok()
 	printf("Profile decode return value: %d\n", rc);
 	assert(rc == 0);
 
-	printf("Checking ICCID\n");
-	if (memcmp(test_profile_iccid, &profile->_3F00_2FE2, ICCID_LEN) == 0) {
-		printf("Successfully validated ICCID: ");
-		for (size_t print_counter = 0; print_counter < ICCID_LEN; print_counter++) {
-			printf("%c", profile->_3F00_2FE2[print_counter]);
-		}
-		printf("\n");
-	} else {
-		fprintf(stderr, "Failed to validated ICCID\n");
-	}
+	check_field("ICCID", profile->iccid, ICCID_LEN, test_profile_iccid);
+	check_field("IMSI", profile->imsi, IMSI_LEN, test_profile_imsi);
+	check_field("OPC", profile->opc, KEY_SIZE, test_profile_opc);
+	check_field("Ki", profile->ki, KEY_SIZE, test_profile_ki);
+	check_field("KIC", profile->kic, KEY_SIZE, test_profile_ki);
+	check_field("KID", profile->kid, KEY_SIZE, test_profile_ki);
 
-	printf("Checking IMSI\n");
-	if (memcmp(test_profile_imsi, &profile->_3F00_7ff0_6f07, IMSI_LEN) == 0) {
-		printf("Successfully validated IMSI : ");
-		for (size_t print_counter = 0; print_counter < IMSI_LEN; print_counter++) {
-			printf("%c", profile->_3F00_7ff0_6f07[print_counter]);
-		}
-		printf("\n");
-	} else {
-		fprintf(stderr, "Failed to validated IMSI\n");
-	}
+	/* The profile carries every tag provisioning needs, and nothing else. */
+	assert(ss_profile_has_required_tags(profile));
+	assert(ss_profile_has_tag(profile, IMSI_TAG));
+	assert(ss_profile_has_tag(profile, KID_TAG));
+	assert(!ss_profile_has_tag(profile, SMSP_TAG));
+	assert(!ss_profile_has_tag(profile, PIN_1_TAG));
+	assert(!ss_profile_has_tag(profile, CRC32_TAG));
+	printf("Tags: required present, optional absent\n");
 
-	printf("Checking OPC\n");
-	if (memcmp(test_profile_opc, &profile->_3F00_A001[KEY_SIZE], KEY_SIZE) == 0) {
-		printf("Successfully validated OPC  : ");
-		for (size_t print_counter = 0; print_counter < KEY_SIZE; print_counter++) {
-			printf("%c", profile->_3F00_A001[KEY_SIZE + print_counter]);
-		}
-		printf("\n");
-	} else {
-		fprintf(stderr, "Failed to validated OPC\n");
-	}
-
-	printf("Checking Ki\n");
-	if (memcmp(test_profile_ki, &profile->_3F00_A001, KEY_SIZE) == 0) {
-		printf("Successfully validated OPC  : ");
-		for (size_t print_counter = 0; print_counter < KEY_SIZE; print_counter++) {
-			printf("%c", profile->_3F00_A001[print_counter]);
-		}
-		printf("\n");
-	} else {
-		fprintf(stderr, "Failed to validated KI\n");
-	}
-
-	printf("Checking KIC\n");
-	if (memcmp(test_profile_ki, &profile->_3F00_A004[A004_HEADER_SIZE], KEY_SIZE) == 0) {
-		printf("Successfully validated KIC  : ");
-		for (size_t print_counter = 0; print_counter < KEY_SIZE; print_counter++) {
-			printf("%c", profile->_3F00_A004[A004_HEADER_SIZE + print_counter]);
-		}
-		printf("\n");
-	} else {
-		fprintf(stderr, "Failed to validated KIC\n");
-	}
-
-	printf("Checking KIC as bytes\n");
-	if (memcmp(test_profile_ki_uint8, &profile->kic, KEY_SIZE / 2) == 0) {
-		printf("Successfully validated KIC  : ");
-		for (size_t print_counter = 0; print_counter < KEY_SIZE / 2; print_counter++) {
-			printf("%02X", profile->kic[print_counter]);
-		}
-		printf("\n");
-	} else {
-		fprintf(stderr, "Failed to validated KIC\n");
-	}
-
-	printf("Checking KID\n");
-	if (memcmp(test_profile_ki, &profile->_3F00_A004[A004_HEADER_SIZE + KEY_SIZE], KEY_SIZE) == 0) {
-		printf("Successfully validated KID  : ");
-		for (size_t print_counter = 0; print_counter < KEY_SIZE; print_counter++) {
-			printf("%c", profile->_3F00_A004[A004_HEADER_SIZE + KEY_SIZE + print_counter]);
-		}
-		printf("\n");
-	} else {
-		fprintf(stderr, "Failed to validated KID\n");
-	}
-
+	ss_profile_wipe(profile);
 	SS_FREE(profile);
 }
 
+/* EF.IMSI byte 1 is the IMSI length in bytes, 1..8 (TS 31.102 4.2.2); 0xAA is not. */
 static void decode_softsim_profile_test_err_imsi()
 {
 	// clang-format off
@@ -140,29 +99,8 @@ static void decode_softsim_profile_test_err_imsi()
 
 	uint8_t rc = ss_profile_from_string(strlen(decrypted_profile_err), decrypted_profile_err, profile);
 	printf("Profile decode return value: %d\n", rc);
-	assert(rc == 0);
-
-	printf("Checking ICCID\n");
-	if (memcmp(test_profile_iccid, &profile->_3F00_2FE2, ICCID_LEN) == 0) {
-		printf("Successfully validated ICCID: ");
-		for (size_t print_counter = 0; print_counter < ICCID_LEN; print_counter++) {
-			printf("%c", profile->_3F00_2FE2[print_counter]);
-		}
-		printf("\n");
-	} else {
-		fprintf(stderr, "Failed to validated ICCID\n");
-	}
-
-	printf("Checking IMSI\n");
-	if (memcmp(test_profile_imsi, &profile->_3F00_7ff0_6f07, IMSI_LEN) == 0) {
-		printf("Successfully validated IMSI : ");
-		for (size_t print_counter = 0; print_counter < IMSI_LEN; print_counter++) {
-			printf("%c", profile->_3F00_7ff0_6f07[print_counter]);
-		}
-		printf("\n");
-	} else {
-		fprintf(stderr, "Failed to validated IMSI\n");
-	}
+	assert(rc == 10);
+	assert_cleared(profile);
 
 	SS_FREE(profile);
 }
@@ -185,6 +123,7 @@ static void decode_softsim_profile_test_err_bad_length_encoding()
 	uint8_t rc =
 		ss_profile_from_string(strlen(decrypted_profile_err_decode), decrypted_profile_err_decode, &profile);
 	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 13);
 }
 
 static void decode_softsim_profile_test_err_length_no_overflow()
@@ -207,15 +146,16 @@ static void decode_softsim_profile_test_err_length_no_overflow()
 	uint8_t rc =
 		ss_profile_from_string(strlen(decrypted_profile_err_decode), decrypted_profile_err_decode, &profile);
 	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 1);
 }
 
 /* An input too short to hold one TAG(2) + LEN(2) record header is rejected without
- * reading it. Fewer than four trailing characters are ignored regardless of their
- * content, so a profile arriving with a line ending decodes; four or more are
- * parsed as a record header. */
+ * reading it. Every character must be hex, so a line ending is refused: the caller
+ * strips it. The last record must end exactly at the end of the input, so one to
+ * three trailing characters -- too few for a header -- are refused as well. */
 static void decode_softsim_profile_test_short_input()
 {
-	char with_line_ending[256];
+	char buf[256];
 	struct ss_profile profile = { 0 };
 	uint8_t rc;
 
@@ -223,16 +163,27 @@ static void decode_softsim_profile_test_short_input()
 
 	rc = ss_profile_from_string(0, "", &profile);
 	printf("Profile decode return value: %d\n", rc);
-	assert(rc != 0);
+	assert(rc == 1);
 
 	rc = ss_profile_from_string(2, "b0", &profile);
 	printf("Profile decode return value: %d\n", rc);
-	assert(rc != 0);
+	assert(rc == 1);
 
-	snprintf(with_line_ending, sizeof(with_line_ending), "%s\r\n", decrypted_profile_ok);
-	rc = ss_profile_from_string(strlen(with_line_ending), with_line_ending, &profile);
+	printf("TEST: Decode a decrypted Onomondo SoftSIM profile ending in a line ending\n");
+	snprintf(buf, sizeof(buf), "%s\r\n", decrypted_profile_ok);
+	rc = ss_profile_from_string(strlen(buf), buf, &profile);
 	printf("Profile decode return value: %d\n", rc);
-	assert(rc == 0);
+	assert(rc == 3);
+
+	printf("TEST: Decode a decrypted Onomondo SoftSIM profile with 1 to 3 trailing characters\n");
+	for (int n = 1; n <= 3; n++) {
+		/* "0", "04", "042": the start of a Ki record header */
+		snprintf(buf, sizeof(buf), "%s%.*s", decrypted_profile_ok, n, "042");
+		rc = ss_profile_from_string(strlen(buf), buf, &profile);
+		printf("Profile decode return value: %d\n", rc);
+		assert(rc == 1);
+		assert_cleared(&profile);
+	}
 }
 
 /* The same tags as decrypted_profile_ok, as one string so a CRC can be appended.
@@ -260,6 +211,10 @@ static void decode_softsim_profile_test_crc()
 	/* A valid CRC, then an IMSI record the CRC does not cover. */
 	static const char *profile_crc_then_imsi = PROFILE_OK_TAGS "fe08610658d0"
 						   "01" "12" "999999999999999999";
+	/* A valid CRC, then an END record: nothing may follow the CRC, END included. */
+	static const char *profile_crc_then_end = PROFILE_OK_TAGS "fe08610658d0" "ff00";
+	/* A CRC record cut inside its header, too short to be parsed as a record. */
+	static const char *profile_crc_cut = PROFILE_OK_TAGS "fe0";
 	/* Same profile, one character of the Ki flipped. */
 	static const char *profile_crc_body_changed =
 		"01" "12" "080910101032540636"
@@ -310,14 +265,26 @@ static void decode_softsim_profile_test_crc()
 	printf("Profile decode return value: %d\n", rc);
 	assert(rc == 18);
 
-	/* The record ends the profile, so a record appended behind it -- which the CRC
-	 * does not cover -- must not reach the struct. */
+	/* The record covers only what is in front of it, so a record appended behind
+	 * it is refused: a decoder that parses on past the CRC would take it
+	 * unchecked. */
 	printf("TEST: Decode a profile with a record appended after its CRC32\n");
 	rc = ss_profile_from_string(strlen(profile_crc_then_imsi), profile_crc_then_imsi, &profile);
 	printf("Profile decode return value: %d\n", rc);
-	assert(rc == 0);
-	assert(memcmp(profile._3F00_7ff0_6f07, test_profile_imsi, IMSI_LEN) == 0);
-	printf("Appended record ignored\n");
+	assert(rc == 1);
+	assert_cleared(&profile);
+
+	printf("TEST: Decode a profile with an END record after its CRC32\n");
+	rc = ss_profile_from_string(strlen(profile_crc_then_end), profile_crc_then_end, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 1);
+
+	/* Cut inside the CRC header, the record is too short to be recognised; the
+	 * profile must not decode as if it never carried one. */
+	printf("TEST: Decode a profile whose CRC32 record is cut inside its header\n");
+	rc = ss_profile_from_string(strlen(profile_crc_cut), profile_crc_cut, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 1);
 
 	/* A profile without the record must keep decoding, which is what every
 	 * profile in the field looks like. */
@@ -345,15 +312,13 @@ static void decode_softsim_profile_test_err_scrubs()
 		"05" "02" "00";
 	// clang-format on
 	struct ss_profile profile = { 0 };
-	uint8_t zero[sizeof(struct ss_profile)] = { 0 };
 	uint8_t rc;
 
 	printf("TEST: A rejected profile leaves no key material behind\n");
 	rc = ss_profile_from_string(strlen(profile_ki_then_short_kic), profile_ki_then_short_kic, &profile);
 	printf("Profile decode return value: %d\n", rc);
 	assert(rc == 14);
-	assert(memcmp(&profile, zero, sizeof(profile)) == 0);
-	printf("Profile struct cleared\n");
+	assert_cleared(&profile);
 }
 
 /* The four tags the provisioner requires plus the optional OTA keys, see
@@ -368,30 +333,25 @@ static void decode_softsim_profile_test_err_scrubs()
 	"06" "20" "000102030405060708090A0B0C0D0E0F"
 // clang-format on
 
-static void check_pin_field(const struct ss_profile *profile, const char *what, size_t record, size_t offset,
-			    const char *expect)
+static void check_pin_field(const char *what, const uint8_t *field, const char *expect)
 {
-	const uint8_t *field = &profile->_3F00_A003[record * A003_RECORD_SIZE + offset];
-
-	printf("%s: %.*s\n", what, PIN_SIZE, field);
+	printf("%s: %.*s\n", what, PIN_SIZE, (const char *)field);
 	assert(memcmp(field, expect, PIN_SIZE) == 0);
 }
 
-/* A value the PIN code file cannot hold is refused, so a card is never left on
- * the shipped default while the profile says the value was rotated. The struct
- * is cleared with it, as on every other error return. */
-static void check_pin_refused(const char *what, const char *profile_string)
+/* A value that cannot be decoded is refused, so a card is never left on the
+ * shipped default while the profile says the value was rotated. The struct is
+ * cleared with it, as on every other error return. */
+static void check_refused(const char *what, const char *profile_string, uint8_t expect_rc)
 {
 	struct ss_profile profile = { 0 };
-	uint8_t zero[sizeof(struct ss_profile)] = { 0 };
 	uint8_t rc;
 
 	printf("TEST: Decode a decrypted Onomondo SoftSIM profile whose %s cannot be stored\n", what);
 	rc = ss_profile_from_string(strlen(profile_string), profile_string, &profile);
 	printf("Profile decode return value: %d\n", rc);
-	assert(rc == 20);
-	assert(memcmp(&profile, zero, sizeof(profile)) == 0);
-	printf("Profile struct cleared\n");
+	assert(rc == expect_rc);
+	assert_cleared(&profile);
 }
 
 /* A profile carries a PIN as the hex encoded ASCII of its characters, so up to 8
@@ -404,19 +364,30 @@ static void decode_softsim_profile_test_pins()
 	static const char *profile_pins =
 		REQUIRED_TAGS
 		"08" "08" "36383638"                          /* PIN 6868 */
+		"09" "10" "3132333435363738"                  /* PIN2 12345678 */
 		"0b" "10" "3739373937393739"                  /* PUK 79797979 */
 		"0a" "20" "38303334323730323533313133383634"; /* ADM 8034270253113864 */
+	static const char *profile_adm_ascii =
+		REQUIRED_TAGS
+		"0a" "10" "3838383838383838";                 /* ADM 88888888 */
 	/* An ADM that is not hex cannot name 8 bytes. */
 	static const char *profile_adm_not_hex =
 		REQUIRED_TAGS
 		"0a" "20" "414143434545474749494b4b4d4d4f4f"; /* ADM AACCEEGGIIKKMMOO */
+	/* 9 characters: too long for ASCII in 8 bytes, too short to be 16 hex digits */
+	static const char *profile_adm_9 =
+		REQUIRED_TAGS
+		"0a" "12" "313233343536373839";               /* ADM 123456789 */
 	static const char *profile_pin_padded =
 		REQUIRED_TAGS
 		"08" "08" "35363738";                         /* PIN 5678 */
 	static const char *profile_pin_short =
 		REQUIRED_TAGS
 		"08" "04" "3132";                             /* PIN 12, under the four digit minimum */
-	/* The record is a hex string, so a character outside it names no byte. */
+	static const char *profile_pin_odd =
+		REQUIRED_TAGS
+		"08" "09" "313233343";                        /* half a byte */
+	/* The profile is a hex string, so a character outside it is refused up front. */
 	static const char *profile_pin_not_hex =
 		REQUIRED_TAGS
 		"08" "08" "3132zzzz";
@@ -424,27 +395,38 @@ static void decode_softsim_profile_test_pins()
 	struct ss_profile profile = { 0 };
 	uint8_t rc;
 
-	printf("TEST: Decode a decrypted Onomondo SoftSIM profile carrying PIN, PUK and ADM\n");
+	printf("TEST: Decode a decrypted Onomondo SoftSIM profile carrying PIN, PIN2, PUK and ADM\n");
 
 	rc = ss_profile_from_string(strlen(profile_pins), profile_pins, &profile);
 	printf("Profile decode return value: %d\n", rc);
 	assert(rc == 0);
-	check_pin_field(&profile, "PIN1", 0, PIN_OFFSET, "36383638ffffffff");
-	check_pin_field(&profile, "PUK1", 0, PUK_OFFSET, "3739373937393739");
-	check_pin_field(&profile, "PUK2", 1, PUK_OFFSET, "3739373937393739");
-	check_pin_field(&profile, "ADM ", 2, PIN_OFFSET, "8034270253113864");
+	check_pin_field("PIN1", profile.pin1, "36383638ffffffff");
+	check_pin_field("PIN2", profile.pin2, "3132333435363738");
+	check_pin_field("PUK ", profile.puk, "3739373937393739");
+	check_pin_field("ADM ", profile.adm, "8034270253113864");
+	assert(ss_profile_has_tag(&profile, PIN_1_TAG) && ss_profile_has_tag(&profile, PIN_2_TAG) &&
+	       ss_profile_has_tag(&profile, PUK_TAG) && ss_profile_has_tag(&profile, PIN_ADM_TAG));
 
 	printf("TEST: Decode a decrypted Onomondo SoftSIM profile with a PIN shorter than the field\n");
 
-	memset(&profile, 0, sizeof(profile));
 	rc = ss_profile_from_string(strlen(profile_pin_padded), profile_pin_padded, &profile);
 	printf("Profile decode return value: %d\n", rc);
 	assert(rc == 0);
-	check_pin_field(&profile, "PIN1", 0, PIN_OFFSET, "35363738ffffffff");
+	check_pin_field("PIN1", profile.pin1, "35363738ffffffff");
+	assert(!ss_profile_has_tag(&profile, PIN_2_TAG));
 
-	check_pin_refused("ADM", profile_adm_not_hex);
-	check_pin_refused("PIN", profile_pin_short);
-	check_pin_refused("PIN", profile_pin_not_hex);
+	printf("TEST: Decode a decrypted Onomondo SoftSIM profile with an 8 character ADM\n");
+
+	rc = ss_profile_from_string(strlen(profile_adm_ascii), profile_adm_ascii, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+	check_pin_field("ADM ", profile.adm, "3838383838383838");
+
+	check_refused("ADM", profile_adm_not_hex, 20);
+	check_refused("ADM", profile_adm_9, 20);
+	check_refused("PIN", profile_pin_short, 20);
+	check_refused("PIN", profile_pin_odd, 20);
+	check_refused("PIN", profile_pin_not_hex, 3);
 }
 
 /* Deciding which tags a profile must carry belongs to whoever consumes it: the
@@ -458,7 +440,12 @@ static void decode_softsim_profile_test_partial_is_not_an_error()
 		"02" "14" "98001032547698103214"
 		"03" "20" "00000000000000000000000000000000"
 		"04" "20" "000102030405060708090A0B0C0D0E0F";
+	static const char *profile_no_opc =
+		"01" "12" "080910101032540636"
+		"02" "14" "98001032547698103214"
+		"04" "20" "000102030405060708090A0B0C0D0E0F";
 	// clang-format on
+	static const uint8_t zero_key[KEY_SIZE] = { 0 };
 	struct ss_profile profile = { 0 };
 	uint8_t rc;
 
@@ -467,6 +454,46 @@ static void decode_softsim_profile_test_partial_is_not_an_error()
 	rc = ss_profile_from_string(strlen(profile_no_keys), profile_no_keys, &profile);
 	printf("Profile decode return value: %d\n", rc);
 	assert(rc == 0);
+	/* A field without a tag is left zeroed, and the tags say what is missing.
+	 * KIC and KID are optional OTA keys, so the profile still has every tag
+	 * provisioning requires. */
+	assert(ss_profile_has_required_tags(&profile));
+	assert(ss_profile_has_tag(&profile, KI_TAG));
+	assert(!ss_profile_has_tag(&profile, KIC_TAG) && !ss_profile_has_tag(&profile, KID_TAG));
+	assert(memcmp(profile.kic, zero_key, KEY_SIZE) == 0);
+	printf("Missing KIC and KID reported, fields left zeroed\n");
+
+	/* Without the OPc the profile still decodes, but is not enough to provision */
+	rc = ss_profile_from_string(strlen(profile_no_opc), profile_no_opc, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+	assert(!ss_profile_has_tag(&profile, OPC_TAG));
+	assert(!ss_profile_has_required_tags(&profile));
+	printf("Missing OPc reported as not enough to provision\n");
+}
+
+/* Unknown records are skipped, so a newer profile still decodes on this decoder;
+ * an END record ends the profile and whatever follows it is not parsed. */
+static void decode_softsim_profile_test_unknown_and_end()
+{
+	// clang-format off
+	static const char *profile_unknown = REQUIRED_TAGS "80" "04" "abcd";
+	static const char *profile_end = REQUIRED_TAGS "ff" "00" "01" "12" "999999999999999999";
+	// clang-format on
+	struct ss_profile profile = { 0 };
+	uint8_t rc;
+
+	printf("TEST: Decode a decrypted Onomondo SoftSIM profile carrying an unknown record\n");
+	rc = ss_profile_from_string(strlen(profile_unknown), profile_unknown, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+	assert(ss_profile_has_required_tags(&profile));
+
+	printf("TEST: Decode a decrypted Onomondo SoftSIM profile with records after END\n");
+	rc = ss_profile_from_string(strlen(profile_end), profile_end, &profile);
+	printf("Profile decode return value: %d\n", rc);
+	assert(rc == 0);
+	check_field("IMSI", profile.imsi, IMSI_LEN, test_profile_imsi);
 }
 
 int main(int argc, char **argv)
@@ -480,5 +507,6 @@ int main(int argc, char **argv)
 	decode_softsim_profile_test_err_scrubs();
 	decode_softsim_profile_test_partial_is_not_an_error();
 	decode_softsim_profile_test_pins();
+	decode_softsim_profile_test_unknown_and_end();
 	return 0;
 }

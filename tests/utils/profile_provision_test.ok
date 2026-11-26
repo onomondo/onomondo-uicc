@@ -4,6 +4,31 @@ TEST: Provision a SoftSIM profile with SMSC content
 Successfully provisioned and validated SMSC update
 TEST: Provision a SoftSIM profile with SMSP and SMSC content
 Successfully provisioned and validated both SMSP and SMSC
+TEST: Provision a SoftSIM profile carrying every field
+Provisioning return value: 0
+ICCID                          98001032547698103214
+IMSI                           080910101032540636
+A001 Ki                        000102030405060708090a0b0c0d0e0f
+A001 OPc                       aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+A001 flag                      00
+A003 record 1 header kept      0003000a0001
+A003 PIN1                      36383638ffffffff
+A003 PUK record 1              3739373937393739
+A003 PIN2 kept                 31323334ffffffff
+A003 PUK record 2              3739373937393739
+A003 ADM                       8034270253113864
+A004 header                    b00011060101
+A004 KIC                       11111111111111111111111111111111
+A004 KID                       22222222222222222222222222222222
+A004 record 2 erased           ffffffff
+SMSC                           07919408000000f0ffffffff
+TEST: Provision a SoftSIM profile carrying upper case hex
+Provisioning return value: 0
+A001 Ki                        000102030405060708090a0b0c0d0e0f
+A001 OPc                       aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+A004 KIC                       abcdefabcdefabcdefabcdefabcdefab
+SMSC                           07919408000000f0ffffffff
+EFs written in lower case
 TEST: Provision a SoftSIM profile with PIN, PUK and ADM content
 Provisioning return value: 0
 PIN code file: 0003000a000136383638ffffffff37393739373937390003000a008131323334ffffffff373937393739373901030000000a8034270253113864ffffffffffffffff
@@ -13,6 +38,9 @@ PIN code file unchanged
 TEST: Provision a SoftSIM profile without PIN content over a card in use
 Provisioning return value: 0
 PIN code file left as the card had it
+TEST: Provision new PINs over a card with blocked PINs
+Provisioning return value: 0
+Counters cleared for every new value, PIN2 tries kept
 TEST: Provision a SoftSIM profile when the PIN code file write is cut short
 Provisioning return value: -1
 TEST: Provision a SoftSIM profile over a PIN code file with an extra record
@@ -20,6 +48,9 @@ Provisioning return value: 0
 Extra record preserved
 TEST: Provision a SoftSIM profile into a storage tree with no PIN code file
 Provisioning return value: 0
+TEST: Provision a SoftSIM profile over a short PIN code file
+Provisioning return value: -1
+Short PIN code file untouched  0003000a
 TEST: Provision a SoftSIM profile that is missing its Ki
 Provisioning return value: -1
 Key material untouched
@@ -28,3 +59,35 @@ Provisioning return value: 0
 OTA key area left unusable
 TEST: Provision a SoftSIM profile into a storage path that does not exist
 Provisioning return value: -1
+TEST: Check whether a SoftSIM profile is provisioned
+Provisioned IMSI reported as provisioned
+Default IMSI reported as not provisioned
+Zeroed IMSI reported as not provisioned
+Short IMSI reported as not provisioned
+Missing IMSI reported as not provisioned
+TEST: A provisioning that fails partway does not report as provisioned
+First provisioning cut short: not provisioned
+Provisioning over an earlier profile cut short: not provisioned
+Retry provisions the card
+TEST: Provision a full SoftSIM profile with its keys in a key store
+Provisioning return value: 0
+A001 Ki slot: reference        04000000000000000000000000000000
+A001 OPc                       aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+A001 flag                      00
+A004 header                    b00011060101
+A004 KIC slot: reference       05000000000000000000000000000000
+A004 KID slot: reference       06000000000000000000000000000000
+ICCID                          98001032547698103214
+IMSI                           080910101032540636
+A003 PIN1                      36383638ffffffff
+Ki, KIC and KID in the key store, in no file
+Key slot references resolve to the stored keys
+TEST: Provision a SoftSIM profile without KIC or KID with a key store
+Provisioning return value: 0
+Stale OTA keys removed from the key store, A004 erased
+TEST: Refuse a SoftSIM profile without OPc with a key store
+Provisioning return value: -1
+Key store and files untouched
+TEST: Provision with a key store into storage that refuses the IMSI
+Provisioning return value: -1
+Ki removed from the key store

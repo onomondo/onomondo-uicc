@@ -4,12 +4,16 @@
 # Enable testing for current directory and below.
 enable_testing()
 
-# ss_add_test(<name> [FILES] [STDERR] [NO_OK] [LIBS <lib>...] [SOURCES <src>...]) builds <name>.c and SOURCES
-# and runs it in a fresh <name>.run directory, on a copy of files/ with FILES. Its stdout (plus stderr with
-# STDERR) must match <name>.ok, unless NO_OK.
+# ss_add_test(<name> [FILES] [STDERR] [NO_OK] [MAIN <stem>] [LIBS <lib>...] [SOURCES <src>...]) builds <name>.c
+# and SOURCES and runs it in a fresh <name>.run directory, on a copy of files/ with FILES. Its stdout (plus stderr
+# with STDERR) must match <name>.ok, unless NO_OK. MAIN builds <stem>.c and compares against <stem>.ok instead,
+# for one test source built several ways.
 function(ss_add_test name)
-	cmake_parse_arguments(ARG "FILES;STDERR;NO_OK" "" "LIBS;SOURCES" ${ARGN})
-	add_executable(${name} ${name}.c ${ARG_SOURCES})
+	cmake_parse_arguments(ARG "FILES;STDERR;NO_OK" "MAIN" "LIBS;SOURCES" ${ARGN})
+	if(NOT ARG_MAIN)
+		set(ARG_MAIN ${name})
+	endif()
+	add_executable(${name} ${ARG_MAIN}.c ${ARG_SOURCES})
 	target_include_directories(${name} PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/include)
 	target_link_libraries(${name} PRIVATE ${ARG_LIBS})
 	target_compile_options(${name} PRIVATE -UNDEBUG) # the checks are assert()s
@@ -23,7 +27,7 @@ function(ss_add_test name)
 	endif()
 	string(APPEND cmd " || { cat ${name}.out; exit 1; }")
 	if(NOT ARG_NO_OK)
-		string(APPEND cmd " && diff -u --strip-trailing-cr '${CMAKE_CURRENT_SOURCE_DIR}/${name}.ok' ${name}.out")
+		string(APPEND cmd " && diff -u --strip-trailing-cr '${CMAKE_CURRENT_SOURCE_DIR}/${ARG_MAIN}.ok' ${name}.out")
 	endif()
 	add_test(NAME ${name} COMMAND sh -c "${cmd}")
 endfunction()
