@@ -177,6 +177,12 @@ static uint8_t ss_profile_decode(uint16_t len, const char *input_string, struct 
 }
 
 /* See in ss_profile.h */
+bool ss_profile_is_unbind(const char *data, size_t len)
+{
+	return data && len == 2 && data[0] == '0' && data[1] == '0';
+}
+
+/* See in ss_profile.h */
 bool ss_profile_has_tag(const struct ss_profile *profile, uint8_t tag)
 {
 	return tag >= IMSI_TAG && tag <= SMSC_TAG && (profile->tags & SS_TAG_BIT(tag));

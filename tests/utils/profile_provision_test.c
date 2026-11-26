@@ -800,7 +800,153 @@ static void check_provisioned_after_failed_write_test(void)
 }
 
 /* ---------------------------------------------------------------------------
- * A platform with a key store, provisioning the way hypthetical keystore 
+ * Unbinding: the provisioning string "00"
+ * ------------------------------------------------------------------------- */
+
+#define UNBIND "00"
+#define ZERO_ICCID "00000000000000000000"
+#define ZERO_KEY "00000000000000000000000000000000"
+
+/* "00" clears the card's identity and keys: default IMSI, zero ICCID, zero Ki
+ * and OPc, and A004 erased, which turns OTA off. The PINs and SMSP are not the
+ * subscription's, so they stay as they are. */
+static void unbind_test(void)
+{
+	char a003_before[A003_LEN], a003_after[A003_LEN];
+	char smsp_before[SMSP_EF_LEN], smsp_after[SMSP_EF_LEN];
+	char a004[A004_LEN], erased[A004_LEN];
+	int rc;
+
+	printf("TEST: Unbind a provisioned SoftSIM\n");
+	reset_tree();
+	rc = onomondo_profile_provisioning(decrypted_profile_full);
+	assert(rc == 0);
+	assert(onomondo_profile_check_provisioned() == 1);
+	assert(read_ef(A003_EF, a003_before, A003_LEN) == 0);
+	assert(read_ef(SMSP_EF, smsp_before, SMSP_EF_LEN) == 0);
+
+	rc = onomondo_profile_provisioning(UNBIND);
+	printf("Unbind return value: %d\n", rc);
+	assert(rc == 0);
+
+	check_ef("IMSI", IMSI_EF, IMSI_LEN, 0, "080910100000000010");
+	check_ef("ICCID", ICCID_EF, ICCID_LEN, 0, ZERO_ICCID);
+	check_ef("A001 Ki", A001_EF, A001_LEN, A001_KI_OFFSET, ZERO_KEY);
+	check_ef("A001 OPc", A001_EF, A001_LEN, A001_OPC_OFFSET, ZERO_KEY);
+	check_ef("A001 flag", A001_EF, A001_LEN, A001_FLAG_OFFSET, "00");
+
+	memset(erased, 'f', A004_LEN);
+	assert(ef_len(A004_EF) == A004_LEN);
+	assert(read_ef(A004_EF, a004, A004_LEN) == 0);
+	assert(memcmp(a004, erased, A004_LEN) == 0);
+	printf("A004 erased, OTA off\n");
+
+	assert(read_ef(A003_EF, a003_after, A003_LEN) == 0);
+	assert(memcmp(a003_before, a003_after, A003_LEN) == 0);
+	assert(read_ef(SMSP_EF, smsp_after, SMSP_EF_LEN) == 0);
+	assert(memcmp(smsp_before, smsp_after, SMSP_EF_LEN) == 0);
+	printf("PINs and SMSP kept\n");
+
+	assert(onomondo_profile_check_provisioned() == 0);
+	printf("Unbound card reported as not provisioned\n");
+}
+
+/* An unbound card takes a new profile like a fresh one */
+static void unbind_then_provision_test(void)
+{
+	int rc;
+
+	printf("TEST: Provision a SoftSIM again after unbinding it\n");
+	reset_tree();
+	assert(onomondo_profile_provisioning(decrypted_profile_full) == 0);
+	assert(onomondo_profile_provisioning(UNBIND) == 0);
+
+	rc = onomondo_profile_provisioning(decrypted_profile_full);
+	printf("Provisioning return value: %d\n", rc);
+	assert(rc == 0);
+	check_ef("IMSI", IMSI_EF, IMSI_LEN, 0, "080910101032540636");
+	check_ef("A001 Ki", A001_EF, A001_LEN, A001_KI_OFFSET, "000102030405060708090a0b0c0d0e0f");
+	assert(onomondo_profile_check_provisioned() == 1);
+	printf("Card provisioned again\n");
+}
+
+/* Unbinding a card that holds no profile is not an error, nor is doing it twice */
+static void unbind_unprovisioned_test(void)
+{
+	int rc;
+
+	printf("TEST: Unbind a SoftSIM that is not provisioned\n");
+	reset_tree();
+
+	rc = onomondo_profile_provisioning(UNBIND);
+	printf("Unbind return value: %d\n", rc);
+	assert(rc == 0);
+	rc = onomondo_profile_provisioning(UNBIND);
+	printf("Unbind return value: %d\n", rc);
+	assert(rc == 0);
+	assert(onomondo_profile_check_provisioned() == 0);
+	printf("Card stays not provisioned\n");
+}
+
+/* Only "00" exactly unbinds. Strings close to it go to the parser, which refuses
+ * them, and the card keeps its profile. The caller strips line endings, as it
+ * does for a profile. */
+static void unbind_near_miss_test(void)
+{
+	static const char *near_misses[] = { "0", "000", "0000", "00\r\n" };
+	char imsi_before[IMSI_LEN], imsi_after[IMSI_LEN];
+	char a001_before[A001_LEN], a001_after[A001_LEN];
+	size_t i;
+	int rc;
+
+	printf("TEST: Strings close to the unbind string do not unbind\n");
+	reset_tree();
+	assert(onomondo_profile_provisioning(decrypted_profile_full) == 0);
+	assert(read_ef(IMSI_EF, imsi_before, IMSI_LEN) == 0);
+	assert(read_ef(A001_EF, a001_before, A001_LEN) == 0);
+
+	for (i = 0; i < sizeof(near_misses) / sizeof(near_misses[0]); i++) {
+		rc = onomondo_profile_provisioning(near_misses[i]);
+		printf("Provisioning return value: %d\n", rc);
+		assert(rc != 0);
+	}
+
+	assert(read_ef(IMSI_EF, imsi_after, IMSI_LEN) == 0);
+	assert(memcmp(imsi_before, imsi_after, IMSI_LEN) == 0);
+	assert(read_ef(A001_EF, a001_after, A001_LEN) == 0);
+	assert(memcmp(a001_before, a001_after, A001_LEN) == 0);
+	assert(onomondo_profile_check_provisioned() == 1);
+	printf("Card keeps its profile\n");
+}
+
+/* The default IMSI goes first, so an unbind that fails partway still leaves a
+ * card that reads as not provisioned. A directory where A001 should be makes
+ * clearing the keys fail. */
+static void unbind_failed_write_test(void)
+{
+	char a001_path[SS_STORAGE_PATH_MAX + 1];
+	int rc;
+
+	printf("TEST: Unbind into storage that refuses A001\n");
+	reset_tree();
+	assert(onomondo_profile_provisioning(decrypted_profile_full) == 0);
+
+	remove_ef(A001_EF);
+	ef_path(a001_path, sizeof(a001_path), A001_EF);
+	assert(mkdir(a001_path, 0755) == 0);
+
+	rc = onomondo_profile_provisioning(UNBIND);
+	printf("Unbind return value: %d\n", rc);
+	assert(rc == -1);
+	assert(onomondo_profile_check_provisioned() == 0);
+	printf("Card reported as not provisioned\n");
+
+	assert(rmdir(a001_path) == 0);
+	reset_tree();
+}
+
+/* ---------------------------------------------------------------------------
+ * A platform with a key store, provisioning the way hypthetical keystore
  * mechanism will do. 
  *
  * Ki, KIC and KID go into a key store (PSA). Their fields are then
@@ -1013,6 +1159,88 @@ static void keystore_provision_refused_test(void)
 	printf("Key store and files untouched\n");
 }
 
+/* Unbind on a platform with a key store, as a port does it: "00" clears the EFs,
+ * which only held references, and once that succeeded the keys behind them are
+ * destroyed. A port persists the filesystem between the two steps (e.g.
+ * port_commit_fs() on the nRF91); the host filesystem has nothing to commit. */
+static int unbind_with_keystore(const char *profile_string, size_t len)
+{
+	int status;
+
+	if (!ss_profile_is_unbind(profile_string, len))
+		return -1;
+
+	status = onomondo_profile_unbind(); /* default IMSI, ICCID/Ki/OPc zeroed, A004 erased */
+	if (status == 0) {
+		keystore_destroy(KS_KI); /* the EFs only held references */
+		keystore_destroy(KS_KIC);
+		keystore_destroy(KS_KID);
+	}
+	return status;
+}
+
+/* After an unbind the key store is empty and the EFs reference nothing: the
+ * all-zero slot in A001 resolves to no key. */
+static void keystore_unbind_test(void)
+{
+	char a001[A001_LEN], a004[A004_LEN], erased[A004_LEN];
+	int rc;
+
+	printf("TEST: Unbind a SoftSIM whose keys are in a key store\n");
+	reset_tree();
+	memset(keystore, 0, sizeof(keystore));
+	assert(provision_with_keystore(decrypted_profile_full) == 0);
+	assert(keystore[KS_KI].present && keystore[KS_KIC].present && keystore[KS_KID].present);
+
+	rc = unbind_with_keystore(UNBIND, strlen(UNBIND));
+	printf("Unbind return value: %d\n", rc);
+	assert(rc == 0);
+
+	assert(!keystore[KS_KI].present && !keystore[KS_KIC].present && !keystore[KS_KID].present);
+	printf("Key store emptied\n");
+
+	check_ef("A001 Ki slot", A001_EF, A001_LEN, A001_KI_OFFSET, ZERO_KEY);
+	assert(read_ef(A001_EF, a001, A001_LEN) == 0);
+	assert(keystore_resolve(&a001[A001_KI_OFFSET]) == NULL);
+	printf("Zero reference resolves to no key\n");
+
+	memset(erased, 'f', A004_LEN);
+	assert(read_ef(A004_EF, a004, A004_LEN) == 0);
+	assert(memcmp(a004, erased, A004_LEN) == 0);
+	printf("OTA key references erased\n");
+
+	assert(onomondo_profile_check_provisioned() == 0);
+	printf("Unbound card reported as not provisioned\n");
+}
+
+/* An unbind whose write fails keeps the keys: the card may already read as not
+ * provisioned, and a retry still finds the store consistent with what it clears. */
+static void keystore_unbind_failed_write_test(void)
+{
+	char a001_path[SS_STORAGE_PATH_MAX + 1];
+	int rc;
+
+	printf("TEST: Unbind with a key store into storage that refuses A001\n");
+	reset_tree();
+	memset(keystore, 0, sizeof(keystore));
+	assert(provision_with_keystore(decrypted_profile_full) == 0);
+
+	remove_ef(A001_EF);
+	ef_path(a001_path, sizeof(a001_path), A001_EF);
+	assert(mkdir(a001_path, 0755) == 0);
+
+	rc = unbind_with_keystore(UNBIND, strlen(UNBIND));
+	printf("Unbind return value: %d\n", rc);
+	assert(rc == -1);
+	assert(keystore[KS_KI].present && keystore[KS_KIC].present && keystore[KS_KID].present);
+	printf("Keys kept for the retry\n");
+	assert(onomondo_profile_check_provisioned() == 0);
+	printf("Card reported as not provisioned\n");
+
+	assert(rmdir(a001_path) == 0);
+	reset_tree();
+}
+
 /* A write that fails after the keys were imported leaves no Ki behind, so the
  * device reads as not provisioned. A directory where EF.IMSI should be makes the
  * IMSI write fail. */
@@ -1058,10 +1286,17 @@ int main(void)
 	provision_profile_bad_storage_test();
 	check_provisioned_test();
 	check_provisioned_after_failed_write_test();
+	unbind_test();
+	unbind_then_provision_test();
+	unbind_unprovisioned_test();
+	unbind_near_miss_test();
+	unbind_failed_write_test();
 	keystore_provision_full_test();
 	keystore_provision_no_ota_keys_test();
 	keystore_provision_refused_test();
 	keystore_provision_failed_write_test();
+	keystore_unbind_test();
+	keystore_unbind_failed_write_test();
 
 	reset_tree();
 	return 0;

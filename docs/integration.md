@@ -233,8 +233,10 @@ if (onomondo_profile_provisioning(profile_string) != 0)
 	/* malformed, missing a required field, or a write failed */;
 ```
 
-Decodes, writes and wipes the decoded keys from RAM. Returns `0` or `-1`; the reason
-goes to the log (`CONFIG_USE_LOGS`).
+Decodes, writes and wipes the decoded keys from RAM. The string `"00"` unbinds the
+card instead (see [Unbinding](#unbinding)). Returns `0` on success; on failure, the
+parser's `enum ss_profile_err` value for a malformed string, or `-1` (a `NULL`
+string included). The reason goes to the log (`CONFIG_USE_LOGS`).
 
 ### Decode, edit, write
 
@@ -245,6 +247,10 @@ references to them:
 ```c
 #include <onomondo/utils/ss_profile.h>
 #include <onomondo/utils/ss_provision.h>
+
+/* "00" is a command, not a profile: the parser refuses it. */
+if (ss_profile_is_unbind(s, strlen(s)))
+	return platform_unbind();                        /* see Unbinding */
 
 struct ss_profile p;
 uint8_t rc = ss_profile_from_string(strlen(s), s, &p);  /* enum ss_profile_err */
@@ -309,3 +315,60 @@ provisioning tests run against all four combinations.
 `onomondo_profile_check_provisioned()` returns `1` while EF.IMSI holds a real
 subscriber, and `0` when it is missing, short, all zeros, or still the template's
 default IMSI (`080910100000000010`).
+
+### Unbinding
+
+Provisioning the string `"00"` removes the subscription instead of loading one.
+`onomondo_profile_provisioning("00")` does it, and so does calling
+`onomondo_profile_unbind()` directly. A platform with its own provisioning entry point
+(the [decode, edit, write](#decode-edit-write) flow) recognises the command with
+`ss_profile_is_unbind()`, which takes a length, so the buffer needn't be NUL
+terminated. With a key store, its `platform_unbind()` looks like this:
+
+```c
+#include <onomondo/utils/ss_profile.h>
+#include <onomondo/utils/ss_provision.h>
+
+static int platform_unbind(void)
+{
+	int err = onomondo_profile_unbind();   /* a failure may already read as not provisioned: retry */
+	if (!err)
+		err = platform_commit_fs();     /* persist first, if the platform caches files */
+	if (!err) {
+		platform_forget_key(KI_TAG);    /* the EFs only held references */
+		platform_forget_key(KIC_TAG);
+		platform_forget_key(KID_TAG);
+	}
+	return err;
+}
+```
+
+`platform_commit_fs()` stands for whatever makes the writes durable on a platform
+that caches its files (the nRF91 port's `port_commit_fs()`); drop it where writes go
+straight to storage. `platform_forget_key()` is the one from
+[decode, edit, write](#decode-edit-write).
+
+| EF | After `"00"` |
+|---|---|
+| EF.IMSI | the template's default IMSI, so `onomondo_profile_check_provisioned()` returns `0` |
+| EF.ICCID | all zeros |
+| `a001` | Ki and OPc all zeros |
+| `a004` | erased (all `f`): OTA off |
+| `a003`, EF.SMSP | kept: PINs and SMS settings are not the subscription's |
+
+- Only `"00"` exactly. The parser can never accept it as a profile (a record needs at
+  least 4 characters), so no real profile is mistaken for it. Strip line endings
+  first, as for a profile: `"00\r\n"` is refused.
+- It goes through the same writer as a profile, so the default IMSI is written first:
+  an unbind that fails partway still leaves a card that reads as not provisioned.
+  Unbinding a card that is not provisioned succeeds.
+- A card provisioned again after `"00"` behaves like a fresh one.
+- With a key store, the EFs held references, so clearing them leaves the keys in the
+  store. Destroy the slots only after the unbind succeeded (and was persisted): a
+  failed unbind then still has the keys a retry expects. Make the platform's key
+  loader refuse an all-zero reference rather than resolve it to a slot.
+- On flash filesystems, old blocks can keep the previous contents until the
+  filesystem reuses them. Wiping those, if the threat model needs it, is the port's
+  job.
+- A modem that caches the SIM, such as the nRF91's, keeps the old identity until it
+  reads the SIM again (e.g. `AT+CFUN=4`, then `AT+CFUN=1`).
