@@ -236,7 +236,8 @@ static void sms_tx_state_show(struct ss_context *ctx)
 	printf(" resulting ss_uicc_sms_tx_state:\n");
 
 	if (ctx->proactive.sms_tx_state.pending) {
-		printf("  pending SMS as command:  %s\n", ss_hexdump(ctx->proactive.data, ctx->proactive.data_len));
+		printf("  pending SMS as command:  %s\n",
+		       ss_hexdump(ctx->proactive.data->data, ctx->proactive.data_len));
 	}
 
 	SS_LIST_FOR_EACH(&ctx->proactive.sms_tx_state.sm, sm, struct ss_uicc_sms_tx_sm, list) {
@@ -267,6 +268,7 @@ void ss_uicc_sms_tx_test_single(void)
 
 	sms_tx_state_show(&ctx);
 	ss_uicc_sms_tx_clear(&ctx);
+	ss_proactive_reset(&ctx);
 }
 
 void ss_uicc_sms_tx_test_multi(void)
@@ -305,6 +307,7 @@ void ss_uicc_sms_tx_test_multi(void)
 	sms_tx_state_show(&ctx);
 
 	ss_uicc_sms_tx_clear(&ctx);
+	ss_proactive_reset(&ctx);
 }
 
 /* Regression test: an Address-Length whose decoded digits would overflow

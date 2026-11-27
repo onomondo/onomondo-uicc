@@ -11,9 +11,9 @@ struct ss_list;
  * 2-byte 0x3F00 terminator, so the deepest standard path (MF/DF/DF/EF) packs
  * into 10 bytes; pack_path() requires an even SS_FS_CHG_PATH_MAXLEN. The
  * list is a byte budget holding variable-length paths, sized here for
- * SS_FS_CHG_MAX_FILES worst-case ones. It is allocated twice per SIM session
- * (standalone and inside the REFRESH state), so a port on a small heap may
- * want to shrink these. */
+ * SS_FS_CHG_MAX_FILES worst-case ones. It is allocated once per SIM session
+ * and a second time while a REFRESH is pending, so a port on a small heap
+ * may want to shrink these. */
 #ifndef SS_FS_CHG_PATH_MAXLEN
 #define SS_FS_CHG_PATH_MAXLEN 20 /* bytes */
 #endif

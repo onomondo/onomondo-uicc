@@ -218,8 +218,8 @@ struct ss_proactive_ctx {
 	bool enabled;
 	/*! TERMINAL PROFILE: the 39 bytes ETSI TS 102 223 V18.3.0 defines; later ones are RFU */
 	uint8_t term_profile[39];
-	/*! data to be fetched by FETCH command */
-	uint8_t data[256];
+	/*! command to be fetched by FETCH command, allocated while one is pending */
+	struct ss_buf *data;
 	/*! length of data to be fetched by FETCH command */
 	uint8_t data_len;
 	/*! callback to hanle data from TERMINAL RESPONSE command */

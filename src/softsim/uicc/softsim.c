@@ -99,6 +99,7 @@ void ss_free_ctx(struct ss_context *ctx)
 #endif
 
 	ss_uicc_lchan_free(ctx);
+	ss_proactive_reset(ctx);
 
 	if (!ctx->fs_chg_is_borrowed)
 		SS_FREE(ctx->fs_chg_filelist);
@@ -125,6 +126,7 @@ void ss_reset(struct ss_context *ctx)
 	/* Consumes refresh_state, so it runs before the memset below */
 	ss_uicc_refresh_session_end(ctx);
 #endif
+	ss_proactive_reset(ctx);
 	memset(&ctx->proactive, 0, sizeof(ctx->proactive));
 
 #ifndef CONFIG_DISABLE_SMS

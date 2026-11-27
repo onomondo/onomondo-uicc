@@ -151,13 +151,16 @@ int ss_uicc_cat_cmd_fetch(struct ss_apdu *apdu)
 		goto leave;
 	}
 
-	memcpy(apdu->rsp, apdu->ctx->proactive.data, apdu->ctx->proactive.data_len);
+	if (apdu->ctx->proactive.data_len)
+		memcpy(apdu->rsp, apdu->ctx->proactive.data->data, apdu->ctx->proactive.data_len);
 	apdu->rsp_len = apdu->ctx->proactive.data_len;
 
 leave:
 	/* Mark data as consumed so that the status word will no longer
 	 * announce proactive data. */
 	apdu->ctx->proactive.data_len = 0;
+	ss_buf_free(apdu->ctx->proactive.data);
+	apdu->ctx->proactive.data = NULL;
 
 	return rc;
 }
