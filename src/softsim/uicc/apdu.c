@@ -38,9 +38,13 @@ void ss_apdu_toss(struct ss_apdu *apdu)
 	 * resolve a valid lchan. This may happen when a non existing lchan
 	 * is addressed. Nothing can reference it later -- GET RESPONSE reaches
 	 * the previous APDU through lchan->last_apdu -- so free it now instead
-	 * of keeping it for another cycle. */
+	 * of keeping it for another cycle. It still comes between a command and
+	 * its GET RESPONSE, so the pending response is lost (TS 102 221 12.1.1). */
 	if (!apdu->lchan) {
-		SS_LOGP(SLCHAN, LDEBUG, "tossing APDU %p without lchan\n", apdu);
+		SS_LOGP(SLCHAN, LDEBUG, "tossing APDU %p without lchan, and APDU %p (last)\n", apdu,
+			apdu->ctx->lchan.last_apdu);
+		SS_FREE(apdu->ctx->lchan.last_apdu);
+		apdu->ctx->lchan.last_apdu = NULL;
 		SS_FREE(apdu);
 		return;
 	}
@@ -59,9 +63,16 @@ void ss_apdu_toss(struct ss_apdu *apdu)
 	} else {
 		if (apdu->lchan->last_apdu)
 			SS_FREE(apdu->lchan->last_apdu);
-		SS_LOGP(SLCHAN, LDEBUG, "freeing APDU %p (last), keeping APDU %p (current)\n", apdu->lchan->last_apdu,
-			apdu);
-		apdu->lchan->last_apdu = apdu;
+		/* Park only '61xx' data (TS 102 221 12.1.1). 7.3.1.1.4 step 4b also lets GET RESPONSE
+		 * follow a case-4 '62xx'/'63xx'/'9xxx'; no command here returns data with those. */
+		if ((apdu->sw >> 8) == 0x61) {
+			SS_LOGP(SLCHAN, LDEBUG, "keeping APDU %p (current, SW=%04x)\n", apdu, apdu->sw);
+			apdu->lchan->last_apdu = apdu;
+		} else {
+			SS_LOGP(SLCHAN, LDEBUG, "freeing APDU %p (current, SW=%04x)\n", apdu, apdu->sw);
+			apdu->lchan->last_apdu = NULL;
+			SS_FREE(apdu);
+		}
 	}
 }
 

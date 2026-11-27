@@ -270,13 +270,6 @@ static int apdu_transact(struct ss_context *ctx, struct ss_apdu *apdu)
 			SS_LOGP(SLCHAN, LERROR, "no previous APDU in storage, cannot return any response -- abort.\n");
 			goto out;
 		}
-		if (last_apdu->rsp_len == 0) {
-			apdu->rsp_len = 0;
-			apdu->sw = SS_SW_ERR_CHECKING_WRONG_LENGTH;
-			apdu->le = 0;
-			SS_LOGP(SLCHAN, LERROR, "last command did not return any response -- abort.\n");
-			goto out;
-		}
 
 		/* When more data than available is requested, tell the correct
 		 * length of the available data */

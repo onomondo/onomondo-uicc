@@ -1,0 +1,9 @@
+a) GET RESPONSE after reset: 6f00
+b) SELECT MF: 612b
+b) GET RESPONSE, P3 too long: 6c2b
+b) GET RESPONSE: 9000, 43 bytes
+c) GET RESPONSE repeated: 6f00
+d) GET RESPONSE after STATUS without data: 6f00
+e) GET RESPONSE after an intervening command: 6f00
+f) GET RESPONSE after 6Cxx and an intervening command: 6f00
+g) GET RESPONSE after a command on a closed lchan: 6f00
